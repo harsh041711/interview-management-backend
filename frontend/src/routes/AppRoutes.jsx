@@ -17,6 +17,7 @@ import TestEntryPage from '@/features/test/TestEntryPage';
 import PhotoCapturePage from '@/features/test/PhotoCapturePage';
 import TestPage from '@/features/test/TestPage';
 import SubmittedPage from '@/features/test/SubmittedPage';
+import InterviewViewPage from '@/features/interviewView/InterviewViewPage';
 
 export default function AppRoutes() {
   return (
@@ -28,6 +29,7 @@ export default function AppRoutes() {
         <Route path="/test/:token/photo" element={<PhotoCapturePage />} />
         <Route path="/test/:token/run" element={<TestPage />} />
         <Route path="/test/:token/submitted" element={<SubmittedPage />} />
+        <Route path="/interview/:token" element={<InterviewViewPage />} />
       </Route>
 
       <Route

@@ -6,9 +6,7 @@ import submissionReducer from '@/features/submissions/submissionSlice';
 import testReducer from '@/features/test/testSlice';
 import interviewerReducer from '@/features/interviewers/interviewerSlice';
 import interviewReducer from '@/features/interviews/interviewSlice';
-
-// Stub replaced in Phase 2D (features/interviewView/interviewViewSlice.js)
-const interviewViewReducer = (state = {}, _action) => state;
+import interviewViewReducer from '@/features/interviewView/interviewViewSlice';
 
 export const store = configureStore({
   reducer: {

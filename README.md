@@ -106,6 +106,42 @@ cd backend && npm test
 
 Covers `tokenGenerator` (uniqueness, signature, timing-safe verify) and `evaluationService` (mcq exact, multi-select set + partial credit, one-line keyword matching, descriptive AI scoring path).
 
+## Phase 2 — Interview Process
+
+Phase 2 extends the system with the full post-Round-1 workflow.
+
+### Round 1 outcome emails
+
+After a candidate submits (or auto-submits), the system immediately grades the test and fires one of three emails:
+
+- **Shortlisted** (`candidate.status = shortlisted`) — score ≥ 50%, no cheating detected. Candidate is congratulated and told to expect further contact.
+- **Rejected** (`candidate.status = rejected`) — score < 50%, no cheating. Polite rejection email.
+- **Disqualified** (`candidate.status = cheated`) — cheat flag set (tab-switch auto-submit). Test-invalidated notice; no Round 2 eligibility.
+
+### Interviewer roster
+
+HR manages a list of interviewers (name, email, expertise tags). Interviewers have no login; they interact entirely via tokenized email links. Inactive interviewers are hidden from the scheduling picker but not deleted.
+
+### Round 2 scheduling
+
+HR schedules a Round 2 interview for a shortlisted candidate: picks an interviewer, sets a date/time, duration, meeting URL (Zoom / Meet / Teams), and optional notes. The system generates two unique access tokens — one for the candidate, one for the interviewer — and emails both parties a link to their personalized view page.
+
+### Reschedule loop
+
+The interviewer can request a reschedule from their view page (propose a new time + optional reason). HR sees the pending request in the admin panel and approves or rejects it. On approval, the scheduled time updates and both parties receive a re-notification email. On rejection, the original time stands and the interviewer is notified. HR can also directly edit a `scheduled` interview's time (blocked while a reschedule is pending), or mark an interview `completed` or `cancelled`.
+
+### Public interview view — `/interview/:token`
+
+Each party's tokenized URL opens `/interview/:token` — a public page (no login required, separate from the candidate test flow at `/test/:token`). The page shows:
+
+- The scheduled date/time as the headline, with duration and status badge
+- Both parties' names side-by-side
+- A **Join meeting** button that opens the external meeting URL in a new tab (hidden once the interview is completed or cancelled)
+- For the interviewer: an optional HR notes block (if notes were attached when scheduling)
+- For the interviewer: a collapsible **Request reschedule** form when the status allows it
+- A pending-reschedule banner visible to both parties while HR review is in progress
+- A friendly locked-state card (no join button) when the interview is `completed` or `cancelled`
+
 ## Implementation plan
 
 Detailed phased plan in [`docs/superpowers/plans/2026-05-06-interview-management-system.md`](docs/superpowers/plans/2026-05-06-interview-management-system.md).
