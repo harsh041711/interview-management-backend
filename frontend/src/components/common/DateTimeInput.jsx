@@ -23,7 +23,7 @@ export default function DateTimeInput({ label, value, onChange, min, error, hint
   };
 
   return (
-    <div className={`datetime-input field ${error ? 'field--error' : ''}`}>
+    <label className={`datetime-input field ${error ? 'field--error' : ''}`}>
       {label && <span className="field__label">{label}</span>}
       <input
         type="datetime-local"
@@ -38,6 +38,6 @@ export default function DateTimeInput({ label, value, onChange, min, error, hint
         {hint ? ` · ${hint}` : ''}
       </span>
       {error && <span className="field__error">{error}</span>}
-    </div>
+    </label>
   );
 }

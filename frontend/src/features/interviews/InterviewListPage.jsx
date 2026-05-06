@@ -104,8 +104,15 @@ export default function InterviewListPage() {
                   <tr
                     key={iv.id}
                     className="interviews-table__row"
+                    tabIndex={0}
+                    role="button"
                     onClick={() => navigate(`/interviews/${iv.id}`)}
-                    style={{ cursor: 'pointer' }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        navigate(`/interviews/${iv.id}`);
+                      }
+                    }}
                   >
                     <td className="interviews-table__time">
                       <div>{formatScheduledAt(iv.scheduledAt)}</div>

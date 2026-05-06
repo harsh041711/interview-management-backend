@@ -240,7 +240,7 @@ export default function InterviewDetailPage() {
                   <div><strong>Proposed:</strong> {formatScheduledAt(req.proposedAt)}</div>
                   {req.reason && <div><strong>Reason:</strong> {req.reason}</div>}
                   <div>
-                    <StatusBadge status={req.status === 'approved' ? 'shortlisted' : req.status === 'rejected' ? 'rejected' : 'pending'} />
+                    <StatusBadge status={req.status === 'approved' ? 'approved' : req.status === 'rejected' ? 'rejected' : 'pending'} />
                     {req.decidedAt && <> · {formatDate(req.decidedAt)}</>}
                   </div>
                   {req.decisionNote && <div><strong>Note:</strong> {req.decisionNote}</div>}

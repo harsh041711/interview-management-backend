@@ -12,6 +12,7 @@ const VARIANTS = {
   auto_submitted: 'warn',
   // Phase 2C additions
   shortlisted: 'success',
+  approved: 'success',
   rejected: 'danger',
   scheduled: 'info',
   reschedule_requested: 'warn',
@@ -31,6 +32,7 @@ const LABELS = {
   auto_submitted: 'Auto-submitted',
   // Phase 2C additions
   shortlisted: 'Shortlisted',
+  approved: 'Approved',
   rejected: 'Rejected',
   scheduled: 'Scheduled',
   reschedule_requested: 'Reschedule requested',
