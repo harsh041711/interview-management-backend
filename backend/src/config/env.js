@@ -57,6 +57,10 @@ const env = {
     defaultDurationMinutes: toInt(process.env.DEFAULT_TEST_DURATION_MINUTES, 60),
   },
 
+  interview: {
+    defaultDurationMinutes: toInt(process.env.INTERVIEW_DEFAULT_DURATION_MINUTES, 45),
+  },
+
   admin: {
     allowRegister: toBool(process.env.ALLOW_ADMIN_REGISTER, false),
     seed: {

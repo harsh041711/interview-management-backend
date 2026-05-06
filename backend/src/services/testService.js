@@ -14,6 +14,8 @@ const {
   CANDIDATE_STATUS,
   SESSION_STATUS,
   CHEAT_EVENT_TYPES,
+  ROUND1_OUTCOMES,
+  PASS_THRESHOLD_PERCENT,
 } = require('../utils/constants');
 
 // Strip answer-revealing fields before sending question to candidate.
@@ -121,6 +123,16 @@ const startTest = async (candidate, { ipAddress, userAgent } = {}) => {
   };
 };
 
+/**
+ * Pure function — decides Round 1 outcome from eval result.
+ * Exported so unit tests can import it directly.
+ */
+const decideRound1Outcome = ({ percentage, cheatDetected }) => {
+  if (cheatDetected) return ROUND1_OUTCOMES.DISQUALIFIED;
+  if (percentage >= PASS_THRESHOLD_PERCENT) return ROUND1_OUTCOMES.SHORTLISTED;
+  return ROUND1_OUTCOMES.REJECTED;
+};
+
 const queueReportEmail = ({ candidate, submission }) => {
   setImmediate(async () => {
     try {
@@ -133,10 +145,24 @@ const queueReportEmail = ({ candidate, submission }) => {
   });
 };
 
+const queueRound1OutcomeEmail = ({ candidate, submission, outcome }) => {
+  setImmediate(async () => {
+    try {
+      await emailService.sendRound1Result({ candidate, submission, outcome });
+      await submissionRepository.updateById(submission.id, { round1ResultEmailedAt: new Date() });
+    } catch (err) {
+      logger.error('Round 1 outcome email failed', { submissionId: submission.id, outcome, err: err.message });
+      await submissionRepository.updateById(submission.id, { round1ResultEmailError: err.message });
+    }
+  });
+};
+
 const finalize = async ({ candidate, session, answers, autoSubmitted, cheatDetected, cheatReason }) => {
   const populated = await sessionRepository.findByIdPopulated(session.id);
   const questions = populated.questions || [];
   const evalResult = await evaluationService.evaluateAll({ questions, answers: answers || [] });
+
+  const outcome = decideRound1Outcome({ percentage: evalResult.percentage, cheatDetected: Boolean(cheatDetected) });
 
   const submission = await submissionRepository.create({
     candidate: candidate.id,
@@ -149,6 +175,7 @@ const finalize = async ({ candidate, session, answers, autoSubmitted, cheatDetec
     cheatDetected: Boolean(cheatDetected),
     cheatReason: cheatReason || undefined,
     submittedAt: new Date(),
+    round1Outcome: outcome,
   });
 
   await sessionRepository.updateById(session.id, {
@@ -156,10 +183,17 @@ const finalize = async ({ candidate, session, answers, autoSubmitted, cheatDetec
     submittedAt: submission.submittedAt,
   });
 
-  candidate.status = cheatDetected ? CANDIDATE_STATUS.CHEATED : CANDIDATE_STATUS.COMPLETED;
+  if (outcome === ROUND1_OUTCOMES.DISQUALIFIED) {
+    candidate.status = CANDIDATE_STATUS.CHEATED;
+  } else if (outcome === ROUND1_OUTCOMES.SHORTLISTED) {
+    candidate.status = CANDIDATE_STATUS.SHORTLISTED;
+  } else {
+    candidate.status = CANDIDATE_STATUS.REJECTED;
+  }
   await candidate.save();
 
   queueReportEmail({ candidate, submission });
+  queueRound1OutcomeEmail({ candidate, submission, outcome });
 
   return {
     submissionId: submission.id,
@@ -217,4 +251,5 @@ module.exports = {
   autoSubmit,
   sanitizeQuestionForCandidate,
   presentCandidatePublic,
+  decideRound1Outcome,
 };

@@ -29,6 +29,8 @@ const CANDIDATE_STATUS = Object.freeze({
   COMPLETED: 'completed',
   EXPIRED: 'expired',
   CHEATED: 'cheated',
+  SHORTLISTED: 'shortlisted',
+  REJECTED: 'rejected',
 });
 
 const CANDIDATE_STATUS_LIST = Object.values(CANDIDATE_STATUS);
@@ -57,6 +59,35 @@ const ROLES = Object.freeze({ ADMIN: 'admin' });
 
 const AI_PROVIDERS = Object.freeze({ GEMINI: 'gemini', GROQ: 'groq' });
 
+const PASS_THRESHOLD_PERCENT = 50;
+
+const INTERVIEW_DEFAULT_DURATION_MINUTES = 45;
+
+const INTERVIEW_STATUS = Object.freeze({
+  SCHEDULED: 'scheduled',
+  RESCHEDULE_REQUESTED: 'reschedule_requested',
+  COMPLETED: 'completed',
+  CANCELLED: 'cancelled',
+});
+
+const INTERVIEW_STATUS_LIST = Object.values(INTERVIEW_STATUS);
+
+const RESCHEDULE_STATUS = Object.freeze({
+  PENDING: 'pending',
+  APPROVED: 'approved',
+  REJECTED: 'rejected',
+});
+
+const RESCHEDULE_STATUS_LIST = Object.values(RESCHEDULE_STATUS);
+
+const ROUND1_OUTCOMES = Object.freeze({
+  SHORTLISTED: 'shortlisted',
+  REJECTED: 'rejected',
+  DISQUALIFIED: 'disqualified',
+});
+
+const ROUND1_OUTCOMES_LIST = Object.values(ROUND1_OUTCOMES);
+
 module.exports = {
   QUESTION_TYPES,
   QUESTION_TYPE_LIST,
@@ -71,4 +102,12 @@ module.exports = {
   CHEAT_EVENT_TYPE_LIST,
   ROLES,
   AI_PROVIDERS,
+  PASS_THRESHOLD_PERCENT,
+  INTERVIEW_DEFAULT_DURATION_MINUTES,
+  INTERVIEW_STATUS,
+  INTERVIEW_STATUS_LIST,
+  RESCHEDULE_STATUS,
+  RESCHEDULE_STATUS_LIST,
+  ROUND1_OUTCOMES,
+  ROUND1_OUTCOMES_LIST,
 };

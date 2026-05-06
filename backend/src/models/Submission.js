@@ -1,7 +1,7 @@
 'use strict';
 
 const mongoose = require('mongoose');
-const { QUESTION_TYPE_LIST, AI_PROVIDERS } = require('../utils/constants');
+const { QUESTION_TYPE_LIST, AI_PROVIDERS, ROUND1_OUTCOMES } = require('../utils/constants');
 
 const answerSchema = new mongoose.Schema(
   {
@@ -35,6 +35,9 @@ const submissionSchema = new mongoose.Schema(
     cheatDetected: { type: Boolean, default: false },
     cheatReason: { type: String },
     submittedAt: { type: Date, default: Date.now },
+    round1Outcome: { type: String, enum: [...Object.values(ROUND1_OUTCOMES), null], default: null, index: true },
+    round1ResultEmailedAt: { type: Date, default: null },
+    round1ResultEmailError: { type: String, default: null },
     reportEmailedAt: { type: Date },
     reportEmailError: { type: String },
   },

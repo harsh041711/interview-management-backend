@@ -6,6 +6,7 @@ const candidateRoutes = require('./candidateRoutes');
 const questionRoutes = require('./questionRoutes');
 const testRoutes = require('./testRoutes');
 const submissionRoutes = require('./submissionRoutes');
+const interviewerRoutes = require('./interviewerRoutes');
 
 const router = express.Router();
 
@@ -16,5 +17,6 @@ router.use('/candidates', candidateRoutes);
 router.use('/questions', questionRoutes);
 router.use('/test', testRoutes);
 router.use('/submissions', submissionRoutes);
+router.use('/interviewers', interviewerRoutes);
 
 module.exports = router;

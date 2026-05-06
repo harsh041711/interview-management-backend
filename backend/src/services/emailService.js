@@ -7,6 +7,10 @@ const adminRepository = require('../repositories/adminRepository');
 const submissionRepository = require('../repositories/submissionRepository');
 const { buildReportHtml, buildReportText } = require('../templates/reportEmail');
 const { buildInviteHtml, buildInviteText } = require('../templates/inviteEmail');
+const { buildShortlistedHtml, buildShortlistedText } = require('../templates/round1ShortlistedEmail');
+const { buildRejectedHtml, buildRejectedText } = require('../templates/round1RejectedEmail');
+const { buildDisqualifiedHtml, buildDisqualifiedText } = require('../templates/round1DisqualifiedEmail');
+const { ROUND1_OUTCOMES } = require('../utils/constants');
 
 let cachedTransporter = null;
 
@@ -91,4 +95,43 @@ const sendCandidateInvite = async ({ candidate, testUrl }) => {
   return info;
 };
 
-module.exports = { sendInterviewReport, sendCandidateInvite, getTransporter };
+const sendRound1Result = async ({ candidate, submission, outcome }) => {
+  const transporter = getTransporter();
+  if (!transporter) throw new Error('SMTP not configured');
+  if (!candidate?.email) throw new Error('Candidate email is missing');
+
+  const appName = env.appName;
+
+  let subject;
+  let html;
+  let text;
+
+  if (outcome === ROUND1_OUTCOMES.SHORTLISTED) {
+    subject = `You're shortlisted — ${appName} interview`;
+    html = buildShortlistedHtml({ candidate, appName });
+    text = buildShortlistedText({ candidate, appName });
+  } else if (outcome === ROUND1_OUTCOMES.REJECTED) {
+    subject = `${appName} assessment update`;
+    html = buildRejectedHtml({ candidate, appName });
+    text = buildRejectedText({ candidate, appName });
+  } else if (outcome === ROUND1_OUTCOMES.DISQUALIFIED) {
+    subject = `${appName} assessment invalidated`;
+    html = buildDisqualifiedHtml({ candidate, appName });
+    text = buildDisqualifiedText({ candidate, appName });
+  } else {
+    throw new Error(`Unknown Round 1 outcome: ${outcome}`);
+  }
+
+  const info = await transporter.sendMail({
+    from: env.smtp.from,
+    to: candidate.email,
+    subject,
+    text,
+    html,
+  });
+
+  logger.info('Round 1 result sent', { to: candidate.email, outcome, messageId: info.messageId });
+  return info;
+};
+
+module.exports = { sendInterviewReport, sendCandidateInvite, sendRound1Result, getTransporter };
