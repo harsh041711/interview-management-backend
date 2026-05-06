@@ -1,0 +1,22 @@
+.copy-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: $color-surface-2;
+  border: 1px solid $color-border;
+  color: $color-text-muted;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: $radius-md;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 120ms ease, border-color 120ms ease;
+  @include focus-ring;
+
+  &:hover {
+    background: $color-primary-soft;
+    border-color: $color-primary;
+    color: $color-primary;
+  }
+}

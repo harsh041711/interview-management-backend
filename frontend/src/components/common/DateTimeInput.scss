@@ -1,0 +1,7 @@
+.datetime-input {
+  // Inherits .field styles from Input.scss which is globally available.
+  // This file exists for any datetime-specific overrides.
+  input[type="datetime-local"].field__input {
+    cursor: pointer;
+  }
+}

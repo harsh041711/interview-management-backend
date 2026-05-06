@@ -5,10 +5,12 @@ import { fetchMeThunk, logout } from '@/features/auth/authSlice';
 import './AdminLayout.scss';
 
 const NAV = [
-  { to: '/dashboard',   label: 'Dashboard',   icon: '◎' },
-  { to: '/candidates',  label: 'Candidates',  icon: '◉' },
-  { to: '/questions',   label: 'Questions',   icon: '◆' },
-  { to: '/submissions', label: 'Submissions', icon: '☰' },
+  { to: '/dashboard',    label: 'Dashboard',    icon: '◎' },
+  { to: '/candidates',   label: 'Candidates',   icon: '◉' },
+  { to: '/questions',    label: 'Questions',    icon: '◆' },
+  { to: '/submissions',  label: 'Submissions',  icon: '☰' },
+  { to: '/interviewers', label: 'Interviewers', icon: '◈' },
+  { to: '/interviews',   label: 'Interviews',   icon: '⌖' },
 ];
 
 export default function AdminLayout() {

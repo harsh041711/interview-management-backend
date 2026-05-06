@@ -1,0 +1,9 @@
+.interviewer-form {
+  display: flex;
+  flex-direction: column;
+  gap: $space-4;
+
+  &__toggle {
+    // Uses .field + .field__label + select.field__input — no extra styles needed.
+  }
+}

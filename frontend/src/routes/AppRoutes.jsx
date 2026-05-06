@@ -9,6 +9,9 @@ import CandidateListPage from '@/features/candidates/CandidateListPage';
 import QuestionListPage from '@/features/questions/QuestionListPage';
 import SubmissionListPage from '@/features/submissions/SubmissionListPage';
 import SubmissionDetailPage from '@/features/submissions/SubmissionDetailPage';
+import InterviewerListPage from '@/features/interviewers/InterviewerListPage';
+import InterviewListPage from '@/features/interviews/InterviewListPage';
+import InterviewDetailPage from '@/features/interviews/InterviewDetailPage';
 
 import TestEntryPage from '@/features/test/TestEntryPage';
 import PhotoCapturePage from '@/features/test/PhotoCapturePage';
@@ -39,6 +42,9 @@ export default function AppRoutes() {
         <Route path="/questions" element={<QuestionListPage />} />
         <Route path="/submissions" element={<SubmissionListPage />} />
         <Route path="/submissions/:id" element={<SubmissionDetailPage />} />
+        <Route path="/interviewers" element={<InterviewerListPage />} />
+        <Route path="/interviews" element={<InterviewListPage />} />
+        <Route path="/interviews/:id" element={<InterviewDetailPage />} />
       </Route>
 
       <Route path="/" element={<Navigate to="/dashboard" replace />} />

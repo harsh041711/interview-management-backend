@@ -1,0 +1,179 @@
+.interview-detail {
+  display: flex;
+  flex-direction: column;
+  gap: $space-4;
+
+  &__back {
+    color: $color-text-muted;
+    font-size: 13px;
+    align-self: flex-start;
+    &:hover { color: $color-primary; text-decoration: none; }
+  }
+
+  &__card {
+    @include card;
+    display: flex;
+    flex-direction: column;
+    gap: $space-4;
+  }
+
+  &__schedule {
+    display: flex;
+    align-items: center;
+    gap: $space-3;
+    flex-wrap: wrap;
+  }
+
+  &__time {
+    font-size: 18px;
+    font-weight: 700;
+    color: $color-text;
+  }
+
+  &__duration {
+    color: $color-text-muted;
+    font-size: 13px;
+  }
+
+  &__row {
+    display: flex;
+    gap: $space-4;
+    align-items: flex-start;
+  }
+
+  &__row-label {
+    min-width: 120px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: $color-text-muted;
+    padding-top: 2px;
+    flex-shrink: 0;
+  }
+
+  &__name { font-weight: 600; font-size: 15px; }
+  &__email { color: $color-text-muted; font-size: 13px; }
+
+  &__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 4px;
+  }
+
+  &__meeting {
+    display: flex;
+    align-items: center;
+    gap: $space-2;
+    flex-wrap: wrap;
+  }
+
+  &__link {
+    color: $color-primary;
+    font-size: 14px;
+    word-break: break-all;
+  }
+
+  &__copy-row {
+    display: flex;
+    gap: $space-2;
+    flex-wrap: wrap;
+  }
+
+  &__notes {
+    font-size: 14px;
+    color: $color-text-muted;
+    line-height: 1.5;
+  }
+
+  &__outcome {
+    background: $color-success-soft;
+    border: 1px solid lighten($color-success, 30%);
+    color: darken($color-success, 10%);
+    padding: $space-3 $space-4;
+    border-radius: $radius-md;
+    font-size: 14px;
+  }
+
+  &__cancelled {
+    background: $color-surface-2;
+    border: 1px solid $color-border-strong;
+    color: $color-text-muted;
+    padding: $space-3 $space-4;
+    border-radius: $radius-md;
+    font-size: 14px;
+  }
+
+  &__actions {
+    display: flex;
+    gap: $space-2;
+    flex-wrap: wrap;
+    padding-top: $space-2;
+    border-top: 1px solid $color-border;
+  }
+
+  // Pending reschedule banner
+  &__reschedule-banner {
+    @include card;
+    border-left: 4px solid $color-warn;
+    display: flex;
+    flex-direction: column;
+    gap: $space-3;
+
+    h3 { margin: 0; font-size: 15px; color: darken($color-warn, 8%); }
+  }
+
+  &__reschedule-info {
+    display: flex;
+    flex-direction: column;
+    gap: $space-2;
+    font-size: 14px;
+    color: $color-text-muted;
+    strong { color: $color-text; margin-right: 4px; }
+  }
+
+  &__reschedule-actions {
+    display: flex;
+    gap: $space-2;
+  }
+
+  // Reschedule history
+  &__history {
+    @include card;
+  }
+
+  &__history-toggle {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    color: $color-text-muted;
+    font-family: inherit;
+    padding: 0;
+    @include focus-ring;
+    &:hover { color: $color-primary; }
+  }
+
+  &__history-list {
+    list-style: none;
+    padding: 0;
+    margin: $space-3 0 0;
+    display: flex;
+    flex-direction: column;
+    gap: $space-3;
+  }
+
+  &__history-item {
+    font-size: 13px;
+    color: $color-text-muted;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: $space-3;
+    background: $color-surface-2;
+    border-radius: $radius-md;
+    strong { color: $color-text; margin-right: 4px; }
+  }
+}

@@ -15,7 +15,7 @@ import {
 import CreateCandidateModal from './CreateCandidateModal';
 import './CandidateListPage.scss';
 
-const STATUSES = ['', 'pending', 'photo_captured', 'in_progress', 'completed', 'expired', 'cheated'];
+const STATUSES = ['', 'pending', 'photo_captured', 'in_progress', 'completed', 'shortlisted', 'rejected', 'expired', 'cheated'];
 
 export default function CandidateListPage() {
   const dispatch = useDispatch();

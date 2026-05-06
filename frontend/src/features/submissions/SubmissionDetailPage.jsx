@@ -80,6 +80,18 @@ export default function SubmissionDetailPage() {
               ? <span className="submission-detail__email-error">Failed: {selected.reportEmailError}</span>
               : 'Pending'}
         </div>
+        <div>
+          <strong>Round 1 outcome:</strong>{' '}
+          {selected.round1Outcome ? <StatusBadge status={selected.round1Outcome} /> : '—'}
+        </div>
+        <div>
+          <strong>Result email:</strong>{' '}
+          {selected.round1ResultEmailedAt
+            ? `Sent ${formatDate(selected.round1ResultEmailedAt)}`
+            : selected.round1ResultEmailError
+              ? <span className="submission-detail__email-error">Failed: {selected.round1ResultEmailError}</span>
+              : 'Pending'}
+        </div>
       </div>
 
       <h3>Answer breakdown</h3>

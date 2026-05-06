@@ -1,0 +1,63 @@
+.interviews-page {
+  display: flex;
+  flex-direction: column;
+  gap: $space-5;
+
+  &__head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: $space-4;
+    flex-wrap: wrap;
+    h1 { margin: 0; font-size: 22px; }
+  }
+  &__sub { color: $color-text-muted; font-size: 13px; margin: 4px 0 0; }
+
+  &__filters {
+    display: flex;
+    gap: $space-3;
+    flex-wrap: wrap;
+    align-items: center;
+
+    select, .interviews-page__date {
+      padding: 9px 12px;
+      border-radius: $radius-md;
+      border: 1px solid $color-border;
+      background: $color-surface;
+      font-size: 14px;
+      @include focus-ring;
+      &:focus { border-color: $color-primary; }
+    }
+  }
+
+  &__date-label {
+    display: flex;
+    align-items: center;
+    gap: $space-2;
+    font-size: 13px;
+    color: $color-text-muted;
+    font-weight: 600;
+  }
+}
+
+.interviews-table {
+  @include card($space-2);
+  overflow-x: auto;
+
+  table { width: 100%; border-collapse: collapse; }
+  th, td { padding: $space-3 $space-4; border-bottom: 1px solid $color-border; text-align: left; vertical-align: middle; }
+  thead th { color: $color-text-muted; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; }
+  tbody tr:last-child td { border-bottom: 0; }
+  tbody tr:hover { background: $color-surface-2; }
+
+  &__time { font-size: 13px; font-weight: 600; }
+  &__duration { color: $color-text-muted; font-size: 12px; margin-top: 2px; }
+  &__primary { font-weight: 600; font-size: 14px; }
+  &__sub { color: $color-text-muted; font-size: 13px; }
+  &__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 4px;
+  }
+}
