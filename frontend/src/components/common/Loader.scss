@@ -1,0 +1,25 @@
+.loader {
+  display: inline-flex;
+  align-items: center;
+  gap: $space-3;
+  color: $color-text-muted;
+  font-size: 14px;
+
+  &--fullscreen {
+    position: fixed;
+    inset: 0;
+    justify-content: center;
+    background: rgba(247, 248, 251, 0.7);
+    backdrop-filter: blur(2px);
+    z-index: 40;
+  }
+
+  &__spinner {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 2px solid currentColor;
+    border-top-color: transparent;
+    animation: spin 0.8s linear infinite;
+  }
+}

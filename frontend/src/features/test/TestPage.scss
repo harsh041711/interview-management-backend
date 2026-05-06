@@ -1,0 +1,215 @@
+.test-run {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: $color-bg;
+
+  &__header {
+    background: $color-surface;
+    border-bottom: 1px solid $color-border;
+    padding: $space-3 $space-5;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  &__name { font-weight: 600; }
+  &__progress { font-size: 13px; color: $color-text-muted; }
+
+  &__progressbar {
+    height: 3px;
+    background: $color-border;
+    > div {
+      height: 100%;
+      background: $color-primary;
+      transition: width 200ms ease;
+    }
+  }
+
+  &__main {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    padding: $space-6 $space-5;
+  }
+
+  &__question {
+    @include card($space-6);
+    width: 100%;
+    max-width: 760px;
+    display: flex;
+    flex-direction: column;
+    gap: $space-4;
+  }
+
+  &__question-meta {
+    display: flex;
+    gap: $space-2;
+    align-items: center;
+    font-size: 13px;
+    color: $color-text-muted;
+
+    .qr__type {
+      background: $color-info-soft;
+      color: darken($color-info, 18%);
+      padding: 3px 10px;
+      border-radius: $radius-pill;
+      font-weight: 600;
+      font-size: 12px;
+      text-transform: capitalize;
+    }
+  }
+
+  &__question-text {
+    margin: 0;
+    font-size: 19px;
+    font-weight: 600;
+    line-height: 1.5;
+  }
+
+  &__footer {
+    background: $color-surface;
+    border-top: 1px solid $color-border;
+    padding: $space-3 $space-5;
+    display: flex;
+    align-items: center;
+    gap: $space-4;
+    position: sticky;
+    bottom: 0;
+    z-index: 10;
+  }
+
+  &__dots {
+    flex: 1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: center;
+    overflow-x: auto;
+    @include scroll-area;
+  }
+  &__dot {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 1px solid $color-border;
+    background: $color-surface;
+    color: $color-text-muted;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 120ms ease;
+    @include focus-ring;
+    &:hover { border-color: $color-border-strong; }
+    &.is-done { background: $color-success-soft; color: darken($color-success, 8%); border-color: lighten($color-success, 30%); }
+    &.is-current { outline: 3px solid $color-primary-soft; border-color: $color-primary; color: $color-primary; }
+  }
+
+  &__error {
+    @include card;
+    max-width: 460px;
+    margin: 10vh auto;
+    text-align: center;
+    color: $color-text-muted;
+  }
+
+  &__confirm {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.55);
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: $space-5;
+  }
+  &__confirm-card {
+    @include card($space-6);
+    max-width: 420px;
+    width: 100%;
+    h3 { margin: 0 0 $space-3; }
+    p { color: $color-text-muted; }
+  }
+  &__confirm-actions { display: flex; justify-content: flex-end; gap: $space-3; margin-top: $space-4; }
+}
+
+.timer {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  font-size: 16px;
+  background: $color-surface-2;
+  padding: 6px 14px;
+  border-radius: $radius-pill;
+  color: $color-text;
+  font-variant-numeric: tabular-nums;
+
+  &--warn { background: $color-warn-soft; color: darken($color-warn, 6%); }
+  &--danger { background: $color-danger-soft; color: $color-danger; animation: pulse 1.2s ease-in-out infinite; }
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.04); }
+}
+
+.qr {
+  display: flex;
+  flex-direction: column;
+  gap: $space-3;
+
+  &__options {
+    display: flex;
+    flex-direction: column;
+    gap: $space-2;
+  }
+  &__option {
+    display: flex;
+    align-items: center;
+    gap: $space-3;
+    padding: $space-3 $space-4;
+    border: 1px solid $color-border;
+    border-radius: $radius-md;
+    background: $color-surface;
+    cursor: pointer;
+    transition: all 120ms ease;
+    user-select: none;
+
+    input { accent-color: $color-primary; }
+    &:hover { border-color: $color-border-strong; background: $color-surface-2; }
+    &.is-selected {
+      border-color: $color-primary;
+      background: $color-primary-soft;
+    }
+  }
+  &__hint {
+    font-size: 13px;
+    color: $color-text-muted;
+  }
+  &__one-line {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1px solid $color-border;
+    border-radius: $radius-md;
+    font-size: 16px;
+    @include focus-ring;
+    &:focus { border-color: $color-primary; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15); }
+  }
+  &__descriptive {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1px solid $color-border;
+    border-radius: $radius-md;
+    font-size: 15px;
+    font-family: inherit;
+    line-height: 1.55;
+    resize: vertical;
+    min-height: 200px;
+    @include focus-ring;
+    &:focus { border-color: $color-primary; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15); }
+  }
+}

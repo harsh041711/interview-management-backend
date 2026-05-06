@@ -1,0 +1,47 @@
+.dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: $space-6;
+
+  &__head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: $space-4;
+    flex-wrap: wrap;
+
+    h1 { margin: 0; font-size: 22px; }
+  }
+
+  &__sub { color: $color-text-muted; font-size: 14px; margin: 4px 0 0; }
+
+  &__cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: $space-4;
+  }
+
+  &__quick {
+    @include card;
+    h3 { margin-top: 0; }
+    ul { padding-left: 18px; color: $color-text-muted; line-height: 1.7; }
+  }
+}
+
+.stat-card {
+  @include card;
+  display: flex;
+  flex-direction: column;
+  gap: $space-2;
+  border-left: 4px solid $color-border-strong;
+
+  &__label { color: $color-text-muted; font-size: 13px; font-weight: 500; }
+  &__value { font-size: 28px; font-weight: 700; color: $color-text; }
+
+  &--pending  { border-left-color: $color-text-subtle; }
+  &--info     { border-left-color: $color-info; }
+  &--success  { border-left-color: $color-success; }
+  &--warn     { border-left-color: $color-warn; }
+  &--danger   { border-left-color: $color-danger; }
+  &--total    { border-left-color: $color-primary; background: $color-primary-soft; }
+}

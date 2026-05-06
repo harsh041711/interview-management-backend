@@ -1,0 +1,98 @@
+.admin-layout {
+  display: grid;
+  grid-template-columns: $sidebar-width 1fr;
+  min-height: 100vh;
+
+  &__sidebar {
+    background: #0f172a;
+    color: #e2e8f0;
+    display: flex;
+    flex-direction: column;
+    padding: $space-5 $space-4;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+  }
+
+  &__brand {
+    display: flex;
+    align-items: center;
+    gap: $space-3;
+    margin-bottom: $space-6;
+  }
+  &__logo {
+    width: 36px;
+    height: 36px;
+    border-radius: $radius-md;
+    background: $color-primary;
+    color: white;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  &__title { font-weight: 700; font-size: 14px; }
+  &__subtitle { font-size: 12px; color: #94a3b8; }
+
+  &__nav {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+  }
+  &__link {
+    display: flex;
+    align-items: center;
+    gap: $space-3;
+    padding: 9px 12px;
+    border-radius: $radius-md;
+    color: #cbd5e1;
+    font-size: 14px;
+    text-decoration: none;
+    transition: background 120ms ease, color 120ms ease;
+    &:hover { background: rgba(148, 163, 184, 0.1); color: white; }
+    &.is-active { background: $color-primary; color: white; }
+  }
+  &__icon {
+    width: 22px;
+    text-align: center;
+    color: inherit;
+    opacity: 0.85;
+  }
+
+  &__user {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: $space-3;
+    padding: $space-3;
+    background: rgba(148, 163, 184, 0.08);
+    border-radius: $radius-md;
+    margin-top: $space-4;
+  }
+  &__user-name { font-size: 13px; font-weight: 600; }
+  &__user-email { font-size: 12px; color: #94a3b8; }
+  &__logout {
+    background: transparent;
+    border: none;
+    color: #cbd5e1;
+    cursor: pointer;
+    font-size: 16px;
+    padding: 6px 8px;
+    border-radius: $radius-sm;
+    @include focus-ring($color-primary-soft);
+    &:hover { background: rgba(148, 163, 184, 0.15); color: white; }
+  }
+
+  &__main {
+    padding: $space-5 $space-6;
+    background: $color-bg;
+    min-height: 100vh;
+    @include scroll-area;
+  }
+
+  @media (max-width: $bp-md) {
+    grid-template-columns: 1fr;
+    &__sidebar { position: relative; height: auto; }
+  }
+}

@@ -1,0 +1,66 @@
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body, #root { height: 100%; }
+
+body {
+  margin: 0;
+  font-family: $font-sans;
+  background: $color-bg;
+  color: $color-text;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+button { font-family: inherit; }
+
+a {
+  color: $color-primary;
+  text-decoration: none;
+  &:hover { text-decoration: underline; }
+}
+
+h1, h2, h3, h4, h5 {
+  margin: 0 0 $space-3;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+p { margin: 0 0 $space-3; }
+
+input, select, textarea, button { font: inherit; }
+
+img { max-width: 100%; display: block; }
+
+::selection { background: rgba(37, 99, 235, 0.2); }
+
+.app-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 $space-5;
+}
+
+.spinner {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  animation: spin 0.8s linear infinite;
+  display: inline-block;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.fade-in { animation: fade-in 200ms ease both; }
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}

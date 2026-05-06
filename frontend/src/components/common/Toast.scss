@@ -1,0 +1,27 @@
+.toast-container {
+  position: fixed;
+  bottom: $space-5;
+  right: $space-5;
+  display: flex;
+  flex-direction: column;
+  gap: $space-3;
+  z-index: 100;
+  max-width: 360px;
+}
+
+.toast {
+  background: $color-surface;
+  border-radius: $radius-md;
+  box-shadow: $shadow-md;
+  padding: $space-3 $space-4;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  border-left: 4px solid $color-info;
+  animation: fade-in 200ms ease both;
+
+  &--success { border-left-color: $color-success; }
+  &--error   { border-left-color: $color-danger; }
+  &--warn    { border-left-color: $color-warn; }
+  &--info    { border-left-color: $color-info; }
+}

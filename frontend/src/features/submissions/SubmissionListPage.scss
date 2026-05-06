@@ -1,0 +1,43 @@
+.submissions-page {
+  display: flex;
+  flex-direction: column;
+  gap: $space-5;
+
+  &__head {
+    h1 { margin: 0; font-size: 22px; }
+  }
+  &__sub { color: $color-text-muted; font-size: 13px; margin: 4px 0 0; }
+}
+
+.submissions-table {
+  @include card($space-2);
+  overflow-x: auto;
+
+  table { width: 100%; border-collapse: collapse; }
+  th, td { padding: $space-3 $space-4; border-bottom: 1px solid $color-border; text-align: left; vertical-align: middle; }
+  thead th { color: $color-text-muted; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; }
+  tbody tr:last-child td { border-bottom: 0; }
+  tbody tr:hover { background: $color-surface-2; }
+
+  &__candidate {
+    display: flex;
+    align-items: center;
+    gap: $space-3;
+    img { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 1px solid $color-border; }
+  }
+  &__avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: $color-primary-soft;
+    color: $color-primary;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-transform: uppercase;
+  }
+  &__name { font-weight: 600; }
+  &__email { color: $color-text-muted; font-size: 13px; }
+  &__pct { color: $color-text-muted; margin-left: 6px; }
+}

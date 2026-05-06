@@ -1,0 +1,35 @@
+.btn {
+  @include btn-base;
+
+  &--sm { font-size: 13px; padding: 7px 12px; }
+  &--md { font-size: 14px; padding: 10px 16px; }
+  &--lg { font-size: 15px; padding: 12px 20px; }
+  &--block { width: 100%; }
+
+  &--primary {
+    background: $color-primary;
+    color: white;
+    &:hover:not(:disabled) { background: $color-primary-hover; }
+  }
+  &--secondary {
+    background: $color-surface;
+    color: $color-text;
+    border-color: $color-border;
+    &:hover:not(:disabled) { border-color: $color-border-strong; background: $color-surface-2; }
+  }
+  &--ghost {
+    background: transparent;
+    color: $color-text-muted;
+    &:hover:not(:disabled) { background: $color-surface-2; color: $color-text; }
+  }
+  &--danger {
+    background: $color-danger;
+    color: white;
+    &:hover:not(:disabled) { background: darken($color-danger, 6%); }
+  }
+  &--success {
+    background: $color-success;
+    color: white;
+    &:hover:not(:disabled) { background: darken($color-success, 6%); }
+  }
+}

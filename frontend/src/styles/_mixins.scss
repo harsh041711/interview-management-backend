@@ -1,0 +1,66 @@
+@import './variables';
+
+@mixin focus-ring($color: $color-primary) {
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+  &:focus-visible {
+    outline-color: $color;
+  }
+}
+
+@mixin card($padding: $space-5) {
+  background: $color-surface;
+  border: 1px solid $color-border;
+  border-radius: $radius-md;
+  box-shadow: $shadow-sm;
+  padding: $padding;
+}
+
+@mixin badge($bg, $fg) {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: $bg;
+  color: $fg;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: $radius-pill;
+  text-transform: capitalize;
+}
+
+@mixin btn-base {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: inherit;
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 1;
+  padding: 10px 16px;
+  border-radius: $radius-md;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background 120ms ease, transform 120ms ease, border-color 120ms ease;
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+  @include focus-ring;
+}
+
+@mixin sm-up { @media (min-width: $bp-sm) { @content; } }
+@mixin md-up { @media (min-width: $bp-md) { @content; } }
+@mixin lg-up { @media (min-width: $bp-lg) { @content; } }
+
+@mixin scroll-area {
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: $color-border-strong transparent;
+  &::-webkit-scrollbar { width: 8px; height: 8px; }
+  &::-webkit-scrollbar-thumb {
+    background: $color-border-strong;
+    border-radius: 4px;
+  }
+}

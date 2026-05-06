@@ -1,0 +1,60 @@
+import { useEffect } from 'react';
+import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchMeThunk, logout } from '@/features/auth/authSlice';
+import './AdminLayout.scss';
+
+const NAV = [
+  { to: '/dashboard',   label: 'Dashboard',   icon: '◎' },
+  { to: '/candidates',  label: 'Candidates',  icon: '◉' },
+  { to: '/questions',   label: 'Questions',   icon: '◆' },
+  { to: '/submissions', label: 'Submissions', icon: '☰' },
+];
+
+export default function AdminLayout() {
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const { admin, token } = useSelector((s) => s.auth);
+
+  useEffect(() => {
+    if (token && !admin) dispatch(fetchMeThunk());
+  }, [token, admin, dispatch]);
+
+  const onLogout = () => {
+    dispatch(logout());
+    navigate('/login', { replace: true });
+  };
+
+  return (
+    <div className="admin-layout">
+      <aside className="admin-layout__sidebar">
+        <div className="admin-layout__brand">
+          <div className="admin-layout__logo">IM</div>
+          <div>
+            <div className="admin-layout__title">Interview Mgmt</div>
+            <div className="admin-layout__subtitle">Admin console</div>
+          </div>
+        </div>
+        <nav className="admin-layout__nav">
+          {NAV.map((n) => (
+            <NavLink key={n.to} to={n.to} className={({ isActive }) => `admin-layout__link ${isActive ? 'is-active' : ''}`}>
+              <span className="admin-layout__icon">{n.icon}</span>
+              <span>{n.label}</span>
+            </NavLink>
+          ))}
+        </nav>
+        <div className="admin-layout__user">
+          <div>
+            <div className="admin-layout__user-name">{admin?.name || 'Admin'}</div>
+            <div className="admin-layout__user-email">{admin?.email || ''}</div>
+          </div>
+          <button type="button" onClick={onLogout} className="admin-layout__logout" aria-label="Log out">⏻</button>
+        </div>
+      </aside>
+
+      <main className="admin-layout__main">
+        <Outlet />
+      </main>
+    </div>
+  );
+}

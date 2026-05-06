@@ -1,0 +1,50 @@
+'use strict';
+
+const asyncHandler = require('../utils/asyncHandler');
+const { ok, created, noContent } = require('../utils/ApiResponse');
+const candidateService = require('../services/candidateService');
+
+const createCandidate = asyncHandler(async (req, res) => {
+  const candidate = await candidateService.createCandidate(req.body, req.admin.id);
+  return created(res, { candidate }, 'Candidate created');
+});
+
+const listCandidates = asyncHandler(async (req, res) => {
+  const result = await candidateService.list(req.query);
+  return ok(res, result, 'Candidates fetched');
+});
+
+const getCandidate = asyncHandler(async (req, res) => {
+  const result = await candidateService.detail(req.params.id);
+  return ok(res, result, 'Candidate fetched');
+});
+
+const regenerateToken = asyncHandler(async (req, res) => {
+  const candidate = await candidateService.regenerateToken(req.params.id);
+  return ok(res, { candidate }, 'Test token regenerated');
+});
+
+const resendInvite = asyncHandler(async (req, res) => {
+  const result = await candidateService.resendInvite(req.params.id);
+  return ok(res, result, 'Invitation email sent');
+});
+
+const deleteCandidate = asyncHandler(async (req, res) => {
+  await candidateService.remove(req.params.id);
+  return noContent(res);
+});
+
+const stats = asyncHandler(async (_req, res) => {
+  const data = await candidateService.stats();
+  return ok(res, data, 'Stats fetched');
+});
+
+module.exports = {
+  createCandidate,
+  listCandidates,
+  getCandidate,
+  regenerateToken,
+  resendInvite,
+  deleteCandidate,
+  stats,
+};

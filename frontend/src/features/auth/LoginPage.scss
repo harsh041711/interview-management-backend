@@ -1,0 +1,40 @@
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: $space-5;
+  background:
+    radial-gradient(circle at 20% 0%, rgba(37, 99, 235, 0.18), transparent 40%),
+    radial-gradient(circle at 100% 100%, rgba(14, 165, 233, 0.16), transparent 50%),
+    $color-bg;
+
+  &__panel {
+    @include card($space-6);
+    width: 100%;
+    max-width: 420px;
+
+    h1 { font-size: 22px; }
+
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: $space-4;
+      margin-top: $space-4;
+    }
+  }
+
+  &__sub {
+    color: $color-text-muted;
+    font-size: 14px;
+  }
+
+  &__error {
+    background: $color-danger-soft;
+    color: darken($color-danger, 10%);
+    border: 1px solid lighten($color-danger, 30%);
+    padding: $space-3;
+    border-radius: $radius-md;
+    font-size: 13px;
+  }
+}

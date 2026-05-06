@@ -1,0 +1,33 @@
+.submitted {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: $space-5;
+
+  &__card {
+    @include card($space-6);
+    max-width: 460px;
+    width: 100%;
+    text-align: center;
+
+    h1 { margin: $space-4 0 $space-3; font-size: 22px; }
+    p { color: $color-text-muted; line-height: 1.55; }
+  }
+
+  &__icon {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    margin: 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    font-weight: 700;
+    &.is-good { background: $color-success-soft; color: $color-success; }
+    &.is-bad { background: $color-danger-soft; color: $color-danger; }
+  }
+
+  &__sub { font-size: 13px; }
+}

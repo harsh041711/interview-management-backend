@@ -1,0 +1,43 @@
+.question-form {
+  display: flex;
+  flex-direction: column;
+  gap: $space-4;
+
+  .row {
+    display: grid;
+    grid-template-columns: 2fr 1.4fr 1fr 0.8fr;
+    gap: $space-3;
+    @media (max-width: $bp-md) { grid-template-columns: 1fr 1fr; }
+  }
+
+  .options {
+    display: flex;
+    flex-direction: column;
+    gap: $space-2;
+
+    &__row {
+      display: flex;
+      align-items: center;
+      gap: $space-3;
+    }
+    &__input {
+      flex: 1;
+      padding: 9px 12px;
+      border: 1px solid $color-border;
+      border-radius: $radius-md;
+      font-size: 14px;
+      @include focus-ring;
+      &:focus { border-color: $color-primary; }
+    }
+    &__remove {
+      background: transparent;
+      border: none;
+      color: $color-text-muted;
+      font-size: 18px;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: $radius-sm;
+      &:hover { background: $color-surface-2; color: $color-danger; }
+    }
+  }
+}
