@@ -31,7 +31,7 @@ const requireCandidateToken = asyncHandler(async (req, _res, next) => {
     throw ApiError.unauthorized('Test link has expired', { code: 'E_TEST_TOKEN_EXPIRED' });
   }
 
-  if ([CANDIDATE_STATUS.COMPLETED, CANDIDATE_STATUS.CHEATED, CANDIDATE_STATUS.EXPIRED].includes(candidate.status)) {
+  if ([CANDIDATE_STATUS.COMPLETED, CANDIDATE_STATUS.CHEATED, CANDIDATE_STATUS.EXPIRED, CANDIDATE_STATUS.SHORTLISTED, CANDIDATE_STATUS.REJECTED].includes(candidate.status)) {
     throw ApiError.forbidden(`Test session already ${candidate.status}`, { code: 'E_TEST_TOKEN_LOCKED' });
   }
 

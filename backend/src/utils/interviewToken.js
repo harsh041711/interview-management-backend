@@ -4,7 +4,7 @@ const crypto = require('crypto');
 const { v4: uuidv4 } = require('uuid');
 const env = require('../config/env');
 
-const sign = (value, secret = env.testToken.secret) =>
+const sign = (value, secret = env.interview.tokenSecret) =>
   crypto.createHmac('sha256', secret).update(value).digest('hex').slice(0, 32);
 
 /**

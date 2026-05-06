@@ -59,6 +59,7 @@ const env = {
 
   interview: {
     defaultDurationMinutes: toInt(process.env.INTERVIEW_DEFAULT_DURATION_MINUTES, 45),
+    tokenSecret: process.env.INTERVIEW_TOKEN_SECRET || process.env.TEST_TOKEN_SECRET,
   },
 
   admin: {

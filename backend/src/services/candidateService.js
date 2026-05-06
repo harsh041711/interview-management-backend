@@ -77,7 +77,7 @@ const createCandidate = async ({ name, email, techStack, questionCount, duration
 const regenerateToken = async (id) => {
   const candidate = await candidateRepository.findById(id);
   if (!candidate) throw ApiError.notFound('Candidate not found');
-  if ([CANDIDATE_STATUS.IN_PROGRESS, CANDIDATE_STATUS.COMPLETED, CANDIDATE_STATUS.CHEATED].includes(candidate.status)) {
+  if ([CANDIDATE_STATUS.IN_PROGRESS, CANDIDATE_STATUS.COMPLETED, CANDIDATE_STATUS.CHEATED, CANDIDATE_STATUS.SHORTLISTED, CANDIDATE_STATUS.REJECTED].includes(candidate.status)) {
     throw ApiError.conflict(`Cannot regenerate token for ${candidate.status} candidate`);
   }
   const { token, expiresAt } = generateTestToken();
@@ -92,7 +92,7 @@ const regenerateToken = async (id) => {
 const resendInvite = async (id) => {
   const candidate = await candidateRepository.findById(id);
   if (!candidate) throw ApiError.notFound('Candidate not found');
-  if ([CANDIDATE_STATUS.COMPLETED, CANDIDATE_STATUS.CHEATED].includes(candidate.status)) {
+  if ([CANDIDATE_STATUS.COMPLETED, CANDIDATE_STATUS.CHEATED, CANDIDATE_STATUS.SHORTLISTED, CANDIDATE_STATUS.REJECTED].includes(candidate.status)) {
     throw ApiError.conflict(`Cannot resend invite — test already ${candidate.status}`);
   }
   if (candidate.tokenExpiresAt && candidate.tokenExpiresAt.getTime() < Date.now()) {

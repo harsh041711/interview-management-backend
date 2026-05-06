@@ -79,7 +79,7 @@ const startTest = async (candidate, { ipAddress, userAgent } = {}) => {
     }
   }
 
-  if ([CANDIDATE_STATUS.COMPLETED, CANDIDATE_STATUS.CHEATED, CANDIDATE_STATUS.EXPIRED].includes(candidate.status)) {
+  if ([CANDIDATE_STATUS.COMPLETED, CANDIDATE_STATUS.CHEATED, CANDIDATE_STATUS.EXPIRED, CANDIDATE_STATUS.SHORTLISTED, CANDIDATE_STATUS.REJECTED].includes(candidate.status)) {
     throw ApiError.forbidden(`Cannot start test in ${candidate.status} state`);
   }
 
