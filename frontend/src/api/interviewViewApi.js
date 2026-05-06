@@ -16,7 +16,7 @@ export const buildInterviewClient = (token) => {
 export const buildInterviewApi = (token) => {
   const client = buildInterviewClient(token);
   return {
-    getDetails: () => client.get('/interview/details').then((r) => r.data.data),
+    getDetails: () => client.get('/interview/details').then((r) => r.data.data.interview),
     requestReschedule: ({ proposedAt, proposedDurationMinutes, reason }) =>
       client
         .post('/interview/reschedule', { proposedAt, proposedDurationMinutes, reason })

@@ -25,7 +25,7 @@ const updateInterview = asyncHandler(async (req, res) => {
 });
 
 const cancelInterview = asyncHandler(async (req, res) => {
-  const interview = await interviewService.cancel(req.params.id, req.body);
+  const interview = await interviewService.cancel(req.params.id, req.body, req.admin.id);
   return ok(res, { interview }, 'Interview cancelled');
 });
 
@@ -35,12 +35,12 @@ const completeInterview = asyncHandler(async (req, res) => {
 });
 
 const decideReschedule = asyncHandler(async (req, res) => {
-  const rescheduleRequest = await interviewService.decideReschedule(
+  const { request: rescheduleRequest, interview } = await interviewService.decideReschedule(
     req.params.id,
     req.body,
     req.admin.id,
   );
-  return ok(res, { rescheduleRequest }, 'Reschedule decision recorded');
+  return ok(res, { rescheduleRequest, interview }, 'Reschedule decision recorded');
 });
 
 module.exports = {

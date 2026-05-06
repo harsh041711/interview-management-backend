@@ -293,7 +293,8 @@ const schedule = async (
   });
 
   queueScheduledEmails(saved);
-  return presentInterview(saved);
+  const populated = await interviewRepository.findByIdPopulated(saved.id);
+  return presentInterview(populated || saved);
 };
 
 const update = async (id, patch, adminId) => {
@@ -337,7 +338,8 @@ const update = async (id, patch, adminId) => {
     queueScheduledEmails(updated);
   }
 
-  return presentInterview(updated);
+  const populated = await interviewRepository.findByIdPopulated(updated.id);
+  return presentInterview(populated || updated);
 };
 
 const requestReschedule = async (interview, viewerRole, { proposedAt, proposedDurationMinutes, reason }) => {
@@ -380,6 +382,10 @@ const requestReschedule = async (interview, viewerRole, { proposedAt, proposedDu
 const decideReschedule = async (interviewId, { decision, note }, adminId) => {
   const interview = await interviewRepository.findById(interviewId);
   if (!interview) throw ApiError.notFound('Interview not found');
+
+  if (interview.status === INTERVIEW_STATUS.COMPLETED || interview.status === INTERVIEW_STATUS.CANCELLED) {
+    throw ApiError.conflict(`Cannot decide reschedule on ${interview.status} interview`, { code: 'E_INTERVIEW_TERMINAL' });
+  }
 
   const request = await rescheduleRequestRepository.findPendingForInterview(interviewId);
   if (!request) {
@@ -431,10 +437,11 @@ const decideReschedule = async (interviewId, { decision, note }, adminId) => {
     queueRescheduleRejectedEmail(interview, request);
   }
 
-  return request;
+  const populated = await interviewRepository.findByIdPopulated(interviewId);
+  return { request, interview: presentInterview(populated || interview) };
 };
 
-const cancel = async (id, { reason } = {}) => {
+const cancel = async (id, { reason } = {}, adminId) => {
   const interview = await interviewRepository.findById(id);
   if (!interview) throw ApiError.notFound('Interview not found');
   if (interview.status === INTERVIEW_STATUS.COMPLETED) {
@@ -444,12 +451,24 @@ const cancel = async (id, { reason } = {}) => {
     throw ApiError.conflict('Interview is already cancelled', { code: 'E_ALREADY_CANCELLED' });
   }
 
+  // Auto-reject any pending reschedule request to prevent ghost banners
+  const pending = await rescheduleRequestRepository.findPendingForInterview(interview.id);
+  if (pending) {
+    await rescheduleRequestRepository.updateById(pending.id, {
+      status: RESCHEDULE_STATUS.REJECTED,
+      decidedBy: adminId || null,
+      decidedAt: new Date(),
+      decisionNote: 'Auto-rejected: interview was cancelled.',
+    });
+  }
+
   interview.status = INTERVIEW_STATUS.CANCELLED;
   interview.cancelledAt = new Date();
   interview.cancelReason = reason || null;
   await interview.save();
 
-  return presentInterview(interview);
+  const populated = await interviewRepository.findByIdPopulated(interview.id);
+  return presentInterview(populated || interview);
 };
 
 const complete = async (id, { note } = {}) => {
@@ -469,7 +488,8 @@ const complete = async (id, { note } = {}) => {
   interview.completionNote = note || null;
   await interview.save();
 
-  return presentInterview(interview);
+  const populated = await interviewRepository.findByIdPopulated(interview.id);
+  return presentInterview(populated || interview);
 };
 
 const list = async (query) => {

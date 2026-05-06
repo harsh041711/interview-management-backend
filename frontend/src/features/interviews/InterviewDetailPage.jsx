@@ -69,11 +69,11 @@ export default function InterviewDetailPage() {
   const onDecide = async (decision) => {
     setDecidingBusy(true);
     const action = await dispatch(
-      decideReschedule({ id, body: { decision, decisionNote: decisionNote.trim() || undefined } }),
+      decideReschedule({ id, body: { decision, note: decisionNote.trim() || undefined } }),
     );
     setDecidingBusy(false);
     if (decideReschedule.fulfilled.match(action)) {
-      push({ type: 'success', message: `Reschedule ${decision === 'approve' ? 'approved' : 'rejected'}` });
+      push({ type: 'success', message: `Reschedule ${decision === 'approved' ? 'approved' : 'rejected'}` });
       setDecisionNote('');
       refetch();
     } else {
@@ -183,7 +183,7 @@ export default function InterviewDetailPage() {
       </div>
 
       {/* Pending reschedule banner */}
-      {pendingReschedule && (
+      {pendingReschedule && !isTerminal && (
         <div className="interview-detail__reschedule-banner">
           <h3>Pending reschedule request</h3>
           <div className="interview-detail__reschedule-info">
@@ -207,7 +207,7 @@ export default function InterviewDetailPage() {
               variant="success"
               size="sm"
               loading={decidingBusy}
-              onClick={() => onDecide('approve')}
+              onClick={() => onDecide('approved')}
             >
               Approve
             </Button>
@@ -215,7 +215,7 @@ export default function InterviewDetailPage() {
               variant="danger"
               size="sm"
               loading={decidingBusy}
-              onClick={() => onDecide('reject')}
+              onClick={() => onDecide('rejected')}
             >
               Reject
             </Button>
