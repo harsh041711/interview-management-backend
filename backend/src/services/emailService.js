@@ -10,6 +10,10 @@ const { buildInviteHtml, buildInviteText } = require('../templates/inviteEmail')
 const { buildShortlistedHtml, buildShortlistedText } = require('../templates/round1ShortlistedEmail');
 const { buildRejectedHtml, buildRejectedText } = require('../templates/round1RejectedEmail');
 const { buildDisqualifiedHtml, buildDisqualifiedText } = require('../templates/round1DisqualifiedEmail');
+const { buildScheduledHtml, buildScheduledText } = require('../templates/interviewScheduledEmail');
+const { buildRescheduleRequestedHtml, buildRescheduleRequestedText } = require('../templates/rescheduleRequestedEmail');
+const { buildRescheduleApprovedHtml, buildRescheduleApprovedText } = require('../templates/rescheduleApprovedEmail');
+const { buildRescheduleRejectedHtml, buildRescheduleRejectedText } = require('../templates/rescheduleRejectedEmail');
 const { ROUND1_OUTCOMES } = require('../utils/constants');
 
 let cachedTransporter = null;
@@ -134,4 +138,97 @@ const sendRound1Result = async ({ candidate, submission, outcome }) => {
   return info;
 };
 
-module.exports = { sendInterviewReport, sendCandidateInvite, sendRound1Result, getTransporter };
+const sendInterviewScheduled = async ({ recipient, interview, candidate, interviewer, accessUrl }) => {
+  const transporter = getTransporter();
+  if (!transporter) throw new Error('SMTP not configured');
+
+  const scheduledDate = new Date(interview.scheduledAt).toLocaleDateString('en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+  const subject = `Interview scheduled — Round 2 on ${scheduledDate}`;
+  const to = recipient === 'interviewer' ? interviewer.email : candidate.email;
+
+  const html = buildScheduledHtml({
+    recipient,
+    candidate,
+    interviewer,
+    scheduledAt: interview.scheduledAt,
+    durationMinutes: interview.durationMinutes,
+    meetingUrl: interview.meetingUrl,
+    accessUrl,
+    notes: interview.notes,
+  });
+  const text = buildScheduledText({
+    recipient,
+    candidate,
+    interviewer,
+    scheduledAt: interview.scheduledAt,
+    durationMinutes: interview.durationMinutes,
+    meetingUrl: interview.meetingUrl,
+    accessUrl,
+    notes: interview.notes,
+  });
+
+  const info = await transporter.sendMail({ from: env.smtp.from, to, subject, text, html });
+  logger.info('Interview scheduled email sent', { messageId: info.messageId, to, recipient });
+  return info;
+};
+
+const sendRescheduleRequested = async ({ adminEmail, interview, request, candidate, interviewer }) => {
+  const transporter = getTransporter();
+  if (!transporter) throw new Error('SMTP not configured');
+
+  const adminUrl = `${env.frontendUrl}/interviews/${interview.id || interview._id}`;
+  const subject = `Reschedule request — ${interviewer.name} / ${candidate.name}`;
+
+  const html = buildRescheduleRequestedHtml({ interview, request, candidate, interviewer, adminUrl });
+  const text = buildRescheduleRequestedText({ interview, request, candidate, interviewer, adminUrl });
+
+  const info = await transporter.sendMail({ from: env.smtp.from, to: adminEmail, subject, text, html });
+  logger.info('Reschedule requested email sent', { messageId: info.messageId, to: adminEmail });
+  return info;
+};
+
+const sendRescheduleApproved = async ({ recipient, interview, candidate, interviewer, accessUrl, decisionNote }) => {
+  const transporter = getTransporter();
+  if (!transporter) throw new Error('SMTP not configured');
+
+  const to = recipient === 'interviewer' ? interviewer.email : candidate.email;
+  const subject = `Reschedule approved — new interview time confirmed`;
+
+  const html = buildRescheduleApprovedHtml({ recipient, candidate, interviewer, interview, accessUrl, decisionNote });
+  const text = buildRescheduleApprovedText({ recipient, candidate, interviewer, interview, accessUrl, decisionNote });
+
+  const info = await transporter.sendMail({ from: env.smtp.from, to, subject, text, html });
+  logger.info('Reschedule approved email sent', { messageId: info.messageId, to, recipient });
+  return info;
+};
+
+const sendRescheduleRejected = async ({ interview, candidate, interviewer, request }) => {
+  const transporter = getTransporter();
+  if (!transporter) throw new Error('SMTP not configured');
+
+  const to = interviewer.email;
+  const subject = `Reschedule request rejected — original schedule stands`;
+
+  const html = buildRescheduleRejectedHtml({ candidate, interviewer, interview, request });
+  const text = buildRescheduleRejectedText({ candidate, interviewer, interview, request });
+
+  const info = await transporter.sendMail({ from: env.smtp.from, to, subject, text, html });
+  logger.info('Reschedule rejected email sent', { messageId: info.messageId, to });
+  return info;
+};
+
+module.exports = {
+  sendInterviewReport,
+  sendCandidateInvite,
+  sendRound1Result,
+  sendInterviewScheduled,
+  sendRescheduleRequested,
+  sendRescheduleApproved,
+  sendRescheduleRejected,
+  getTransporter,
+};

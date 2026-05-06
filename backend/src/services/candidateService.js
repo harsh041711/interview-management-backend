@@ -2,6 +2,8 @@
 
 const candidateRepository = require('../repositories/candidateRepository');
 const submissionRepository = require('../repositories/submissionRepository');
+const interviewRepository = require('../repositories/interviewRepository');
+const rescheduleRequestRepository = require('../repositories/rescheduleRequestRepository');
 const { generateTestToken } = require('../utils/tokenGenerator');
 const { destroyAsset } = require('./uploadService');
 const emailService = require('./emailService');
@@ -122,6 +124,33 @@ const detail = async (id) => {
 const remove = async (id) => {
   const candidate = await candidateRepository.findById(id);
   if (!candidate) throw ApiError.notFound('Candidate not found');
+
+  // Cascade: delete all interviews (and their reschedule requests) for this candidate
+  try {
+    const interviews = await interviewRepository.list({ candidateId: id, limit: 1000 });
+    for (const interview of interviews.items) {
+      const interviewId = interview._id || interview.id;
+      try {
+        await rescheduleRequestRepository.deleteByInterview(interviewId);
+      } catch (err) {
+        logger.error('Failed to delete reschedule requests for interview', {
+          interviewId,
+          err: err.message,
+        });
+      }
+      try {
+        await interviewRepository.deleteById(interviewId);
+      } catch (err) {
+        logger.error('Failed to delete interview', { interviewId, err: err.message });
+      }
+    }
+  } catch (err) {
+    logger.error('Failed to cascade-delete interviews for candidate', {
+      candidateId: id,
+      err: err.message,
+    });
+  }
+
   if (candidate.photoPublicId) {
     await destroyAsset(candidate.photoPublicId);
   }

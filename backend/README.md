@@ -2,6 +2,10 @@
 
 Node.js + Express + MongoDB API for the Interview Management System. Layered architecture (controllers → services → repositories → models), JWT for admin auth, signed UUID test tokens for candidates, Gemini (primary) + Grok (fallback) for AI evaluation, Cloudinary for photo storage, Nodemailer for HR reports, Socket.io for live proctor signals.
 
+## Phase 2
+
+Phase 2 adds the full Round 2 interview lifecycle on top of Phase 1's assessment pipeline. Phase 2A added the `Interviewer` CRUD foundation and outcome emails. Phase 2B adds `Interview` and `RescheduleRequest` models, the scheduling service (shortlisted-only, active-interviewer, no-overlap guards), a token-based public API for candidate and interviewer views, a reschedule request/approve/reject loop, and four new email templates (scheduled, reschedule-requested, reschedule-approved, reschedule-rejected). `candidateService.remove` now cascades to interviews and their reschedule requests; `interviewerService.remove` blocks when active interviews exist. The email system now covers **8 templates total**: invite, Round 1 shortlisted, rejected, disqualified, HR report (5 from Phase 1), plus interview scheduled, reschedule requested, approved, and rejected (added in Phase 2). The interview token secret is controlled by `INTERVIEW_TOKEN_SECRET` (falls back to `TEST_TOKEN_SECRET` if unset).
+
 ## Requirements
 
 - Node.js >= 18
@@ -94,6 +98,39 @@ src/
 | POST   | `/test/submit`      | Submit answers, evaluate, email report |
 | POST   | `/test/auto-submit` | Anti-cheat trigger; locks session |
 
+### Interviewers (admin)
+
+| Method | Path                | Description |
+| ------ | ------------------- | ----------- |
+| POST   | `/interviewers`     | Create interviewer |
+| GET    | `/interviewers`     | List with `?page&limit&search&isActive` |
+| GET    | `/interviewers/:id` | Detail |
+| PUT    | `/interviewers/:id` | Update (name, email, expertise, notes, isActive) |
+| DELETE | `/interviewers/:id` | Delete (blocked if active interviews exist) |
+
+### Interviews — admin (`/interviews`)
+
+All routes require Bearer JWT.
+
+| Method | Path                               | Description |
+| ------ | ---------------------------------- | ----------- |
+| POST   | `/interviews`                      | Schedule a Round 2 interview (candidate must be shortlisted, interviewer must be active, no overlap) |
+| GET    | `/interviews`                      | List with `?page&limit&status&candidateId&interviewerId&from&to` |
+| GET    | `/interviews/:id`                  | Detail + pending reschedule + full history |
+| PUT    | `/interviews/:id`                  | Update fields (scheduledAt, durationMinutes, meetingUrl, notes) |
+| POST   | `/interviews/:id/cancel`           | Cancel with optional reason |
+| POST   | `/interviews/:id/complete`         | Complete with optional note |
+| POST   | `/interviews/:id/reschedule-decision` | Approve or reject pending reschedule request |
+
+### Interview — public token-based (`/interview`)
+
+Pass the access token via `x-interview-token` header or `?token=` query param.
+
+| Method | Path                  | Description |
+| ------ | --------------------- | ----------- |
+| GET    | `/interview/details`  | View interview details for the token holder (candidate or interviewer) |
+| POST   | `/interview/reschedule` | Interviewer submits a reschedule request (rate-limited 3/min) |
+
 ### Submissions (admin)
 
 | Method | Path                                         | Description |
@@ -143,4 +180,4 @@ If the entire chain is exhausted:
 npm test
 ```
 
-Unit tests cover `tokenGenerator` and `evaluationService`.
+Unit tests cover `tokenGenerator`, `interviewToken`, `evaluationService`, `round1Outcome`, and `interviewService` (31 tests total).

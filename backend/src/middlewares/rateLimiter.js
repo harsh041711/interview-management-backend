@@ -27,4 +27,10 @@ const testStartLimiter = buildLimiter({
   message: 'Too many test-start attempts.',
 });
 
-module.exports = { globalLimiter, loginLimiter, testStartLimiter, buildLimiter };
+const rescheduleLimiter = buildLimiter({
+  windowMs: 60_000,
+  max: 3,
+  message: 'Too many reschedule attempts.',
+});
+
+module.exports = { globalLimiter, loginLimiter, testStartLimiter, rescheduleLimiter, buildLimiter };

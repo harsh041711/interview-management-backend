@@ -1,7 +1,9 @@
 'use strict';
 
 const interviewerRepository = require('../repositories/interviewerRepository');
+const interviewRepository = require('../repositories/interviewRepository');
 const ApiError = require('../utils/ApiError');
+const { INTERVIEW_STATUS } = require('../utils/constants');
 
 const presentInterviewer = (doc) => ({
   id: doc.id,
@@ -58,9 +60,20 @@ const update = async (id, updates) => {
 };
 
 const remove = async (id) => {
-  // blocked-on-2B-count: returns 0 until interview repo exists
   const doc = await interviewerRepository.findById(id);
   if (!doc) throw ApiError.notFound('Interviewer not found');
+
+  const activeCount = await interviewRepository.countByInterviewer(id, [
+    INTERVIEW_STATUS.SCHEDULED,
+    INTERVIEW_STATUS.RESCHEDULE_REQUESTED,
+  ]);
+  if (activeCount > 0) {
+    throw ApiError.conflict(
+      'Interviewer has active interviews — cancel or complete them first',
+      { code: 'E_INTERVIEWER_IN_USE' },
+    );
+  }
+
   await interviewerRepository.deleteById(id);
   return { id };
 };
