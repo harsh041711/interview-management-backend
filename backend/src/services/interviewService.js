@@ -4,9 +4,9 @@ const interviewRepository = require('../repositories/interviewRepository');
 const rescheduleRequestRepository = require('../repositories/rescheduleRequestRepository');
 const candidateRepository = require('../repositories/candidateRepository');
 const interviewerRepository = require('../repositories/interviewerRepository');
-const adminRepository = require('../repositories/adminRepository');
 const { generateInterviewToken } = require('../utils/interviewToken');
 const emailService = require('./emailService');
+const { resolveHrEmail } = emailService;
 const ApiError = require('../utils/ApiError');
 const logger = require('../config/logger');
 const env = require('../config/env');
@@ -109,13 +109,6 @@ const presentInterview = (interview, { viewerRole, latestPendingReschedule } = {
 // ---------------------------------------------------------------------------
 // Fire-and-forget email helpers
 // ---------------------------------------------------------------------------
-
-const resolveHrEmail = async () => {
-  const admin = await adminRepository.findByEmail(env.admin.seed.email || '');
-  if (admin?.hrNotificationEmail) return admin.hrNotificationEmail;
-  if (env.admin.seed.hrEmail) return env.admin.seed.hrEmail;
-  return env.smtp.user;
-};
 
 /**
  * Ensure candidate and interviewer are plain JS objects (populated fields).

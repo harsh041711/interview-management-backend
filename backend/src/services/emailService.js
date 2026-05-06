@@ -181,7 +181,8 @@ const sendRescheduleRequested = async ({ adminEmail, interview, request, candida
   const transporter = getTransporter();
   if (!transporter) throw new Error('SMTP not configured');
 
-  const adminUrl = `${env.frontendUrl}/interviews/${interview.id || interview._id}`;
+  const baseUrl = env.frontendUrl.replace(/\/$/, '');
+  const adminUrl = `${baseUrl}/interviews/${interview.id || interview._id}`;
   const subject = `Reschedule request — ${interviewer.name} / ${candidate.name}`;
 
   const html = buildRescheduleRequestedHtml({ interview, request, candidate, interviewer, adminUrl });
@@ -223,6 +224,7 @@ const sendRescheduleRejected = async ({ interview, candidate, interviewer, reque
 };
 
 module.exports = {
+  resolveHrEmail,
   sendInterviewReport,
   sendCandidateInvite,
   sendRound1Result,
