@@ -49,6 +49,16 @@ const stats = asyncHandler(async (_req, res) => {
   return ok(res, data, 'Stats fetched');
 });
 
+const selectCandidate = asyncHandler(async (req, res) => {
+  const candidate = await candidateService.select(req.params.id);
+  return ok(res, { candidate }, 'Candidate selected');
+});
+
+const rejectCandidate = asyncHandler(async (req, res) => {
+  const candidate = await candidateService.reject(req.params.id, req.body);
+  return ok(res, { candidate }, 'Candidate rejected');
+});
+
 module.exports = {
   createCandidate,
   listCandidates,
@@ -59,4 +69,6 @@ module.exports = {
   uploadResume,
   removeResume,
   stats,
+  selectCandidate,
+  rejectCandidate,
 };

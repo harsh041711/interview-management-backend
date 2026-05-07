@@ -5,6 +5,7 @@ const candidateRepository = require('../repositories/candidateRepository');
 const submissionRepository = require('../repositories/submissionRepository');
 const interviewRepository = require('../repositories/interviewRepository');
 const rescheduleRequestRepository = require('../repositories/rescheduleRequestRepository');
+const reviewRepository = require('../repositories/reviewRepository');
 const { generateTestToken } = require('../utils/tokenGenerator');
 const { destroyAsset, uploadBufferToCloudinary } = require('./uploadService');
 const emailService = require('./emailService');
@@ -230,6 +231,52 @@ const removeResume = async (id) => {
 
 const stats = async () => candidateRepository.countByStatus();
 
+const select = async (id) => {
+  const c = await candidateRepository.findById(id);
+  if (!c) throw ApiError.notFound('Candidate not found');
+  if (c.status !== CANDIDATE_STATUS.AWAITING_DECISION) {
+    throw ApiError.conflict('Candidate not awaiting decision', { code: 'E_BAD_STATUS' });
+  }
+  const review = await reviewRepository.findByCandidate(id);
+  if (!review) throw ApiError.conflict('No review yet', { code: 'E_NO_REVIEW' });
+
+  c.status = CANDIDATE_STATUS.SELECTED_FOR_CULTURE;
+  await c.save();
+
+  setImmediate(async () => {
+    try {
+      await emailService.sendCultureFitInvite({ candidate: c });
+    } catch (err) {
+      logger.error('Culture-fit email failed', { candidateId: id, err: err.message });
+    }
+  });
+
+  return presentCandidate(c);
+};
+
+const reject = async (id, { note } = {}) => {
+  const c = await candidateRepository.findById(id);
+  if (!c) throw ApiError.notFound('Candidate not found');
+  if (c.status !== CANDIDATE_STATUS.AWAITING_DECISION) {
+    throw ApiError.conflict('Candidate not awaiting decision', { code: 'E_BAD_STATUS' });
+  }
+  const review = await reviewRepository.findByCandidate(id);
+  if (!review) throw ApiError.conflict('No review yet', { code: 'E_NO_REVIEW' });
+
+  c.status = CANDIDATE_STATUS.FINAL_REJECTED;
+  await c.save();
+
+  setImmediate(async () => {
+    try {
+      await emailService.sendFinalRejection({ candidate: c, note: note || null });
+    } catch (err) {
+      logger.error('Final rejection email failed', { candidateId: id, err: err.message });
+    }
+  });
+
+  return presentCandidate(c);
+};
+
 module.exports = {
   createCandidate,
   regenerateToken,
@@ -242,4 +289,6 @@ module.exports = {
   removeResume,
   presentCandidate,
   buildTestUrl,
+  select,
+  reject,
 };

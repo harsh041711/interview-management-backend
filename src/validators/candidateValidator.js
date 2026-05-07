@@ -29,4 +29,9 @@ const listCandidatesSchema = {
   }),
 };
 
-module.exports = { createCandidateSchema, idParamSchema, listCandidatesSchema };
+const rejectSchema = {
+  params: Joi.object({ id: objectId.required() }),
+  body: Joi.object({ note: Joi.string().max(2000).allow('', null).optional() }),
+};
+
+module.exports = { createCandidateSchema, idParamSchema, listCandidatesSchema, rejectSchema };

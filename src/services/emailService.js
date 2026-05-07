@@ -20,6 +20,8 @@ const { buildReviewEditedHtml, buildReviewEditedText } = require('../templates/r
 const { buildEditRequestSubmittedHtml, buildEditRequestSubmittedText } = require('../templates/editRequestSubmittedEmail');
 const { buildEditRequestApprovedHtml, buildEditRequestApprovedText } = require('../templates/editRequestApprovedEmail');
 const { buildEditRequestRejectedHtml, buildEditRequestRejectedText } = require('../templates/editRequestRejectedEmail');
+const { buildCultureFitInviteHtml, buildCultureFitInviteText } = require('../templates/cultureFitInviteEmail');
+const { buildFinalRejectionHtml, buildFinalRejectionText } = require('../templates/finalRejectionEmail');
 const { ROUND1_OUTCOMES } = require('../utils/constants');
 
 let cachedTransporter = null;
@@ -406,6 +408,34 @@ const sendEditRequestRejected = async ({ request }) => {
   return info;
 };
 
+const sendCultureFitInvite = async ({ candidate }) => {
+  const transporter = getTransporter();
+  if (!transporter) throw new Error('SMTP not configured');
+  if (!candidate?.email) throw new Error('Candidate email is missing');
+
+  const subject = `You've advanced — ${env.appName} final culture-fit round`;
+  const html = buildCultureFitInviteHtml({ candidate, appName: env.appName });
+  const text = buildCultureFitInviteText({ candidate, appName: env.appName });
+
+  const info = await transporter.sendMail({ from: env.smtp.from, to: candidate.email, subject, text, html });
+  logger.info('Culture-fit invite sent', { messageId: info.messageId, to: candidate.email });
+  return info;
+};
+
+const sendFinalRejection = async ({ candidate, note }) => {
+  const transporter = getTransporter();
+  if (!transporter) throw new Error('SMTP not configured');
+  if (!candidate?.email) throw new Error('Candidate email is missing');
+
+  const subject = `Update on your ${env.appName} application`;
+  const html = buildFinalRejectionHtml({ candidate, note: note || null, appName: env.appName });
+  const text = buildFinalRejectionText({ candidate, note: note || null, appName: env.appName });
+
+  const info = await transporter.sendMail({ from: env.smtp.from, to: candidate.email, subject, text, html });
+  logger.info('Final rejection sent', { messageId: info.messageId, to: candidate.email });
+  return info;
+};
+
 module.exports = {
   resolveHrEmail,
   sendInterviewReport,
@@ -421,5 +451,7 @@ module.exports = {
   sendEditRequestSubmitted,
   sendEditRequestApproved,
   sendEditRequestRejected,
+  sendCultureFitInvite,
+  sendFinalRejection,
   getTransporter,
 };

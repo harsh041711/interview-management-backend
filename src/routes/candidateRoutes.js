@@ -9,6 +9,7 @@ const {
   createCandidateSchema,
   idParamSchema,
   listCandidatesSchema,
+  rejectSchema,
 } = require('../validators/candidateValidator');
 
 const router = express.Router();
@@ -21,6 +22,8 @@ router.get('/stats', candidateController.stats);
 router.get('/:id', validate(idParamSchema), candidateController.getCandidate);
 router.post('/:id/regenerate-token', validate(idParamSchema), candidateController.regenerateToken);
 router.post('/:id/resend-invite', validate(idParamSchema), candidateController.resendInvite);
+router.post('/:id/select', validate(idParamSchema), candidateController.selectCandidate);
+router.post('/:id/reject', validate(rejectSchema), candidateController.rejectCandidate);
 router.post('/:id/resume', singleResume('resume'), validate(idParamSchema), candidateController.uploadResume);
 router.delete('/:id/resume', validate(idParamSchema), candidateController.removeResume);
 router.delete('/:id', validate(idParamSchema), candidateController.deleteCandidate);
