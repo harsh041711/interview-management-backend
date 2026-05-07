@@ -20,5 +20,6 @@ router.get('/', validate(listInterviewersSchema), interviewerController.listInte
 router.get('/:id', validate(idParamSchema), interviewerController.getInterviewer);
 router.put('/:id', validate(updateInterviewerSchema), interviewerController.updateInterviewer);
 router.delete('/:id', validate(idParamSchema), interviewerController.deleteInterviewer);
+router.post('/:id/send-setup-link', validate(idParamSchema), interviewerController.sendSetupLink);
 
 module.exports = router;

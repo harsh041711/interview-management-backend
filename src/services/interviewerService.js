@@ -2,6 +2,10 @@
 
 const interviewerRepository = require('../repositories/interviewerRepository');
 const interviewRepository = require('../repositories/interviewRepository');
+const accountSetupService = require('./accountSetupService');
+const emailService = require('./emailService');
+const env = require('../config/env');
+const logger = require('../config/logger');
 const ApiError = require('../utils/ApiError');
 const { INTERVIEW_STATUS } = require('../utils/constants');
 
@@ -78,11 +82,38 @@ const remove = async (id) => {
   return { id };
 };
 
+const buildSetupUrl = (token) =>
+  `${env.frontendUrl.replace(/\/$/, '')}/account/setup/${token}`;
+
+const sendSetupLink = async (id) => {
+  const interviewer = await interviewerRepository.findById(id);
+  if (!interviewer) throw ApiError.notFound('Interviewer not found');
+  const result = await accountSetupService.issueToken({
+    email: interviewer.email,
+    purpose: 'initial_setup',
+  });
+  // setImmediate to fire-and-forget the email
+  setImmediate(async () => {
+    try {
+      await emailService.sendAccountSetup({
+        interviewer,
+        setupUrl: buildSetupUrl(result.token),
+        purpose: 'initial_setup',
+        expiresAt: result.expiresAt,
+      });
+    } catch (err) {
+      logger.error('Setup email failed', { interviewerId: id, err: err.message });
+    }
+  });
+  return { sentTo: interviewer.email };
+};
+
 module.exports = {
   create,
   list,
   detail,
   update,
   remove,
+  sendSetupLink,
   presentInterviewer,
 };
