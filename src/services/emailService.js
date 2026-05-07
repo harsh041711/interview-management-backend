@@ -151,7 +151,7 @@ const buildResumeAttachment = (candidate) => {
   };
 };
 
-const sendInterviewScheduled = async ({ recipient, interview, candidate, interviewer, accessUrl }) => {
+const sendInterviewScheduled = async ({ recipient, interview, candidate, interviewer, accessUrl, setupUrl }) => {
   const transporter = getTransporter();
   if (!transporter) throw new Error('SMTP not configured');
 
@@ -174,6 +174,7 @@ const sendInterviewScheduled = async ({ recipient, interview, candidate, intervi
     accessUrl,
     notes: interview.notes,
     hasResume: !!candidate?.resumeUrl,
+    setupUrl,
   });
   const text = buildScheduledText({
     recipient,
@@ -185,6 +186,7 @@ const sendInterviewScheduled = async ({ recipient, interview, candidate, intervi
     accessUrl,
     notes: interview.notes,
     hasResume: !!candidate?.resumeUrl,
+    setupUrl,
   });
 
   const attachments = [];
