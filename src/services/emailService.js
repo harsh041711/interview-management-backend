@@ -14,6 +14,7 @@ const { buildScheduledHtml, buildScheduledText } = require('../templates/intervi
 const { buildRescheduleRequestedHtml, buildRescheduleRequestedText } = require('../templates/rescheduleRequestedEmail');
 const { buildRescheduleApprovedHtml, buildRescheduleApprovedText } = require('../templates/rescheduleApprovedEmail');
 const { buildRescheduleRejectedHtml, buildRescheduleRejectedText } = require('../templates/rescheduleRejectedEmail');
+const { buildAccountSetupHtml, buildAccountSetupText } = require('../templates/accountSetupEmail');
 const { ROUND1_OUTCOMES } = require('../utils/constants');
 
 let cachedTransporter = null;
@@ -273,6 +274,21 @@ const sendRescheduleRejected = async ({ interview, candidate, interviewer, reque
   return info;
 };
 
+const sendAccountSetup = async ({ interviewer, setupUrl, purpose, expiresAt }) => {
+  const transporter = getTransporter();
+  if (!transporter) throw new Error('SMTP not configured');
+  if (!interviewer?.email) throw new Error('Interviewer email missing');
+
+  const isReset = purpose === 'forgot_password';
+  const subject = isReset ? `Reset your ${env.appName} password` : `Set up your ${env.appName} interviewer account`;
+  const html = buildAccountSetupHtml({ name: interviewer.name, setupUrl, purpose, expiresAt, appName: env.appName });
+  const text = buildAccountSetupText({ name: interviewer.name, setupUrl, purpose, expiresAt, appName: env.appName });
+
+  const info = await transporter.sendMail({ from: env.smtp.from, to: interviewer.email, subject, text, html });
+  logger.info('Account setup email sent', { messageId: info.messageId, to: interviewer.email, purpose });
+  return info;
+};
+
 module.exports = {
   resolveHrEmail,
   sendInterviewReport,
@@ -282,5 +298,6 @@ module.exports = {
   sendRescheduleRequested,
   sendRescheduleApproved,
   sendRescheduleRejected,
+  sendAccountSetup,
   getTransporter,
 };
