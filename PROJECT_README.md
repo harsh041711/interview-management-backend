@@ -142,6 +142,48 @@ Each party's tokenized URL opens `/interview/:token` — a public page (no login
 - A pending-reschedule banner visible to both parties while HR review is in progress
 - A friendly locked-state card (no join button) when the interview is `completed` or `cancelled`
 
+## Phase 3 — Interviewer Portal
+
+Phase 3 adds first-class authentication and a dashboard for interviewers, structured ratings, an HR-mediated edit loop, and HR's final Select/Reject decision after Round 2.
+
+### Interviewer authentication
+
+Interviewers no longer interact via tokenized email links alone. HR creates an interviewer (or clicks **Send setup link** on an existing one), which sends a one-time magic-link email. The interviewer clicks through, sets a password, and from then on logs in at the same `/login` page as HR. The JWT carries a `role` claim (`admin` | `interviewer`); login redirects route by role: HR → `/dashboard`, interviewer → `/interviewer/dashboard`. **Forgot-password** at `/forgot-password` reuses the same magic-link mechanism.
+
+For backwards compatibility, the Phase 2 tokenized `/interview/:token` page is preserved for any in-flight Round 2s scheduled before Phase 3. New Round 2 emails sent to interviewers point at the dashboard URL instead — and if the interviewer has not yet set a password, the same email also embeds the setup magic link inline (lazy fallback).
+
+### Interviewer dashboard
+
+`/interviewer/dashboard` shows two sections: **Upcoming** and **Past**. Each past row carries a small badge: **Reviewed**, **Edit pending**, or **Pending review**. Clicking through opens `/interviewer/interviews/:id` with all the interview details, the candidate's resume download (if HR uploaded one), the **Join meeting** CTA while still scheduled, and the review form.
+
+### Reviews
+
+After an interview is marked `completed`, the assigned interviewer submits a review with three 5-star ratings (Knowledge, Communication, Confidence) and a comments block (10–2000 chars). Submitting auto-transitions the candidate from `shortlisted` → `awaiting_decision` and emails HR with the ratings preview.
+
+### Edit-permission loop
+
+Reviews are immutable after submission unless HR explicitly grants edit permission via a **Request edit** flow that mirrors Phase 2's reschedule loop:
+
+1. Interviewer clicks **Request edit** on the review (with optional reason)
+2. HR sees pending requests at `/admin/review-edit-requests` with inline **Approve** / **Reject**
+3. On approve, the interviewer can edit the review **once**; the approval is consumed by their next save
+4. On reject, the original review stands. Both decisions email the interviewer; the edit itself emails HR with the updated ratings
+
+### HR final decision
+
+When HR opens a candidate in `awaiting_decision`, they see the review panel inline (3 stars + average + comments + edit-request history) plus two action buttons:
+
+- **Select** — sets `candidate.status = selected_for_culture`, emails the candidate "advanced to the final culture-fit round"
+- **Reject** — sets `candidate.status = final_rejected`, emails the candidate a polite "not moving forward" message (with optional HR note)
+
+Both decisions are terminal.
+
+### Question bank — experience tagging (3D)
+
+Candidates and questions both gain an `experience` field (entry / mid / senior; questions also support `any` for catch-all). The Round 1 sampler now filters by candidate experience and biases toward least-used questions via a `timesUsed` counter atomically incremented when a question is sampled. This spreads the question pool across same-stack/same-experience candidates without strict per-candidate tracking.
+
+Run `npm run migrate:phase3` once after deploy to backfill the new fields on existing candidates (`experience='mid'`) and questions (`experience='any'`, `timesUsed=0`).
+
 ## Implementation plan
 
-Detailed phased plan in [`docs/superpowers/plans/2026-05-06-interview-management-system.md`](docs/superpowers/plans/2026-05-06-interview-management-system.md).
+Phased plans in [`docs/superpowers/plans/`](docs/superpowers/plans/) — Phase 1+2 design from 2026-05-06, Phase 3 (interviewer portal) and Phase 3D (question shuffling) from 2026-05-07.
