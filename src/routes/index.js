@@ -12,6 +12,7 @@ const interviewRoutes = require('./interviewRoutes');
 const interviewPublicRoutes = require('./interviewPublicRoutes');
 const myInterviewRoutes = require('./myInterviewRoutes');
 const reviewEditRequestRoutes = require('./reviewEditRequestRoutes');
+const reviewRoutes = require('./reviewRoutes');
 
 const router = express.Router();
 
@@ -28,5 +29,6 @@ router.use('/interviews', interviewRoutes);
 router.use('/interview', interviewPublicRoutes);
 router.use('/me', myInterviewRoutes);
 router.use('/review-edit-requests', reviewEditRequestRoutes);
+router.use('/reviews', reviewRoutes);
 
 module.exports = router;

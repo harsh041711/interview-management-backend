@@ -2,6 +2,7 @@
 const Joi = require('joi');
 
 const ratingNum = Joi.number().integer().min(1).max(5);
+const objectId = Joi.string().hex().length(24);
 
 const reviewSubmitSchema = {
   body: Joi.object({
@@ -33,4 +34,12 @@ const editRequestSchema = {
   }),
 };
 
-module.exports = { reviewSubmitSchema, reviewEditSchema, editRequestSchema };
+const reviewByCandidateSchema = {
+  query: Joi.object({ candidate: objectId.required() }),
+};
+
+const reviewByIdSchema = {
+  params: Joi.object({ id: objectId.required() }),
+};
+
+module.exports = { reviewSubmitSchema, reviewEditSchema, editRequestSchema, reviewByCandidateSchema, reviewByIdSchema };
