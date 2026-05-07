@@ -26,11 +26,11 @@ const issueToken = async ({ email, purpose }) => {
 };
 
 const validateToken = async (rawToken) => {
-  if (!rawToken) throw ApiError.badRequest('Setup link invalid or expired', { code: 'E_SETUP_TOKEN_INVALID' });
+  if (!rawToken) throw ApiError.gone('Setup link invalid or expired', { code: 'E_SETUP_TOKEN_INVALID' });
   const tokenHash = hashSetupToken(rawToken);
   const interviewer = await interviewerRepository.findBySetupTokenHash(tokenHash);
   if (!interviewer || !interviewer.setupTokenExpiresAt || interviewer.setupTokenExpiresAt.getTime() < Date.now()) {
-    throw ApiError.badRequest('Setup link invalid or expired', { code: 'E_SETUP_TOKEN_INVALID' });
+    throw ApiError.gone('Setup link invalid or expired', { code: 'E_SETUP_TOKEN_INVALID' });
   }
   if (!interviewer.isActive) {
     throw ApiError.forbidden('Account inactive', { code: 'E_ACCOUNT_INACTIVE' });
@@ -49,7 +49,7 @@ const consumeTokenAndSetPassword = async (rawToken, plainPassword) => {
   const tokenHash = hashSetupToken(rawToken);
   const interviewer = await interviewerRepository.findBySetupTokenHash(tokenHash);
   if (!interviewer || !interviewer.setupTokenExpiresAt || interviewer.setupTokenExpiresAt.getTime() < Date.now()) {
-    throw ApiError.badRequest('Setup link invalid or expired', { code: 'E_SETUP_TOKEN_INVALID' });
+    throw ApiError.gone('Setup link invalid or expired', { code: 'E_SETUP_TOKEN_INVALID' });
   }
   if (!interviewer.isActive) {
     throw ApiError.forbidden('Account inactive', { code: 'E_ACCOUNT_INACTIVE' });
