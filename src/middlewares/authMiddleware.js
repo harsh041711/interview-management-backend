@@ -24,12 +24,23 @@ const requireAuth = asyncHandler(async (req, _res, next) => {
 
   req.admin = admin;
   req.auth = { id: admin.id, role: admin.role };
+
+  // Populate req.user with role-aware structure
+  const role = payload.role || 'admin'; // backward compat: default missing role to 'admin'
+  req.user = { id: payload.sub, role };
+
+  // Backward compat: keep req.admin populated for admin role so existing handlers keep working
+  if (role === 'admin') {
+    req.admin = req.admin || { id: req.user.id, role: 'admin' };
+  }
+
   next();
 });
 
-const requireRole = (...roles) => (req, _res, next) => {
-  if (!req.admin) return next(ApiError.unauthorized());
-  if (!roles.includes(req.admin.role)) return next(ApiError.forbidden('Insufficient role'));
+const requireRole = (...allowed) => (req, _res, next) => {
+  if (!req.user || !allowed.includes(req.user.role)) {
+    return next(ApiError.forbidden('Forbidden', { code: 'E_FORBIDDEN_ROLE' }));
+  }
   next();
 };
 
