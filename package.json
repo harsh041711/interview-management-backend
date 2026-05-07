@@ -8,6 +8,7 @@
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "seed": "node src/seed/seedAdmin.js",
+    "migrate:phase3": "node src/scripts/migratePhase3.js",
     "test": "jest --runInBand --detectOpenHandles",
     "test:watch": "jest --watch",
     "lint": "eslint \"src/**/*.js\""
