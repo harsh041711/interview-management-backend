@@ -31,6 +31,9 @@ const CANDIDATE_STATUS = Object.freeze({
   CHEATED: 'cheated',
   SHORTLISTED: 'shortlisted',
   REJECTED: 'rejected',
+  AWAITING_DECISION: 'awaiting_decision',
+  SELECTED_FOR_CULTURE: 'selected_for_culture',
+  FINAL_REJECTED: 'final_rejected',
 });
 
 const CANDIDATE_STATUS_LIST = Object.values(CANDIDATE_STATUS);
@@ -55,7 +58,23 @@ const CHEAT_EVENT_TYPES = Object.freeze({
 
 const CHEAT_EVENT_TYPE_LIST = Object.values(CHEAT_EVENT_TYPES);
 
-const ROLES = Object.freeze({ ADMIN: 'admin' });
+const ROLE = Object.freeze({
+  ADMIN: 'admin',
+  INTERVIEWER: 'interviewer',
+});
+
+const REVIEW_EDIT_STATUS = Object.freeze({
+  PENDING: 'pending',
+  APPROVED: 'approved',
+  REJECTED: 'rejected',
+});
+
+const SETUP_TOKEN_PURPOSE = Object.freeze({
+  INITIAL_SETUP: 'initial_setup',
+  FORGOT_PASSWORD: 'forgot_password',
+});
+
+const PASSWORD_MIN_LENGTH = 8;
 
 const AI_PROVIDERS = Object.freeze({ GEMINI: 'gemini', GROQ: 'groq' });
 
@@ -100,7 +119,7 @@ module.exports = {
   SESSION_STATUS_LIST,
   CHEAT_EVENT_TYPES,
   CHEAT_EVENT_TYPE_LIST,
-  ROLES,
+  ROLE,
   AI_PROVIDERS,
   PASS_THRESHOLD_PERCENT,
   INTERVIEW_DEFAULT_DURATION_MINUTES,
@@ -110,4 +129,7 @@ module.exports = {
   RESCHEDULE_STATUS_LIST,
   ROUND1_OUTCOMES,
   ROUND1_OUTCOMES_LIST,
+  REVIEW_EDIT_STATUS,
+  SETUP_TOKEN_PURPOSE,
+  PASSWORD_MIN_LENGTH,
 };
