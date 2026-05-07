@@ -68,6 +68,20 @@
     gap: 4px;
   }
   &__token .is-expired { color: $color-danger; font-weight: 500; }
+  &__resume {
+    display: inline-block;
+    margin-top: 4px;
+    font-size: 12px;
+    color: $color-primary;
+    text-decoration: none;
+    &:hover { text-decoration: underline; }
+    &.is-missing {
+      color: $color-text-subtle;
+      font-style: italic;
+      cursor: default;
+      &:hover { text-decoration: none; }
+    }
+  }
 
   &__actions {
     display: flex;

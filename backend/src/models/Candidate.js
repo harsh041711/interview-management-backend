@@ -34,6 +34,12 @@ const candidateSchema = new mongoose.Schema(
     photoUrl: { type: String, default: null },
     photoPublicId: { type: String, default: null },
     photoCapturedAt: { type: Date, default: null },
+    resumeUrl: { type: String, default: null },
+    resumePublicId: { type: String, default: null },
+    resumeOriginalName: { type: String, default: null },
+    resumeMimeType: { type: String, default: null },
+    resumeBytes: { type: Number, default: null },
+    resumeUploadedAt: { type: Date, default: null },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Admin', required: true },
   },
   {

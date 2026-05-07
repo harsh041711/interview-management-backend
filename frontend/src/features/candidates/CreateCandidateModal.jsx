@@ -1,13 +1,20 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import Modal from '@/components/common/Modal';
 import Button from '@/components/common/Button';
 import Input from '@/components/common/Input';
 import { useToast } from '@/components/common/Toast';
 import { copyToClipboard } from '@/utils/formatters';
-import { createCandidate } from './candidateSlice';
+import { createCandidate, uploadCandidateResume } from './candidateSlice';
 import { fetchTechStacks } from '@/features/questions/questionSlice';
 import './CreateCandidateModal.scss';
+
+const RESUME_MIME = [
+  'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+];
+const RESUME_MAX_BYTES = 5 * 1024 * 1024;
 
 const MIN_PER_QUESTION = 1.2;
 
@@ -30,6 +37,8 @@ export default function CreateCandidateModal({ open, onClose }) {
   const [stackInput, setStackInput] = useState('');
   const [busy, setBusy] = useState(false);
   const [created, setCreated] = useState(null);
+  const [resumeFile, setResumeFile] = useState(null);
+  const resumeInputRef = useRef(null);
 
   // Fetch the list of tech stacks that actually have questions in the bank
   // whenever the modal opens, so HR picks values that match what was loaded.
@@ -47,6 +56,8 @@ export default function CreateCandidateModal({ open, onClose }) {
     setStack(new Set());
     setStackInput('');
     setCreated(null);
+    setResumeFile(null);
+    if (resumeInputRef.current) resumeInputRef.current.value = '';
   };
 
   const handleClose = () => { reset(); onClose?.(); };
@@ -88,6 +99,25 @@ export default function CreateCandidateModal({ open, onClose }) {
     setForm((f) => ({ ...f, durationMinutes: n, durationManual: true }));
   };
 
+  const onResumeChange = (e) => {
+    const file = e.target.files?.[0] || null;
+    if (!file) {
+      setResumeFile(null);
+      return;
+    }
+    if (!RESUME_MIME.includes(file.type)) {
+      push({ type: 'error', message: 'Resume must be PDF, DOC, or DOCX' });
+      e.target.value = '';
+      return;
+    }
+    if (file.size > RESUME_MAX_BYTES) {
+      push({ type: 'error', message: 'Resume must be 5 MB or smaller' });
+      e.target.value = '';
+      return;
+    }
+    setResumeFile(file);
+  };
+
   const submit = async (e) => {
     e.preventDefault();
     if (!form.name || !form.email || stack.size === 0) {
@@ -102,13 +132,30 @@ export default function CreateCandidateModal({ open, onClose }) {
       questionCount: Number(form.questionCount) || 10,
       durationMinutes: Number(form.durationMinutes) || computeAutoDuration(form.questionCount),
     }));
-    setBusy(false);
-    if (createCandidate.fulfilled.match(action)) {
-      setCreated(action.payload.candidate);
-      push({ type: 'success', message: 'Candidate created' });
-    } else {
+    if (!createCandidate.fulfilled.match(action)) {
+      setBusy(false);
       push({ type: 'error', message: action.payload?.message || 'Failed to create candidate' });
+      return;
     }
+    let candidate = action.payload.candidate;
+
+    if (resumeFile) {
+      const upload = await dispatch(uploadCandidateResume({ id: candidate.id, file: resumeFile }));
+      if (uploadCandidateResume.fulfilled.match(upload)) {
+        candidate = upload.payload.candidate;
+        push({ type: 'success', message: 'Candidate created — resume attached' });
+      } else {
+        push({
+          type: 'warn',
+          message: upload.payload?.message || 'Candidate created but resume upload failed',
+        });
+      }
+    } else {
+      push({ type: 'success', message: 'Candidate created' });
+    }
+
+    setBusy(false);
+    setCreated(candidate);
   };
 
   const onCopy = async () => {
@@ -212,6 +259,34 @@ export default function CreateCandidateModal({ open, onClose }) {
                 {[...stack].map((s) => (
                   <span key={s} className="chip-toggle is-on" onClick={() => removeStack(s)}>{s} ×</span>
                 ))}
+              </div>
+            )}
+          </div>
+          <div className="field">
+            <span className="field__label">Resume <span className="field__optional">(optional)</span></span>
+            <span className="field__hint">
+              PDF, DOC, or DOCX up to 5 MB. Sent to the interviewer when Round 2 is scheduled.
+            </span>
+            <input
+              ref={resumeInputRef}
+              type="file"
+              accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+              onChange={onResumeChange}
+              className="create-candidate__file"
+            />
+            {resumeFile && (
+              <div className="create-candidate__file-meta">
+                {resumeFile.name} · {(resumeFile.size / 1024).toFixed(0)} KB
+                <button
+                  type="button"
+                  className="create-candidate__file-clear"
+                  onClick={() => {
+                    setResumeFile(null);
+                    if (resumeInputRef.current) resumeInputRef.current.value = '';
+                  }}
+                >
+                  Remove
+                </button>
               </div>
             )}
           </div>

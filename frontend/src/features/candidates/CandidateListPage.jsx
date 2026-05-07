@@ -129,6 +129,19 @@ export default function CandidateListPage() {
                     <div className="candidates-table__chips">
                       {(c.techStack || []).map((t) => <span key={t} className="chip">{t}</span>)}
                     </div>
+                    {c.resumeUrl ? (
+                      <a
+                        className="candidates-table__resume"
+                        href={c.resumeUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title={c.resumeOriginalName || 'Download resume'}
+                      >
+                        📄 Resume
+                      </a>
+                    ) : (
+                      <span className="candidates-table__resume is-missing">No resume</span>
+                    )}
                   </td>
                   <td><StatusBadge status={c.status} /></td>
                   <td>

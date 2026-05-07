@@ -138,6 +138,18 @@ const sendRound1Result = async ({ candidate, submission, outcome }) => {
   return info;
 };
 
+const buildResumeAttachment = (candidate) => {
+  if (!candidate?.resumeUrl) return null;
+  const filename =
+    candidate.resumeOriginalName ||
+    `${(candidate.name || 'candidate').replace(/\s+/g, '_')}-resume`;
+  return {
+    filename,
+    path: candidate.resumeUrl,
+    contentType: candidate.resumeMimeType || undefined,
+  };
+};
+
 const sendInterviewScheduled = async ({ recipient, interview, candidate, interviewer, accessUrl }) => {
   const transporter = getTransporter();
   if (!transporter) throw new Error('SMTP not configured');
@@ -160,6 +172,7 @@ const sendInterviewScheduled = async ({ recipient, interview, candidate, intervi
     meetingUrl: interview.meetingUrl,
     accessUrl,
     notes: interview.notes,
+    hasResume: !!candidate?.resumeUrl,
   });
   const text = buildScheduledText({
     recipient,
@@ -170,10 +183,29 @@ const sendInterviewScheduled = async ({ recipient, interview, candidate, intervi
     meetingUrl: interview.meetingUrl,
     accessUrl,
     notes: interview.notes,
+    hasResume: !!candidate?.resumeUrl,
   });
 
-  const info = await transporter.sendMail({ from: env.smtp.from, to, subject, text, html });
-  logger.info('Interview scheduled email sent', { messageId: info.messageId, to, recipient });
+  const attachments = [];
+  if (recipient === 'interviewer') {
+    const resume = buildResumeAttachment(candidate);
+    if (resume) attachments.push(resume);
+  }
+
+  const info = await transporter.sendMail({
+    from: env.smtp.from,
+    to,
+    subject,
+    text,
+    html,
+    ...(attachments.length ? { attachments } : {}),
+  });
+  logger.info('Interview scheduled email sent', {
+    messageId: info.messageId,
+    to,
+    recipient,
+    attachedResume: attachments.length > 0,
+  });
   return info;
 };
 
@@ -203,8 +235,26 @@ const sendRescheduleApproved = async ({ recipient, interview, candidate, intervi
   const html = buildRescheduleApprovedHtml({ recipient, candidate, interviewer, interview, accessUrl, decisionNote });
   const text = buildRescheduleApprovedText({ recipient, candidate, interviewer, interview, accessUrl, decisionNote });
 
-  const info = await transporter.sendMail({ from: env.smtp.from, to, subject, text, html });
-  logger.info('Reschedule approved email sent', { messageId: info.messageId, to, recipient });
+  const attachments = [];
+  if (recipient === 'interviewer') {
+    const resume = buildResumeAttachment(candidate);
+    if (resume) attachments.push(resume);
+  }
+
+  const info = await transporter.sendMail({
+    from: env.smtp.from,
+    to,
+    subject,
+    text,
+    html,
+    ...(attachments.length ? { attachments } : {}),
+  });
+  logger.info('Reschedule approved email sent', {
+    messageId: info.messageId,
+    to,
+    recipient,
+    attachedResume: attachments.length > 0,
+  });
   return info;
 };
 

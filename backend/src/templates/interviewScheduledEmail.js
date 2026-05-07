@@ -31,6 +31,7 @@ const buildScheduledHtml = ({
   meetingUrl,
   accessUrl,
   notes,
+  hasResume,
 }) => {
   const isInterviewer = recipient === 'interviewer';
   const greeting = isInterviewer
@@ -46,6 +47,13 @@ const buildScheduledHtml = ({
       ? `<div style="margin-top:20px;padding:14px 16px;background:#f0f9ff;border-left:4px solid #2563eb;border-radius:4px">
           <div style="font-size:13px;font-weight:600;color:#1e40af;margin-bottom:6px">HR Notes</div>
           <div style="color:#334155;font-size:14px;white-space:pre-wrap">${escapeHtml(notes)}</div>
+        </div>`
+      : '';
+
+  const resumeBlock =
+    isInterviewer && hasResume
+      ? `<div style="margin-top:16px;padding:12px 16px;background:#f0fdf4;border-left:4px solid #16a34a;border-radius:4px;color:#166534;font-size:14px">
+          The candidate's resume is attached to this email.
         </div>`
       : '';
 
@@ -88,6 +96,7 @@ const buildScheduledHtml = ({
           <code style="display:block;background:#f1f5f9;padding:10px;border-radius:6px;font-size:12px;word-break:break-all;color:#334155">${escapeHtml(accessUrl)}</code>
 
           ${notesBlock}
+          ${resumeBlock}
 
           <p style="margin:24px 0 0;color:#64748b;font-size:13px">
             If you have any questions, please contact the HR team.
@@ -111,6 +120,7 @@ const buildScheduledText = ({
   meetingUrl,
   accessUrl,
   notes,
+  hasResume,
 }) => {
   const isInterviewer = recipient === 'interviewer';
   const greeting = isInterviewer
@@ -124,6 +134,9 @@ const buildScheduledText = ({
   const notesSection =
     isInterviewer && notes ? `\nHR Notes:\n${notes}\n` : '';
 
+  const resumeSection =
+    isInterviewer && hasResume ? `\nThe candidate's resume is attached to this email.\n` : '';
+
   return `${greeting}
 
 ${who}
@@ -135,7 +148,7 @@ Interview details:
 
 Open your interview page to access the meeting link:
 ${accessUrl}
-${notesSection}
+${notesSection}${resumeSection}
 If you have any questions, please contact the HR team.
 `;
 };

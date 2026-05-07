@@ -70,6 +70,22 @@ export const deleteCandidate = createAsyncThunk(
   },
 );
 
+export const uploadCandidateResume = createAsyncThunk(
+  'candidates/uploadResume',
+  async ({ id, file }, { rejectWithValue }) => {
+    try { return await candidateApi.uploadResume(id, file); }
+    catch (err) { return rejectWithValue(extractError(err)); }
+  },
+);
+
+export const removeCandidateResume = createAsyncThunk(
+  'candidates/removeResume',
+  async (id, { rejectWithValue }) => {
+    try { return await candidateApi.removeResume(id); }
+    catch (err) { return rejectWithValue(extractError(err)); }
+  },
+);
+
 const candidateSlice = createSlice({
   name: 'candidates',
   initialState,
@@ -118,6 +134,16 @@ const candidateSlice = createSlice({
       })
       .addCase(deleteCandidate.fulfilled, (state, action) => {
         state.list = state.list.filter((c) => c.id !== action.payload.id);
+      })
+      .addCase(uploadCandidateResume.fulfilled, (state, action) => {
+        const c = action.payload.candidate;
+        state.list = state.list.map((x) => (x.id === c.id ? c : x));
+        if (state.selected?.id === c.id) state.selected = c;
+      })
+      .addCase(removeCandidateResume.fulfilled, (state, action) => {
+        const c = action.payload.candidate;
+        state.list = state.list.map((x) => (x.id === c.id ? c : x));
+        if (state.selected?.id === c.id) state.selected = c;
       });
   },
 });

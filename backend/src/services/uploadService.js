@@ -22,7 +22,7 @@ const uploadBufferToCloudinary = (buffer, { folder, publicId, resourceType = 'im
       (err, result) => {
         if (err) {
           logger.error('Cloudinary upload failed', { err: err.message });
-          return reject(ApiError.internal('Image upload failed', { code: 'E_UPLOAD_FAIL' }));
+          return reject(ApiError.internal('Upload failed', { code: 'E_UPLOAD_FAIL' }));
         }
         resolve({
           url: result.secure_url,
@@ -31,6 +31,7 @@ const uploadBufferToCloudinary = (buffer, { folder, publicId, resourceType = 'im
           height: result.height,
           format: result.format,
           bytes: result.bytes,
+          originalFilename: result.original_filename,
         });
       },
     );

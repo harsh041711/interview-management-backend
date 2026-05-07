@@ -34,6 +34,16 @@ const deleteCandidate = asyncHandler(async (req, res) => {
   return noContent(res);
 });
 
+const uploadResume = asyncHandler(async (req, res) => {
+  const candidate = await candidateService.uploadResume(req.params.id, req.file);
+  return ok(res, { candidate }, 'Resume uploaded');
+});
+
+const removeResume = asyncHandler(async (req, res) => {
+  const candidate = await candidateService.removeResume(req.params.id);
+  return ok(res, { candidate }, 'Resume removed');
+});
+
 const stats = asyncHandler(async (_req, res) => {
   const data = await candidateService.stats();
   return ok(res, data, 'Stats fetched');
@@ -46,5 +56,7 @@ module.exports = {
   regenerateToken,
   resendInvite,
   deleteCandidate,
+  uploadResume,
+  removeResume,
   stats,
 };

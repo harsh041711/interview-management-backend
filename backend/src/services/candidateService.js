@@ -1,11 +1,12 @@
 'use strict';
 
+const path = require('path');
 const candidateRepository = require('../repositories/candidateRepository');
 const submissionRepository = require('../repositories/submissionRepository');
 const interviewRepository = require('../repositories/interviewRepository');
 const rescheduleRequestRepository = require('../repositories/rescheduleRequestRepository');
 const { generateTestToken } = require('../utils/tokenGenerator');
-const { destroyAsset } = require('./uploadService');
+const { destroyAsset, uploadBufferToCloudinary } = require('./uploadService');
 const emailService = require('./emailService');
 const ApiError = require('../utils/ApiError');
 const env = require('../config/env');
@@ -26,6 +27,11 @@ const presentCandidate = (candidate) => ({
   questionCount: candidate.questionCount,
   durationMinutes: candidate.durationMinutes,
   photoUrl: candidate.photoUrl,
+  resumeUrl: candidate.resumeUrl,
+  resumeOriginalName: candidate.resumeOriginalName,
+  resumeMimeType: candidate.resumeMimeType,
+  resumeBytes: candidate.resumeBytes,
+  resumeUploadedAt: candidate.resumeUploadedAt,
   testToken: candidate.testToken,
   testUrl: buildTestUrl(candidate.testToken),
   tokenExpiresAt: candidate.tokenExpiresAt,
@@ -154,8 +160,72 @@ const remove = async (id) => {
   if (candidate.photoPublicId) {
     await destroyAsset(candidate.photoPublicId);
   }
+  if (candidate.resumePublicId) {
+    await destroyAsset(candidate.resumePublicId);
+  }
   await candidateRepository.deleteById(id);
   return { id };
+};
+
+const sanitizeBaseName = (filename) => {
+  const base = path.parse(filename || 'resume').name;
+  return base.replace(/[^A-Za-z0-9_-]+/g, '_').slice(0, 80) || 'resume';
+};
+
+const uploadResume = async (id, file) => {
+  if (!file) throw ApiError.badRequest('Resume file is required', { code: 'E_FILE_MISSING' });
+  const candidate = await candidateRepository.findById(id);
+  if (!candidate) throw ApiError.notFound('Candidate not found');
+
+  const folder = `${env.cloudinary.folder}/resumes`;
+  const publicId = `${candidate.id}-${Date.now()}-${sanitizeBaseName(file.originalname)}`;
+  const result = await uploadBufferToCloudinary(file.buffer, {
+    folder,
+    publicId,
+    resourceType: 'raw',
+    tags: ['resume', `candidate:${candidate.id}`],
+  });
+
+  const previousPublicId = candidate.resumePublicId;
+  candidate.resumeUrl = result.url;
+  candidate.resumePublicId = result.publicId;
+  candidate.resumeOriginalName = file.originalname;
+  candidate.resumeMimeType = file.mimetype;
+  candidate.resumeBytes = file.size;
+  candidate.resumeUploadedAt = new Date();
+  await candidate.save();
+
+  if (previousPublicId && previousPublicId !== result.publicId) {
+    destroyAsset(previousPublicId).catch((err) =>
+      logger.warn('Failed to destroy previous resume asset', { previousPublicId, err: err.message }),
+    );
+  }
+
+  return presentCandidate(candidate);
+};
+
+const removeResume = async (id) => {
+  const candidate = await candidateRepository.findById(id);
+  if (!candidate) throw ApiError.notFound('Candidate not found');
+  if (!candidate.resumePublicId && !candidate.resumeUrl) {
+    return presentCandidate(candidate);
+  }
+
+  const publicId = candidate.resumePublicId;
+  candidate.resumeUrl = null;
+  candidate.resumePublicId = null;
+  candidate.resumeOriginalName = null;
+  candidate.resumeMimeType = null;
+  candidate.resumeBytes = null;
+  candidate.resumeUploadedAt = null;
+  await candidate.save();
+
+  if (publicId) {
+    destroyAsset(publicId).catch((err) =>
+      logger.warn('Failed to destroy resume asset', { publicId, err: err.message }),
+    );
+  }
+  return presentCandidate(candidate);
 };
 
 const stats = async () => candidateRepository.countByStatus();
@@ -168,6 +238,8 @@ module.exports = {
   detail,
   remove,
   stats,
+  uploadResume,
+  removeResume,
   presentCandidate,
   buildTestUrl,
 };
