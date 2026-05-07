@@ -21,6 +21,12 @@ const candidateSchema = new mongoose.Schema(
         message: 'At least one tech stack required',
       },
     },
+    experience: {
+      type: String,
+      enum: ['entry', 'mid', 'senior'],
+      default: 'mid',
+      required: true,
+    },
     testToken: { type: String, required: true, unique: true, index: true },
     tokenExpiresAt: { type: Date, required: true, index: true },
     questionCount: { type: Number, default: 10, min: 1, max: 50 },

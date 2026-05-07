@@ -12,6 +12,7 @@ const createCandidateSchema = {
     techStack: Joi.array().items(Joi.string().min(1).max(60)).min(1).max(10).required(),
     questionCount: Joi.number().integer().min(1).max(50).optional(),
     durationMinutes: Joi.number().integer().min(1).max(240).optional(),
+    experience: Joi.string().valid('entry', 'mid', 'senior').default('mid').optional(),
   }),
 };
 
@@ -26,6 +27,7 @@ const listCandidatesSchema = {
     status: Joi.string().valid(...CANDIDATE_STATUS_LIST).empty('').optional(),
     search: Joi.string().trim().max(120).empty('').optional(),
     techStack: Joi.string().trim().max(60).empty('').optional(),
+    experience: Joi.string().valid('entry', 'mid', 'senior').empty('').optional(),
   }),
 };
 
