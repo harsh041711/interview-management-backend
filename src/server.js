@@ -14,6 +14,9 @@ const start = async () => {
   server = http.createServer(app);
   initSocket(server);
 
+  const interviewReminderService = require('./services/interviewReminderService');
+  interviewReminderService.start();
+
   server.listen(env.port, () => {
     logger.info(`${env.appName} listening on :${env.port} (${env.nodeEnv})`);
     logger.info(`API base: ${env.apiPrefix}`);
