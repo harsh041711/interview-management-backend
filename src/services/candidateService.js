@@ -15,7 +15,7 @@ const resumeScreeningService = require('./resumeScreeningService');
 const ApiError = require('../utils/ApiError');
 const env = require('../config/env');
 const logger = require('../config/logger');
-const { CANDIDATE_STATUS } = require('../utils/constants');
+const { CANDIDATE_STATUS, ROUND1_OUTCOMES } = require('../utils/constants');
 
 const buildTestUrl = (token) => {
   const base = env.frontendUrl.replace(/\/$/, '');
@@ -552,6 +552,64 @@ const resendCodingTest = async (id) => {
   return { sentTo: presented.email };
 };
 
+const codingShortlist = async (id) => {
+  const candidate = await candidateRepository.findById(id);
+  if (!candidate) throw ApiError.notFound('Candidate not found');
+  if (!candidate.codingTest?.submittedAt) {
+    throw ApiError.conflict('Coding test not submitted', { code: 'E_NO_CODING_SUBMISSION' });
+  }
+  if (candidate.codingTest.outcome && candidate.codingTest.outcome !== 'pending_review') {
+    throw ApiError.conflict('Coding test already decided', { code: 'E_ALREADY_DECIDED' });
+  }
+  candidate.status = CANDIDATE_STATUS.SHORTLISTED;
+  candidate.codingTest.outcome = 'shortlisted';
+  candidate.codingTest.reviewedAt = new Date();
+  await candidate.save();
+
+  const presented = presentCandidate(candidate);
+  setImmediate(async () => {
+    try {
+      await emailService.sendRound1Result({
+        candidate: presented,
+        submission: null,
+        outcome: ROUND1_OUTCOMES.SHORTLISTED,
+      });
+    } catch (err) {
+      logger.error('Coding shortlist email failed', { candidateId: id, err: err.message });
+    }
+  });
+  return presented;
+};
+
+const codingReject = async (id) => {
+  const candidate = await candidateRepository.findById(id);
+  if (!candidate) throw ApiError.notFound('Candidate not found');
+  if (!candidate.codingTest?.submittedAt) {
+    throw ApiError.conflict('Coding test not submitted', { code: 'E_NO_CODING_SUBMISSION' });
+  }
+  if (candidate.codingTest.outcome && candidate.codingTest.outcome !== 'pending_review') {
+    throw ApiError.conflict('Coding test already decided', { code: 'E_ALREADY_DECIDED' });
+  }
+  candidate.status = CANDIDATE_STATUS.REJECTED;
+  candidate.codingTest.outcome = 'rejected';
+  candidate.codingTest.reviewedAt = new Date();
+  await candidate.save();
+
+  const presented = presentCandidate(candidate);
+  setImmediate(async () => {
+    try {
+      await emailService.sendRound1Result({
+        candidate: presented,
+        submission: null,
+        outcome: ROUND1_OUTCOMES.REJECTED,
+      });
+    } catch (err) {
+      logger.error('Coding reject email failed', { candidateId: id, err: err.message });
+    }
+  });
+  return presented;
+};
+
 module.exports = {
   createCandidate,
   regenerateToken,
@@ -573,4 +631,6 @@ module.exports = {
   sendCodingTest,
   regenerateCodingTest,
   resendCodingTest,
+  codingShortlist,
+  codingReject,
 };

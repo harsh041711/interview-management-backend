@@ -94,6 +94,16 @@ const resendCodingTest = asyncHandler(async (req, res) => {
   return ok(res, result, 'Coding test invite re-sent');
 });
 
+const codingShortlist = asyncHandler(async (req, res) => {
+  const c = await candidateService.codingShortlist(req.params.id);
+  return ok(res, c, 'Candidate shortlisted');
+});
+
+const codingReject = asyncHandler(async (req, res) => {
+  const c = await candidateService.codingReject(req.params.id);
+  return ok(res, c, 'Candidate rejected');
+});
+
 module.exports = {
   createCandidate,
   listCandidates,
@@ -113,4 +123,6 @@ module.exports = {
   sendCodingTest,
   regenerateCodingTest,
   resendCodingTest,
+  codingShortlist,
+  codingReject,
 };

@@ -32,6 +32,8 @@ router.post('/:id/send-test', validate(idParamSchema), candidateController.sendT
 router.post('/:id/coding-test/send', validate(sendCodingTestSchema), candidateController.sendCodingTest);
 router.post('/:id/coding-test/regenerate', validate(idParamSchema), candidateController.regenerateCodingTest);
 router.post('/:id/coding-test/resend', validate(idParamSchema), candidateController.resendCodingTest);
+router.post('/:id/coding-test/shortlist', validate(idParamSchema), candidateController.codingShortlist);
+router.post('/:id/coding-test/reject', validate(idParamSchema), candidateController.codingReject);
 router.post('/:id/resume', singleResume('resume'), validate(idParamSchema), candidateController.uploadResume);
 router.delete('/:id/resume', validate(idParamSchema), candidateController.removeResume);
 router.delete('/:id', validate(idParamSchema), candidateController.deleteCandidate);
