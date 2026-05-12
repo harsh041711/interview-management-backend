@@ -15,6 +15,8 @@ const reviewEditRequestRoutes = require('./reviewEditRequestRoutes');
 const reviewRoutes = require('./reviewRoutes');
 const jobDescriptionRoutes = require('./jobDescriptionRoutes');
 const codingProblemRoutes = require('./codingProblemRoutes');
+const codingTestPublicRoutes = require('./codingTestPublicRoutes');
+const codingSubmissionRoutes = require('./codingSubmissionRoutes');
 
 const router = express.Router();
 
@@ -34,5 +36,7 @@ router.use('/review-edit-requests', reviewEditRequestRoutes);
 router.use('/reviews', reviewRoutes);
 router.use('/job-descriptions', jobDescriptionRoutes);
 router.use('/coding-problems', codingProblemRoutes);
+router.use('/coding-test', codingTestPublicRoutes);
+router.use('/coding-submissions', codingSubmissionRoutes);
 
 module.exports = router;
