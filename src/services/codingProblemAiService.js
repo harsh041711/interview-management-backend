@@ -68,10 +68,11 @@ const generateFullProblem = async ({ topic, difficulty, languages }) => {
   for (const lang of languages) {
     if (parsed.starterCode?.[lang]) starterCode[lang] = String(parsed.starterCode[lang]);
   }
-  const testCases = parsed.testCases.slice(0, 10).map((tc) => ({
+  const testCases = parsed.testCases.slice(0, 10).map((tc, idx) => ({
     stdin: String(tc.stdin || ''),
     expectedStdout: String(tc.expectedStdout || ''),
-    isHidden: tc.isHidden !== false,
+    // Force the first test case to be visible so candidates always see at least one sample.
+    isHidden: idx === 0 ? false : tc.isHidden !== false,
   }));
   logger.info('AI full-problem generated', { provider, model, topic, difficulty });
   return {
