@@ -24,6 +24,7 @@ const presentCandidate = (candidate) => ({
   name: candidate.name,
   email: candidate.email,
   techStack: candidate.techStack,
+  experience: candidate.experience,
   status: candidate.status,
   questionCount: candidate.questionCount,
   durationMinutes: candidate.durationMinutes,
@@ -33,6 +34,19 @@ const presentCandidate = (candidate) => ({
   resumeMimeType: candidate.resumeMimeType,
   resumeBytes: candidate.resumeBytes,
   resumeUploadedAt: candidate.resumeUploadedAt,
+  screening: candidate.screening
+    ? {
+        status: candidate.screening.status,
+        matchPercent: candidate.screening.matchPercent,
+        greenFlags: candidate.screening.greenFlags || [],
+        redFlags: candidate.screening.redFlags || [],
+        summary: candidate.screening.summary || '',
+        jdId: candidate.screening.jdId || null,
+        jdSnapshot: candidate.screening.jdSnapshot || null,
+        scoredAt: candidate.screening.scoredAt || null,
+        scoredBy: candidate.screening.scoredBy || null,
+      }
+    : null,
   testToken: candidate.testToken,
   testUrl: buildTestUrl(candidate.testToken),
   tokenExpiresAt: candidate.tokenExpiresAt,
@@ -63,7 +77,7 @@ const queueInviteEmail = (candidate) => {
   });
 };
 
-const createCandidate = async ({ name, email, techStack, questionCount, durationMinutes }, adminId) => {
+const createCandidate = async ({ name, email, techStack, experience, questionCount, durationMinutes }, adminId) => {
   const { token, expiresAt } = generateTestToken();
   const finalCount = Number.isFinite(questionCount) ? questionCount : 10;
   const finalDuration = Number.isFinite(durationMinutes)
@@ -73,13 +87,14 @@ const createCandidate = async ({ name, email, techStack, questionCount, duration
     name,
     email,
     techStack,
+    experience,
     questionCount: finalCount,
     durationMinutes: finalDuration,
     testToken: token,
     tokenExpiresAt: expiresAt,
     createdBy: adminId,
+    // status defaults to RESUME_PENDING via the model.
   });
-  queueInviteEmail(candidate);
   return presentCandidate(candidate);
 };
 
