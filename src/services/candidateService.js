@@ -36,7 +36,7 @@ const presentCandidate = (candidate) => ({
   resumeMimeType: candidate.resumeMimeType,
   resumeBytes: candidate.resumeBytes,
   resumeUploadedAt: candidate.resumeUploadedAt,
-  screening: candidate.screening
+  screening: candidate.screening?.status
     ? {
         status: candidate.screening.status,
         matchPercent: candidate.screening.matchPercent,
@@ -220,7 +220,8 @@ const uploadResume = async (id, file) => {
   }
 
   // Only auto-screen on FIRST upload (no prior screening result). Re-uploads use the manual Re-screen button.
-  if (candidate.status === CANDIDATE_STATUS.RESUME_PENDING && !candidate.screening) {
+  // Note: mongoose auto-inits the nested `screening` as {} on new docs, so check the inner `status` field.
+  if (candidate.status === CANDIDATE_STATUS.RESUME_PENDING && !candidate.screening?.status) {
     try {
       await runScreeningFor(candidate, { buffer: file.buffer });
     } catch (err) {
