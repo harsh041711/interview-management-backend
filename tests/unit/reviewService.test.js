@@ -46,14 +46,44 @@ describe('reviewService.submit', () => {
     })).rejects.toMatchObject({ code: 'E_FORBIDDEN' });
   });
 
-  test('rejects when interview not completed', async () => {
+  test('rejects when interview was cancelled', async () => {
     interviewRepo.findByIdPopulated.mockResolvedValue({
-      _id: 'i1', interviewer: { _id: 'iv1' }, candidate: { _id: 'c1' }, status: INTERVIEW_STATUS.SCHEDULED,
+      _id: 'i1', interviewer: { _id: 'iv1' }, candidate: { _id: 'c1' }, status: INTERVIEW_STATUS.CANCELLED,
     });
     await expect(reviewService.submit({
       interviewId: 'i1', interviewerId: 'iv1',
       ratings: { knowledge: 5, communication: 5, confidence: 5 }, comments: 'good interview',
-    })).rejects.toMatchObject({ code: 'E_INTERVIEW_NOT_COMPLETED' });
+    })).rejects.toMatchObject({ code: 'E_INTERVIEW_CANCELLED' });
+  });
+
+  test('rejects when reschedule is pending', async () => {
+    interviewRepo.findByIdPopulated.mockResolvedValue({
+      _id: 'i1', interviewer: { _id: 'iv1' }, candidate: { _id: 'c1' }, status: INTERVIEW_STATUS.RESCHEDULE_REQUESTED,
+    });
+    await expect(reviewService.submit({
+      interviewId: 'i1', interviewerId: 'iv1',
+      ratings: { knowledge: 5, communication: 5, confidence: 5 }, comments: 'good interview',
+    })).rejects.toMatchObject({ code: 'E_RESCHEDULE_PENDING' });
+  });
+
+  test('auto-completes interview when scheduled and saves review', async () => {
+    const interview = {
+      _id: 'i1', interviewer: { _id: 'iv1' }, candidate: { _id: 'c1' },
+      status: INTERVIEW_STATUS.SCHEDULED,
+      save: jest.fn().mockResolvedValue(),
+    };
+    interviewRepo.findByIdPopulated.mockResolvedValue(interview);
+    reviewRepo.findByInterview.mockResolvedValue(null);
+    reviewRepo.create.mockResolvedValue({ _id: 'r1', candidate: 'c1' });
+    candidateRepo.findById.mockResolvedValue({ _id: 'c1', status: CANDIDATE_STATUS.SHORTLISTED, save: jest.fn() });
+
+    await reviewService.submit({
+      interviewId: 'i1', interviewerId: 'iv1',
+      ratings: { knowledge: 5, communication: 5, confidence: 5 }, comments: 'good interview',
+    });
+    expect(interview.status).toBe(INTERVIEW_STATUS.COMPLETED);
+    expect(interview.completedAt).toBeInstanceOf(Date);
+    expect(interview.save).toHaveBeenCalled();
   });
 
   test('rejects duplicate review', async () => {

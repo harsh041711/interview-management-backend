@@ -18,12 +18,24 @@ const submit = async ({ interviewId, interviewerId, ratings, comments }) => {
     throw ApiError.forbidden('Not your interview', { code: 'E_FORBIDDEN' });
   }
 
-  if (interview.status !== INTERVIEW_STATUS.COMPLETED) {
-    throw ApiError.conflict('Interview must be completed first', { code: 'E_INTERVIEW_NOT_COMPLETED' });
+  if (interview.status === INTERVIEW_STATUS.CANCELLED) {
+    throw ApiError.conflict('Interview was cancelled', { code: 'E_INTERVIEW_CANCELLED' });
+  }
+  if (interview.status === INTERVIEW_STATUS.RESCHEDULE_REQUESTED) {
+    throw ApiError.conflict(
+      'Resolve the pending reschedule before submitting the review',
+      { code: 'E_RESCHEDULE_PENDING' },
+    );
   }
 
   const existing = await reviewRepository.findByInterview(interviewId);
   if (existing) throw ApiError.conflict('Review already submitted', { code: 'E_REVIEW_EXISTS' });
+
+  if (interview.status !== INTERVIEW_STATUS.COMPLETED) {
+    interview.status = INTERVIEW_STATUS.COMPLETED;
+    interview.completedAt = new Date();
+    await interview.save();
+  }
 
   const candidateId = interview.candidate._id || interview.candidate;
   const review = await reviewRepository.create({
