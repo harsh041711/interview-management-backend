@@ -41,7 +41,7 @@ const listJdsSchema = {
     limit: Joi.number().integer().min(1).max(100).default(20),
     search: Joi.string().trim().max(120).empty('').optional(),
     experience: Joi.string().valid('entry', 'mid', 'senior').empty('').optional(),
-    isActive: Joi.boolean().optional(),
+    isActive: Joi.boolean().empty('').optional(),
   }),
 };
 
