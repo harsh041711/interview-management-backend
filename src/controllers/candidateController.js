@@ -79,6 +79,21 @@ const sendTest = asyncHandler(async (req, res) => {
   return ok(res, c, 'Test invitation sent');
 });
 
+const sendCodingTest = asyncHandler(async (req, res) => {
+  const c = await candidateService.sendCodingTest(req.params.id, req.body, req.admin.id);
+  return ok(res, c, 'Coding test sent');
+});
+
+const regenerateCodingTest = asyncHandler(async (req, res) => {
+  const c = await candidateService.regenerateCodingTest(req.params.id, req.admin.id);
+  return ok(res, c, 'Coding test regenerated');
+});
+
+const resendCodingTest = asyncHandler(async (req, res) => {
+  const result = await candidateService.resendCodingTest(req.params.id);
+  return ok(res, result, 'Coding test invite re-sent');
+});
+
 module.exports = {
   createCandidate,
   listCandidates,
@@ -95,4 +110,7 @@ module.exports = {
   declineResume,
   rescreenResume,
   sendTest,
+  sendCodingTest,
+  regenerateCodingTest,
+  resendCodingTest,
 };
