@@ -102,6 +102,18 @@ describe('candidateService.sendTest', () => {
     expect(emailService.sendCandidateInvite).toHaveBeenCalled();
   });
 
+  test('regenerates token + expiration so the candidate gets a fresh window', async () => {
+    const candidate = makeCandidate({
+      status: CANDIDATE_STATUS.RESUME_APPROVED,
+      testToken: 'stale-token',
+      tokenExpiresAt: new Date('2020-01-01T00:00:00Z'),
+    });
+    candidateRepo.findById.mockResolvedValue(candidate);
+    await candidateService.sendTest('c1');
+    expect(candidate.testToken).not.toBe('stale-token');
+    expect(candidate.tokenExpiresAt.getTime()).toBeGreaterThan(Date.now());
+  });
+
   test('rejects with E_NOT_APPROVED when status is not resume_approved', async () => {
     const candidate = makeCandidate({ status: CANDIDATE_STATUS.RESUME_PENDING });
     candidateRepo.findById.mockResolvedValue(candidate);

@@ -415,6 +415,11 @@ const sendTest = async (id) => {
       { code: 'E_NOT_APPROVED' },
     );
   }
+  // Generate a fresh token + expiration so the candidate has a full window starting now,
+  // not from whenever the candidate was originally created.
+  const { token, expiresAt } = generateTestToken();
+  candidate.testToken = token;
+  candidate.tokenExpiresAt = expiresAt;
   candidate.status = CANDIDATE_STATUS.PENDING;
   await candidate.save();
 
