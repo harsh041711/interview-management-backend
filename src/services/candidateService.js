@@ -9,6 +9,8 @@ const reviewRepository = require('../repositories/reviewRepository');
 const { generateTestToken } = require('../utils/tokenGenerator');
 const { destroyAsset, uploadBufferToCloudinary } = require('./uploadService');
 const emailService = require('./emailService');
+const jdService = require('./jobDescriptionService');
+const resumeScreeningService = require('./resumeScreeningService');
 const ApiError = require('../utils/ApiError');
 const env = require('../config/env');
 const logger = require('../config/logger');
@@ -217,6 +219,17 @@ const uploadResume = async (id, file) => {
     );
   }
 
+  // Only auto-screen on FIRST upload (no prior screening result). Re-uploads use the manual Re-screen button.
+  if (candidate.status === CANDIDATE_STATUS.RESUME_PENDING && !candidate.screening) {
+    try {
+      await runScreeningFor(candidate, { buffer: file.buffer });
+    } catch (err) {
+      logger.error('Auto-screening failed', { candidateId: candidate.id, err: err.message });
+      candidate.screening = { status: 'failed', scoredAt: new Date() };
+      await candidate.save();
+    }
+  }
+
   return presentCandidate(candidate);
 };
 
@@ -292,6 +305,61 @@ const reject = async (id, { note } = {}) => {
   return presentCandidate(c);
 };
 
+const fetchResumeBuffer = async (resumeUrl) => {
+  if (!resumeUrl) return null;
+  try {
+    const res = await fetch(resumeUrl);
+    if (!res.ok) return null;
+    const ab = await res.arrayBuffer();
+    return Buffer.from(ab);
+  } catch (err) {
+    logger.warn('Resume fetch failed', { resumeUrl, err: err.message });
+    return null;
+  }
+};
+
+const runScreeningFor = async (candidate, { buffer } = {}) => {
+  // candidate.techStack is an array; use the first element as the primary match key.
+  const primaryStack = Array.isArray(candidate.techStack) && candidate.techStack.length
+    ? candidate.techStack[0]
+    : '';
+  const jd = primaryStack
+    ? await jdService.lookup(primaryStack, candidate.experience)
+    : null;
+  if (!jd) {
+    candidate.screening = { status: 'skipped', scoredAt: new Date() };
+    await candidate.save();
+    return;
+  }
+  const resumeBuffer = buffer || (await fetchResumeBuffer(candidate.resumeUrl));
+  const resumeText = await resumeScreeningService.extractResumeText(resumeBuffer, candidate.resumeMimeType);
+  const result = await resumeScreeningService.score({ resumeText, jd });
+  candidate.screening = result;
+  await candidate.save();
+};
+
+const rescreen = async (id) => {
+  const candidate = await candidateRepository.findById(id);
+  if (!candidate) throw ApiError.notFound('Candidate not found');
+  if (![CANDIDATE_STATUS.RESUME_PENDING, CANDIDATE_STATUS.RESUME_APPROVED].includes(candidate.status)) {
+    throw ApiError.conflict(
+      `Cannot re-screen a candidate in '${candidate.status}' state`,
+      { code: 'E_NOT_RESCREENABLE' },
+    );
+  }
+  if (!candidate.resumeUrl) {
+    throw ApiError.badRequest('Candidate has no resume to screen', { code: 'E_NO_RESUME' });
+  }
+  try {
+    await runScreeningFor(candidate);
+  } catch (err) {
+    logger.error('Re-screening failed', { candidateId: candidate.id, err: err.message });
+    candidate.screening = { status: 'failed', scoredAt: new Date() };
+    await candidate.save();
+  }
+  return presentCandidate(candidate);
+};
+
 module.exports = {
   createCandidate,
   regenerateToken,
@@ -306,4 +374,5 @@ module.exports = {
   buildTestUrl,
   select,
   reject,
+  rescreen,
 };
