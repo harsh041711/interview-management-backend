@@ -52,12 +52,13 @@ const list = async (query) => {
 };
 
 const sampleForCandidate = async ({ techStacks, difficulty, problemCount, adminId }) => {
-  const bank = await cpRepo.sampleActive({ techStacks, difficulty, limit: problemCount });
+  const normalized = (techStacks || []).map((t) => String(t).trim().toLowerCase()).filter(Boolean);
+  const bank = await cpRepo.sampleActive({ techStacks: normalized, difficulty, limit: problemCount });
   const picked = [...bank];
   const stillNeed = problemCount - picked.length;
 
   if (stillNeed > 0) {
-    const primaryStack = techStacks[0];
+    const primaryStack = normalized[0] || (techStacks && techStacks[0]);
     for (let i = 0; i < stillNeed; i += 1) {
       const draft = await codingAi.generateFullProblem({
         topic: primaryStack,
