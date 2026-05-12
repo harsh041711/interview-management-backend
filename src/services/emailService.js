@@ -22,6 +22,8 @@ const { buildEditRequestApprovedHtml, buildEditRequestApprovedText } = require('
 const { buildEditRequestRejectedHtml, buildEditRequestRejectedText } = require('../templates/editRequestRejectedEmail');
 const { buildCultureFitInviteHtml, buildCultureFitInviteText } = require('../templates/cultureFitInviteEmail');
 const { buildFinalRejectionHtml, buildFinalRejectionText } = require('../templates/finalRejectionEmail');
+const { buildResumeShortlistedHtml, buildResumeShortlistedText } = require('../templates/resumeShortlistedEmail');
+const { buildResumeDeclinedHtml, buildResumeDeclinedText } = require('../templates/resumeDeclinedEmail');
 const { ROUND1_OUTCOMES } = require('../utils/constants');
 
 let cachedTransporter = null;
@@ -436,6 +438,36 @@ const sendFinalRejection = async ({ candidate, note }) => {
   return info;
 };
 
+const sendResumeShortlisted = async ({ candidate }) => {
+  const transporter = getTransporter();
+  if (!transporter) throw new Error('SMTP not configured');
+  const subject = 'Your application has been shortlisted';
+  const html = buildResumeShortlistedHtml({ candidate });
+  const text = buildResumeShortlistedText({ candidate });
+  const info = await transporter.sendMail({
+    from: env.smtp.from,
+    to: candidate.email,
+    subject, text, html,
+  });
+  logger.info('Resume shortlisted email sent', { messageId: info.messageId, candidate: candidate.id });
+  return info;
+};
+
+const sendResumeDeclined = async ({ candidate }) => {
+  const transporter = getTransporter();
+  if (!transporter) throw new Error('SMTP not configured');
+  const subject = 'Update on your application';
+  const html = buildResumeDeclinedHtml({ candidate });
+  const text = buildResumeDeclinedText({ candidate });
+  const info = await transporter.sendMail({
+    from: env.smtp.from,
+    to: candidate.email,
+    subject, text, html,
+  });
+  logger.info('Resume declined email sent', { messageId: info.messageId, candidate: candidate.id });
+  return info;
+};
+
 module.exports = {
   resolveHrEmail,
   sendInterviewReport,
@@ -453,5 +485,7 @@ module.exports = {
   sendEditRequestRejected,
   sendCultureFitInvite,
   sendFinalRejection,
+  sendResumeShortlisted,
+  sendResumeDeclined,
   getTransporter,
 };
