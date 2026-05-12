@@ -70,6 +70,23 @@ const candidateSchema = new mongoose.Schema(
       scoredAt: Date,
       scoredBy: String,
     },
+    codingTest: {
+      token: { type: String, default: null },
+      expiresAt: { type: Date, default: null },
+      problems: { type: [mongoose.Schema.Types.ObjectId], ref: 'CodingProblem', default: undefined },
+      problemCount: { type: Number, default: null, min: 1, max: 5 },
+      durationMinutes: { type: Number, default: null, min: 1, max: 240 },
+      difficulty: { type: String, enum: ['easy', 'medium', 'hard', null], default: null },
+      sentAt: { type: Date, default: null },
+      firstOpenedAt: { type: Date, default: null },
+      submittedAt: { type: Date, default: null },
+      reviewedAt: { type: Date, default: null },
+      outcome: {
+        type: String,
+        enum: ['pending_review', 'shortlisted', 'rejected', null],
+        default: null,
+      },
+    },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Admin', required: true },
   },
   {
