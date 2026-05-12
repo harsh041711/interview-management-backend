@@ -319,13 +319,12 @@ const fetchResumeBuffer = async (resumeUrl) => {
 };
 
 const runScreeningFor = async (candidate, { buffer } = {}) => {
-  // candidate.techStack is an array; use the first element as the primary match key.
-  const primaryStack = Array.isArray(candidate.techStack) && candidate.techStack.length
-    ? candidate.techStack[0]
-    : '';
-  const jd = primaryStack
-    ? await jdService.lookup(primaryStack, candidate.experience)
-    : null;
+  // candidate.techStack is an array — try each in order until we find a matching active JD.
+  let jd = null;
+  for (const stack of (Array.isArray(candidate.techStack) ? candidate.techStack : [])) {
+    jd = await jdService.lookup(stack, candidate.experience);
+    if (jd) break;
+  }
   if (!jd) {
     candidate.screening = { status: 'skipped', scoredAt: new Date() };
     await candidate.save();
