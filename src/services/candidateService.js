@@ -360,6 +360,69 @@ const rescreen = async (id) => {
   return presentCandidate(candidate);
 };
 
+const approveResume = async (id) => {
+  const candidate = await candidateRepository.findById(id);
+  if (!candidate) throw ApiError.notFound('Candidate not found');
+  if (candidate.status !== CANDIDATE_STATUS.RESUME_PENDING) {
+    throw ApiError.conflict(
+      `Candidate is in '${candidate.status}' state — cannot approve`,
+      { code: 'E_ALREADY_DECIDED' },
+    );
+  }
+  candidate.status = CANDIDATE_STATUS.RESUME_APPROVED;
+  await candidate.save();
+
+  const presented = presentCandidate(candidate);
+  setImmediate(async () => {
+    try {
+      await emailService.sendResumeShortlisted({ candidate: presented });
+    } catch (err) {
+      logger.error('Resume shortlist email failed', { candidateId: presented.id, err: err.message });
+    }
+  });
+  return presented;
+};
+
+const declineResume = async (id) => {
+  const candidate = await candidateRepository.findById(id);
+  if (!candidate) throw ApiError.notFound('Candidate not found');
+  if (candidate.status !== CANDIDATE_STATUS.RESUME_PENDING) {
+    throw ApiError.conflict(
+      `Candidate is in '${candidate.status}' state — cannot decline`,
+      { code: 'E_ALREADY_DECIDED' },
+    );
+  }
+  candidate.status = CANDIDATE_STATUS.RESUME_DECLINED;
+  await candidate.save();
+
+  const presented = presentCandidate(candidate);
+  setImmediate(async () => {
+    try {
+      await emailService.sendResumeDeclined({ candidate: presented });
+    } catch (err) {
+      logger.error('Resume decline email failed', { candidateId: presented.id, err: err.message });
+    }
+  });
+  return presented;
+};
+
+const sendTest = async (id) => {
+  const candidate = await candidateRepository.findById(id);
+  if (!candidate) throw ApiError.notFound('Candidate not found');
+  if (candidate.status !== CANDIDATE_STATUS.RESUME_APPROVED) {
+    throw ApiError.conflict(
+      `Candidate must be in 'resume_approved' state to send test (currently '${candidate.status}')`,
+      { code: 'E_NOT_APPROVED' },
+    );
+  }
+  candidate.status = CANDIDATE_STATUS.PENDING;
+  await candidate.save();
+
+  // Re-use the existing invite email pipeline.
+  queueInviteEmail(candidate);
+  return presentCandidate(candidate);
+};
+
 module.exports = {
   createCandidate,
   regenerateToken,
@@ -375,4 +438,7 @@ module.exports = {
   select,
   reject,
   rescreen,
+  approveResume,
+  declineResume,
+  sendTest,
 };
