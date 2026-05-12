@@ -24,6 +24,8 @@ const { buildCultureFitInviteHtml, buildCultureFitInviteText } = require('../tem
 const { buildFinalRejectionHtml, buildFinalRejectionText } = require('../templates/finalRejectionEmail');
 const { buildResumeShortlistedHtml, buildResumeShortlistedText } = require('../templates/resumeShortlistedEmail');
 const { buildResumeDeclinedHtml, buildResumeDeclinedText } = require('../templates/resumeDeclinedEmail');
+const { buildCandidateReminderHtml, buildCandidateReminderText } = require('../templates/interviewReminderCandidateEmail');
+const { buildInterviewerReminderHtml, buildInterviewerReminderText } = require('../templates/interviewReminderInterviewerEmail');
 const { ROUND1_OUTCOMES } = require('../utils/constants');
 
 let cachedTransporter = null;
@@ -468,6 +470,36 @@ const sendResumeDeclined = async ({ candidate }) => {
   return info;
 };
 
+const sendInterviewReminderCandidate = async ({ interview, candidate, interviewer }) => {
+  const transporter = getTransporter();
+  if (!transporter) throw new Error('SMTP not configured');
+  const subject = 'Reminder: your interview starts in 30 minutes';
+  const html = buildCandidateReminderHtml({ interview, candidate, interviewer });
+  const text = buildCandidateReminderText({ interview, candidate, interviewer });
+  const info = await transporter.sendMail({
+    from: env.smtp.from,
+    to: candidate.email,
+    subject, text, html,
+  });
+  logger.info('Interview reminder sent to candidate', { messageId: info.messageId, interview: interview.id || interview._id, candidate: candidate.id });
+  return info;
+};
+
+const sendInterviewReminderInterviewer = async ({ interview, candidate, interviewer }) => {
+  const transporter = getTransporter();
+  if (!transporter) throw new Error('SMTP not configured');
+  const subject = `Reminder: interview with ${candidate.name} starts in 30 minutes`;
+  const html = buildInterviewerReminderHtml({ interview, candidate, interviewer });
+  const text = buildInterviewerReminderText({ interview, candidate, interviewer });
+  const info = await transporter.sendMail({
+    from: env.smtp.from,
+    to: interviewer.email,
+    subject, text, html,
+  });
+  logger.info('Interview reminder sent to interviewer', { messageId: info.messageId, interview: interview.id || interview._id, interviewer: interviewer.id });
+  return info;
+};
+
 module.exports = {
   resolveHrEmail,
   sendInterviewReport,
@@ -487,5 +519,7 @@ module.exports = {
   sendFinalRejection,
   sendResumeShortlisted,
   sendResumeDeclined,
+  sendInterviewReminderCandidate,
+  sendInterviewReminderInterviewer,
   getTransporter,
 };
