@@ -23,6 +23,9 @@ const QUESTION_SOURCE = Object.freeze({
 });
 
 const CANDIDATE_STATUS = Object.freeze({
+  RESUME_PENDING: 'resume_pending',
+  RESUME_APPROVED: 'resume_approved',
+  RESUME_DECLINED: 'resume_declined',
   PENDING: 'pending',
   PHOTO_CAPTURED: 'photo_captured',
   IN_PROGRESS: 'in_progress',
