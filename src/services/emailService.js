@@ -27,6 +27,7 @@ const { buildResumeDeclinedHtml, buildResumeDeclinedText } = require('../templat
 const { buildCodingTestInviteHtml, buildCodingTestInviteText } = require('../templates/codingTestInviteEmail');
 const { buildCandidateReminderHtml, buildCandidateReminderText } = require('../templates/interviewReminderCandidateEmail');
 const { buildInterviewerReminderHtml, buildInterviewerReminderText } = require('../templates/interviewReminderInterviewerEmail');
+const { buildCodingSubmissionReceivedHtml, buildCodingSubmissionReceivedText } = require('../templates/codingSubmissionReceivedEmail');
 const { ROUND1_OUTCOMES } = require('../utils/constants');
 
 let cachedTransporter = null;
@@ -501,6 +502,23 @@ const sendCodingTestInvite = async ({ candidate, codingTestUrl, problemCount, du
   return info;
 };
 
+const sendCodingSubmissionReceived = async ({ candidate, submissions }) => {
+  const transporter = getTransporter();
+  if (!transporter) throw new Error('SMTP not configured');
+  const hrTo = await resolveHrEmail();
+  const adminUrl = `${env.frontendUrl.replace(/\/$/, '')}/candidates/${candidate.id}`;
+  const subject = `Coding submission received — ${candidate.name}`;
+  const html = buildCodingSubmissionReceivedHtml({ candidate, submissions, adminUrl });
+  const text = buildCodingSubmissionReceivedText({ candidate, submissions, adminUrl });
+  const info = await transporter.sendMail({
+    from: env.smtp.from,
+    to: hrTo,
+    subject, text, html,
+  });
+  logger.info('Coding submission notification sent', { messageId: info.messageId, candidate: candidate.id });
+  return info;
+};
+
 const sendInterviewReminderInterviewer = async ({ interview, candidate, interviewer }) => {
   const transporter = getTransporter();
   if (!transporter) throw new Error('SMTP not configured');
@@ -538,5 +556,6 @@ module.exports = {
   sendInterviewReminderCandidate,
   sendInterviewReminderInterviewer,
   sendCodingTestInvite,
+  sendCodingSubmissionReceived,
   getTransporter,
 };
