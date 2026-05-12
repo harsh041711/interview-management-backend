@@ -6,6 +6,7 @@ const submissionRepository = require('../repositories/submissionRepository');
 const interviewRepository = require('../repositories/interviewRepository');
 const rescheduleRequestRepository = require('../repositories/rescheduleRequestRepository');
 const reviewRepository = require('../repositories/reviewRepository');
+const codingProblemService = require('./codingProblemService');
 const { generateTestToken } = require('../utils/tokenGenerator');
 const { destroyAsset, uploadBufferToCloudinary } = require('./uploadService');
 const emailService = require('./emailService');
@@ -20,6 +21,13 @@ const buildTestUrl = (token) => {
   const base = env.frontendUrl.replace(/\/$/, '');
   return `${base}/test/${token}`;
 };
+
+const buildCodingTestUrl = (token) => {
+  const base = env.frontendUrl.replace(/\/$/, '');
+  return `${base}/coding-test/${token}`;
+};
+
+const CODING_TEST_EXPIRY_HOURS = 24;
 
 const presentCandidate = (candidate) => ({
   id: candidate.id,
@@ -47,6 +55,21 @@ const presentCandidate = (candidate) => ({
         jdSnapshot: candidate.screening.jdSnapshot || null,
         scoredAt: candidate.screening.scoredAt || null,
         scoredBy: candidate.screening.scoredBy || null,
+      }
+    : null,
+  codingTest: candidate.codingTest?.sentAt
+    ? {
+        sentAt: candidate.codingTest.sentAt,
+        firstOpenedAt: candidate.codingTest.firstOpenedAt || null,
+        submittedAt: candidate.codingTest.submittedAt || null,
+        reviewedAt: candidate.codingTest.reviewedAt || null,
+        outcome: candidate.codingTest.outcome || null,
+        problemCount: candidate.codingTest.problemCount,
+        durationMinutes: candidate.codingTest.durationMinutes,
+        difficulty: candidate.codingTest.difficulty,
+        expiresAt: candidate.codingTest.expiresAt,
+        problems: candidate.codingTest.problems || [],
+        codingTestUrl: candidate.codingTest.token ? buildCodingTestUrl(candidate.codingTest.token) : null,
       }
     : null,
   testToken: candidate.testToken,
@@ -428,6 +451,107 @@ const sendTest = async (id) => {
   return presentCandidate(candidate);
 };
 
+const sendCodingTest = async (id, { problemCount = 1, durationMinutes = 30, difficulty = 'medium' }, adminId) => {
+  const candidate = await candidateRepository.findById(id);
+  if (!candidate) throw ApiError.notFound('Candidate not found');
+  if (candidate.codingTest?.sentAt && !candidate.codingTest?.submittedAt) {
+    const expired = candidate.codingTest.expiresAt && candidate.codingTest.expiresAt.getTime() < Date.now();
+    if (!expired) {
+      throw ApiError.conflict(
+        'Coding test already sent — use regenerate to issue a new link',
+        { code: 'E_CODING_TEST_ALREADY_SENT' },
+      );
+    }
+  }
+  const sampled = await codingProblemService.sampleForCandidate({
+    techStacks: candidate.techStack,
+    difficulty,
+    problemCount,
+    adminId,
+  });
+  const { token, expiresAt } = generateTestToken({ minutes: 60 * CODING_TEST_EXPIRY_HOURS });
+  candidate.codingTest = {
+    token,
+    expiresAt,
+    problems: sampled.map((p) => p.id),
+    problemCount,
+    durationMinutes,
+    difficulty,
+    sentAt: new Date(),
+    firstOpenedAt: null,
+    submittedAt: null,
+    reviewedAt: null,
+    outcome: null,
+  };
+  await candidate.save();
+
+  const presented = presentCandidate(candidate);
+  setImmediate(async () => {
+    try {
+      await emailService.sendCodingTestInvite({
+        candidate: presented,
+        codingTestUrl: presented.codingTest.codingTestUrl,
+        problemCount,
+        durationMinutes,
+      });
+    } catch (err) {
+      logger.error('Coding test invite email failed', { candidateId: id, err: err.message });
+    }
+  });
+  return presented;
+};
+
+const regenerateCodingTest = async (id, adminId) => {
+  const candidate = await candidateRepository.findById(id);
+  if (!candidate) throw ApiError.notFound('Candidate not found');
+  if (!candidate.codingTest?.sentAt) {
+    throw ApiError.conflict('No coding test to regenerate', { code: 'E_NO_CODING_TEST' });
+  }
+  const { token, expiresAt } = generateTestToken({ minutes: 60 * CODING_TEST_EXPIRY_HOURS });
+  candidate.codingTest.token = token;
+  candidate.codingTest.expiresAt = expiresAt;
+  candidate.codingTest.firstOpenedAt = null;
+  candidate.codingTest.submittedAt = null;
+  candidate.codingTest.reviewedAt = null;
+  candidate.codingTest.outcome = null;
+  candidate.codingTest.sentAt = new Date();
+  await candidate.save();
+
+  const presented = presentCandidate(candidate);
+  setImmediate(async () => {
+    try {
+      await emailService.sendCodingTestInvite({
+        candidate: presented,
+        codingTestUrl: presented.codingTest.codingTestUrl,
+        problemCount: candidate.codingTest.problemCount,
+        durationMinutes: candidate.codingTest.durationMinutes,
+      });
+    } catch (err) {
+      logger.error('Coding test invite re-fire failed', { candidateId: id, err: err.message });
+    }
+  });
+  return presented;
+};
+
+const resendCodingTest = async (id) => {
+  const candidate = await candidateRepository.findById(id);
+  if (!candidate) throw ApiError.notFound('Candidate not found');
+  if (!candidate.codingTest?.sentAt) {
+    throw ApiError.conflict('No coding test to resend', { code: 'E_NO_CODING_TEST' });
+  }
+  if (candidate.codingTest.expiresAt && candidate.codingTest.expiresAt.getTime() < Date.now()) {
+    throw ApiError.conflict('Coding test link has expired — regenerate instead', { code: 'E_CODING_TEST_EXPIRED' });
+  }
+  const presented = presentCandidate(candidate);
+  await emailService.sendCodingTestInvite({
+    candidate: presented,
+    codingTestUrl: presented.codingTest.codingTestUrl,
+    problemCount: candidate.codingTest.problemCount,
+    durationMinutes: candidate.codingTest.durationMinutes,
+  });
+  return { sentTo: presented.email };
+};
+
 module.exports = {
   createCandidate,
   regenerateToken,
@@ -446,4 +570,7 @@ module.exports = {
   approveResume,
   declineResume,
   sendTest,
+  sendCodingTest,
+  regenerateCodingTest,
+  resendCodingTest,
 };
