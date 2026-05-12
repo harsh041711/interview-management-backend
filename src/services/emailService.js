@@ -24,6 +24,7 @@ const { buildCultureFitInviteHtml, buildCultureFitInviteText } = require('../tem
 const { buildFinalRejectionHtml, buildFinalRejectionText } = require('../templates/finalRejectionEmail');
 const { buildResumeShortlistedHtml, buildResumeShortlistedText } = require('../templates/resumeShortlistedEmail');
 const { buildResumeDeclinedHtml, buildResumeDeclinedText } = require('../templates/resumeDeclinedEmail');
+const { buildCodingTestInviteHtml, buildCodingTestInviteText } = require('../templates/codingTestInviteEmail');
 const { buildCandidateReminderHtml, buildCandidateReminderText } = require('../templates/interviewReminderCandidateEmail');
 const { buildInterviewerReminderHtml, buildInterviewerReminderText } = require('../templates/interviewReminderInterviewerEmail');
 const { ROUND1_OUTCOMES } = require('../utils/constants');
@@ -485,6 +486,21 @@ const sendInterviewReminderCandidate = async ({ interview, candidate, interviewe
   return info;
 };
 
+const sendCodingTestInvite = async ({ candidate, codingTestUrl, problemCount, durationMinutes }) => {
+  const transporter = getTransporter();
+  if (!transporter) throw new Error('SMTP not configured');
+  const subject = `Your coding challenge is ready — ${(candidate.techStack || []).join(', ')}`;
+  const html = buildCodingTestInviteHtml({ candidate, codingTestUrl, problemCount, durationMinutes });
+  const text = buildCodingTestInviteText({ candidate, codingTestUrl, problemCount, durationMinutes });
+  const info = await transporter.sendMail({
+    from: env.smtp.from,
+    to: candidate.email,
+    subject, text, html,
+  });
+  logger.info('Coding test invite sent', { messageId: info.messageId, candidate: candidate.id });
+  return info;
+};
+
 const sendInterviewReminderInterviewer = async ({ interview, candidate, interviewer }) => {
   const transporter = getTransporter();
   if (!transporter) throw new Error('SMTP not configured');
@@ -521,5 +537,6 @@ module.exports = {
   sendResumeDeclined,
   sendInterviewReminderCandidate,
   sendInterviewReminderInterviewer,
+  sendCodingTestInvite,
   getTransporter,
 };
