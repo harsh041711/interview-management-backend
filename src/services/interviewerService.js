@@ -17,6 +17,8 @@ const presentInterviewer = (doc) => ({
   isActive: doc.isActive,
   notes: doc.notes ?? null,
   createdBy: doc.createdBy,
+  passwordSetAt: doc.passwordSetAt ?? null,
+  lastLoginAt: doc.lastLoginAt ?? null,
   createdAt: doc.createdAt,
   updatedAt: doc.updatedAt,
 });
