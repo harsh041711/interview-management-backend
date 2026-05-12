@@ -183,17 +183,33 @@ const finalize = async ({ candidate, session, answers, autoSubmitted, cheatDetec
     submittedAt: submission.submittedAt,
   });
 
+  // Suppress auto-outcome if a coding test is pending review.
+  const codingPending =
+    candidate.codingTest?.sentAt &&
+    candidate.codingTest?.outcome === 'pending_review';
+
   if (outcome === ROUND1_OUTCOMES.DISQUALIFIED) {
     candidate.status = CANDIDATE_STATUS.CHEATED;
-  } else if (outcome === ROUND1_OUTCOMES.SHORTLISTED) {
-    candidate.status = CANDIDATE_STATUS.SHORTLISTED;
+    await candidate.save();
+    queueReportEmail({ candidate, submission });
+    queueRound1OutcomeEmail({ candidate, submission, outcome });
+  } else if (codingPending) {
+    logger.info('Round 1 auto-outcome suppressed — coding test pending review', {
+      candidateId: candidate.id || candidate._id,
+    });
+    // Still save the submission report email (HR wants to see MCQ score regardless)
+    queueReportEmail({ candidate, submission });
+    // Skip the status flip + outcome email
   } else {
-    candidate.status = CANDIDATE_STATUS.REJECTED;
+    if (outcome === ROUND1_OUTCOMES.SHORTLISTED) {
+      candidate.status = CANDIDATE_STATUS.SHORTLISTED;
+    } else {
+      candidate.status = CANDIDATE_STATUS.REJECTED;
+    }
+    await candidate.save();
+    queueReportEmail({ candidate, submission });
+    queueRound1OutcomeEmail({ candidate, submission, outcome });
   }
-  await candidate.save();
-
-  queueReportEmail({ candidate, submission });
-  queueRound1OutcomeEmail({ candidate, submission, outcome });
 
   return {
     submissionId: submission.id,
