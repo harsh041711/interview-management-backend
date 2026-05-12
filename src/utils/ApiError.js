@@ -20,6 +20,9 @@ class ApiError extends Error {
   static unprocessable(message = 'Unprocessable entity', opts) { return new ApiError(422, message, opts); }
   static tooMany(message = 'Too many requests', opts) { return new ApiError(429, message, opts); }
   static internal(message = 'Internal server error', opts) { return new ApiError(500, message, { ...opts, isOperational: false }); }
+  static serviceUnavailable(message = 'Service unavailable', opts = {}) {
+    return new ApiError(503, message, opts);
+  }
 }
 
 module.exports = ApiError;
