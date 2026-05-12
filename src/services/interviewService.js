@@ -345,6 +345,10 @@ const update = async (id, patch, adminId) => {
     }
   }
 
+  if (patch.scheduledAt) {
+    patch.reminderSentAt = null; // fresh schedule → reminder re-fires
+  }
+
   const updated = await interviewRepository.updateById(id, patch);
 
   const timingOrUrlChanged =
@@ -429,6 +433,7 @@ const decideReschedule = async (interviewId, { decision, note }, adminId) => {
     interview.scheduledAt = newStart;
     interview.durationMinutes = newDuration;
     interview.status = INTERVIEW_STATUS.SCHEDULED;
+    interview.reminderSentAt = null; // fresh window → re-send reminder closer to new time
     await interview.save();
 
     request.status = RESCHEDULE_STATUS.APPROVED;
