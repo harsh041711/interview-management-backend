@@ -59,6 +59,26 @@ const rejectCandidate = asyncHandler(async (req, res) => {
   return ok(res, { candidate }, 'Candidate rejected');
 });
 
+const approveResume = asyncHandler(async (req, res) => {
+  const c = await candidateService.approveResume(req.params.id);
+  return ok(res, c, 'Candidate approved');
+});
+
+const declineResume = asyncHandler(async (req, res) => {
+  const c = await candidateService.declineResume(req.params.id);
+  return ok(res, c, 'Candidate declined');
+});
+
+const rescreenResume = asyncHandler(async (req, res) => {
+  const c = await candidateService.rescreen(req.params.id);
+  return ok(res, c, 'Re-screened');
+});
+
+const sendTest = asyncHandler(async (req, res) => {
+  const c = await candidateService.sendTest(req.params.id);
+  return ok(res, c, 'Test invitation sent');
+});
+
 module.exports = {
   createCandidate,
   listCandidates,
@@ -71,4 +91,8 @@ module.exports = {
   stats,
   selectCandidate,
   rejectCandidate,
+  approveResume,
+  declineResume,
+  rescreenResume,
+  sendTest,
 };

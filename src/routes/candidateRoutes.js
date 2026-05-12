@@ -24,6 +24,10 @@ router.post('/:id/regenerate-token', validate(idParamSchema), candidateControlle
 router.post('/:id/resend-invite', validate(idParamSchema), candidateController.resendInvite);
 router.post('/:id/select', validate(idParamSchema), candidateController.selectCandidate);
 router.post('/:id/reject', validate(rejectSchema), candidateController.rejectCandidate);
+router.post('/:id/resume/approve', validate(idParamSchema), candidateController.approveResume);
+router.post('/:id/resume/decline', validate(idParamSchema), candidateController.declineResume);
+router.post('/:id/resume/rescreen', validate(idParamSchema), candidateController.rescreenResume);
+router.post('/:id/send-test', validate(idParamSchema), candidateController.sendTest);
 router.post('/:id/resume', singleResume('resume'), validate(idParamSchema), candidateController.uploadResume);
 router.delete('/:id/resume', validate(idParamSchema), candidateController.removeResume);
 router.delete('/:id', validate(idParamSchema), candidateController.deleteCandidate);
