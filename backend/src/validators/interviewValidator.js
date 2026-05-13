@@ -11,7 +11,7 @@ const scheduleSchema = {
     interviewerId: objectId.required(),
     scheduledAt: Joi.date().iso().greater('now').required(),
     durationMinutes: Joi.number().integer().min(15).max(240).optional(),
-    meetingUrl: Joi.string().uri({ scheme: ['http', 'https'] }).required(),
+    meetingUrl: Joi.string().uri({ scheme: ['http', 'https'] }).allow('', null).optional(),
     notes: Joi.string().max(1000).empty('').optional(),
   }),
 };
