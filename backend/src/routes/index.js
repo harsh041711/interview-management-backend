@@ -17,6 +17,7 @@ const jobDescriptionRoutes = require('./jobDescriptionRoutes');
 const codingProblemRoutes = require('./codingProblemRoutes');
 const codingTestPublicRoutes = require('./codingTestPublicRoutes');
 const codingSubmissionRoutes = require('./codingSubmissionRoutes');
+const integrationsRoutes = require('./integrationsRoutes');
 
 const router = express.Router();
 
@@ -38,5 +39,6 @@ router.use('/job-descriptions', jobDescriptionRoutes);
 router.use('/coding-problems', codingProblemRoutes);
 router.use('/coding-test', codingTestPublicRoutes);
 router.use('/coding-submissions', codingSubmissionRoutes);
+router.use('/integrations', integrationsRoutes);
 
 module.exports = router;
