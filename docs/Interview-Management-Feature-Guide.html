@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Interview Management — Feature Guide</title>
+<style>
+  @page { size: A4; margin: 18mm 16mm; }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: #1f2937;
+    line-height: 1.55;
+    font-size: 11.5pt;
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 0;
+  }
+  h1 {
+    color: #1d4ed8;
+    font-size: 22pt;
+    border-bottom: 3px solid #3b82f6;
+    padding-bottom: 8px;
+    margin: 0 0 20px;
+    page-break-after: avoid;
+  }
+  h2 {
+    color: #1e40af;
+    font-size: 16pt;
+    margin: 32px 0 12px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid #cbd5e1;
+    page-break-after: avoid;
+  }
+  h3 {
+    color: #1e293b;
+    font-size: 13pt;
+    margin: 24px 0 8px;
+    page-break-after: avoid;
+  }
+  h4 {
+    color: #334155;
+    font-size: 12pt;
+    margin: 18px 0 6px;
+  }
+  p { margin: 0 0 10px; }
+  ul, ol { margin: 0 0 12px; padding-left: 22px; }
+  li { margin: 4px 0; }
+  strong { color: #0f172a; }
+  em { color: #475569; }
+  code {
+    background: #f1f5f9;
+    color: #be185d;
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-family: "SF Mono", Menlo, Monaco, "Courier New", monospace;
+    font-size: 10pt;
+    border: 1px solid #e2e8f0;
+  }
+  pre {
+    background: #0f172a;
+    color: #e2e8f0;
+    padding: 12px 14px;
+    border-radius: 6px;
+    overflow-x: auto;
+    font-family: "SF Mono", Menlo, monospace;
+    font-size: 9.5pt;
+    line-height: 1.4;
+    page-break-inside: avoid;
+  }
+  pre code {
+    background: transparent;
+    color: inherit;
+    padding: 0;
+    border: 0;
+    font-size: inherit;
+  }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 12px 0 16px;
+    font-size: 10.5pt;
+    page-break-inside: avoid;
+  }
+  th, td {
+    border: 1px solid #cbd5e1;
+    padding: 8px 10px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th {
+    background: #eff6ff;
+    color: #1e3a8a;
+    font-weight: 600;
+  }
+  tr:nth-child(even) td { background: #f8fafc; }
+  blockquote {
+    border-left: 4px solid #2563eb;
+    padding: 8px 14px;
+    margin: 12px 0;
+    background: #eff6ff;
+    color: #1e293b;
+    border-radius: 0 6px 6px 0;
+  }
+  blockquote p:last-child { margin: 0; }
+  hr {
+    border: 0;
+    border-top: 1px solid #cbd5e1;
+    margin: 24px 0;
+  }
+  a { color: #2563eb; text-decoration: none; }
+  .footer-note {
+    margin-top: 40px;
+    padding-top: 12px;
+    border-top: 1px solid #cbd5e1;
+    color: #64748b;
+    font-size: 9.5pt;
+    text-align: center;
+  }
+</style></head>
+<body><h1>Interview Management System — Feature Guide</h1>
+<p>A complete overview of what the system does, who uses each part, and how
+a candidate moves from &quot;new application&quot; to &quot;hired or rejected.&quot;</p>
+<blockquote>
+<p><strong>Note on screenshots:</strong> Drop PNG/JPG images into <code>docs/screenshots/</code> using the
+filenames shown below each image placeholder, and they&#39;ll render inline when
+this doc is viewed on GitHub.</p>
+</blockquote>
+<hr>
+<h2>1. What this system is</h2>
+<p>A web-based hiring console that helps HR run the entire interview pipeline
+in one place. It replaces the usual spreadsheet + email back-and-forth with:</p>
+<ul>
+<li>A <strong>single dashboard</strong> for managing candidates, tests, interviews, and decisions.</li>
+<li><strong>AI assistance</strong> for screening resumes, drafting coding problems, and scoring MCQ answers.</li>
+<li><strong>Automated emails</strong> for every stage (invitations, reminders, shortlist, rejection).</li>
+<li><strong>Anti-cheat tools</strong> baked into the candidate-facing test pages.</li>
+<li>A clean <strong>interviewer portal</strong> so external interviewers only see what they need.</li>
+</ul>
+<hr>
+<h2>2. Who uses it</h2>
+<table>
+<thead>
+<tr>
+<th>Role</th>
+<th>What they can do</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>HR / Admin</strong></td>
+<td>Full access — create candidates, manage questions, schedule interviews, make hire decisions, export data.</td>
+</tr>
+<tr>
+<td><strong>Interviewer</strong></td>
+<td>A separate login with access only to interviews assigned to them — review the candidate, submit ratings, and (if needed) request edits to a submitted review.</td>
+</tr>
+<tr>
+<td><strong>Candidate</strong></td>
+<td>No login. Receives email links to take tests or join interviews. Each link has a token + expiry.</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>3. The full candidate journey</h2>
+<p>This is the <strong>happy path</strong> from application to hire decision. Each step is
+covered in detail later in the doc.</p>
+<pre><code>1. HR creates candidate (uploads resume)
+        ↓
+2. AI scans the resume against a Job Description, returns a Match %
+        ↓
+3. HR approves or declines the resume
+        ↓
+4. HR sends the MCQ test link to the candidate
+        ↓
+5. Candidate takes the timed MCQ test (with photo + anti-cheat)
+        ↓
+6. AI auto-scores the answers — outcome: Shortlisted / Rejected / Disqualified
+        ↓
+7. (Optional) HR sends the Coding Test link
+        ↓
+8. Candidate solves coding problems in an in-browser code editor
+        ↓
+9. Backend auto-runs the test cases; HR rates the code 1–5 stars
+        ↓
+10. HR shortlists the candidate → schedules a Round 2 interview
+        ↓
+11. Interviewer conducts the meeting and submits a structured review
+        ↓
+12. HR reads the review and makes the final hire / culture-round decision
+</code></pre>
+<hr>
+<h2>4. Module-by-module breakdown</h2>
+<h3>4.1  Candidates</h3>
+<p>The home base for every applicant.</p>
+<ul>
+<li><strong>Create a candidate</strong> — name, email, tech stack, experience level, number of MCQ questions, test duration, and an optional resume (PDF / DOC / DOCX up to 5 MB).</li>
+<li><strong>Resume scanning animation</strong> — when a resume is uploaded, HR sees a live &quot;document scanner&quot; preview of the candidate&#39;s resume with a 4-step progress tracker (Create → Upload → Scan → Match) instead of a blank waiting screen.</li>
+<li><strong>Candidate list page</strong> — searchable, filterable by status / experience, paginated.<ul>
+<li><strong>Inline quick-actions</strong> per row: Approve / Decline (during resume review), Copy test link, Resend invite, Regenerate token, View details, Delete.</li>
+<li><strong>Export CSV</strong> — downloads every candidate matching the current filters: name, email, tech stack, status, resume match %, coding test outcome, and more.</li>
+</ul>
+</li>
+<li><strong>Candidate detail page</strong> — the full profile, with:<ul>
+<li>Avatar, contact, tech-stack chips, experience level, status badge.</li>
+<li><strong>Screening panel</strong> — the AI&#39;s match %, green flags, red flags, JD title, and AI recommendation. (See §4.3.)</li>
+<li><strong>Coding Test summary</strong> card with a button that opens a dedicated review page.</li>
+<li><strong>Interviewer review</strong> (after Round 2 completes).</li>
+<li><strong>Action bar</strong> that adapts to the candidate&#39;s stage: Approve, Decline, Send test, Send coding test, Select for culture, Reject, Delete.</li>
+</ul>
+</li>
+</ul>
+<h3>4.2  Job Descriptions (JD library)</h3>
+<p>A reusable bank of role descriptions, used by the AI to score resumes.</p>
+<ul>
+<li>HR adds a JD with: title, role, responsibilities, qualifications, nice-to-haves, and a min/max years-of-experience range.</li>
+<li>Each JD is <strong>scoped to a tech stack</strong> (e.g., a &quot;React Developer&quot; JD applies to candidates tagged <code>react</code>).</li>
+<li>JDs can be marked active / inactive without deletion.</li>
+<li>When a candidate is created with a matching tech stack, the system automatically picks the right JD for screening.</li>
+</ul>
+<h3>4.3  AI Resume Screening</h3>
+<p>Runs automatically when a resume is uploaded for a candidate whose tech
+stack has an active JD.</p>
+<p>What it produces:</p>
+<ul>
+<li>A <strong>Match %</strong> (0–100) — how well the resume aligns with the JD.</li>
+<li><strong>Green flags</strong> — specific things the resume gets right (technologies, years of experience, projects).</li>
+<li><strong>Red flags</strong> — gaps or mismatches (missing skills, wrong experience range, etc.).</li>
+<li>A short <strong>summary</strong> in plain English.</li>
+<li>An <strong>AI recommendation</strong>: Approve or Decline.</li>
+</ul>
+<p>HR can:</p>
+<ul>
+<li><strong>Approve</strong> or <strong>Decline</strong> the resume. Both fire an email to the candidate.</li>
+<li><strong>Override the AI</strong> — if HR disagrees, a confirmation modal appears warning that the AI recommendation is being overridden.</li>
+<li><strong>Re-screen</strong> — if the JD changes or the candidate&#39;s tech stack is updated, HR can re-run the screening.</li>
+</ul>
+<p>The AI uses a <strong>fallback chain</strong> for reliability:
+Gemini 2.5-flash → Gemini 2.5-flash-lite → Gemini 2.0-flash → Gemini 2.0-flash-lite → Groq llama-3.3-70b → Groq llama-3.1-8b. If all providers are down, screening is marked <code>failed</code> and HR reviews manually.</p>
+<h3>4.4  Question Bank</h3>
+<p>Used to generate the MCQ test.</p>
+<ul>
+<li>Each question has: prompt, options, correct answer, tech stack, difficulty (easy/medium/hard), and source (manual or AI-generated).</li>
+<li>HR can <strong>draft questions with AI</strong> by providing topic + difficulty.</li>
+<li>When HR creates a candidate, the system <strong>samples questions</strong> from the bank that match the candidate&#39;s tech stack — using a least-used-first strategy so questions rotate evenly.</li>
+</ul>
+<h3>4.5  MCQ Test (Round 1, the timed assessment)</h3>
+<p>The candidate receives an email with their test link.</p>
+<p><strong>What the candidate experiences:</strong></p>
+<ol>
+<li>Opens the link → <strong>photo capture</strong> step (selfie via webcam) to verify identity.</li>
+<li>Test page loads with the timer running.</li>
+<li>Questions appear one by one. Each has options.</li>
+<li><strong>Anti-cheat:</strong><ul>
+<li>Tab switches are tracked and logged.</li>
+<li>The page is locked into full-screen-like behavior.</li>
+<li><strong>3 tab switches → auto-submitted as &quot;Cheated&quot;</strong> (configurable threshold).</li>
+<li>Photo from the start is stored as evidence.</li>
+</ul>
+</li>
+<li>When time runs out (or candidate clicks Submit), answers go to the server.</li>
+</ol>
+<p><strong>What happens on the backend:</strong></p>
+<ul>
+<li>Answers are <strong>auto-graded</strong> against the bank&#39;s correct answers.</li>
+<li>A <strong>percentage score</strong> is computed.</li>
+<li>Based on score + cheat detection, the candidate&#39;s status flips automatically:<ul>
+<li><strong>≥ 60% and no cheat</strong> → <code>Shortlisted</code> (eligible for Round 2 or culture round).</li>
+<li><strong>&lt; 60%</strong> → <code>Rejected</code>.</li>
+<li><strong>Cheat detected</strong> → <code>Cheated</code> (special status, no email).</li>
+</ul>
+</li>
+<li>A <strong>score report email</strong> is sent to HR with the breakdown.</li>
+<li>A <strong>result email</strong> is sent to the candidate (different template per outcome).</li>
+</ul>
+<p>If a coding test is also pending review, the MCQ auto-outcome is <strong>suppressed</strong> — the final decision waits until both tests are reviewed together.</p>
+<h3>4.6  Coding Test (optional second-round assessment)</h3>
+<p>Lets HR evaluate the candidate&#39;s coding ability with real programming
+problems, runnable in three languages.</p>
+<p><strong>HR side — Coding Problems library:</strong></p>
+<ul>
+<li>HR builds a bank of coding problems: title, description (markdown), difficulty, tech stack, supported languages (JavaScript / Python / PHP), starter code per language, and test cases (input + expected output, can be marked hidden).</li>
+<li>Each problem can be <strong>AI-drafted</strong> in two ways:<ol>
+<li><strong>Generate entire problem</strong> from a topic — AI returns title, description, starter code, and test cases.</li>
+<li><strong>Generate starter code</strong> only — AI scaffolds the stdin/stdout boilerplate for a language.</li>
+</ol>
+</li>
+<li>Problems can be edited, deactivated, filtered by source (manual / AI), difficulty, language.</li>
+</ul>
+<p><strong>Sending the test:</strong></p>
+<ul>
+<li>On the candidate detail page, HR clicks <strong>Send coding test</strong> → modal asks for: number of problems (1–5), duration (minutes), difficulty.</li>
+<li>System <strong>samples problems</strong> from the bank matching the candidate&#39;s tech stack. If the bank doesn&#39;t have enough matches, <strong>AI generates new ones on the fly</strong> and saves them to the bank for future use.</li>
+<li>An invite email goes to the candidate with the link.</li>
+</ul>
+<p><strong>Candidate side — the coding test page:</strong></p>
+<ul>
+<li>IDE-style <strong>split-pane layout</strong> (HackerRank / LeetCode feel):<ul>
+<li><strong>Left pane</strong>: Problem title, difficulty badge, full description (markdown rendered), example input/output cards in dark terminal style.</li>
+<li><strong>Right pane</strong>: VSCode-dark Monaco editor, language picker, starter code pre-loaded.</li>
+</ul>
+</li>
+<li><strong>Big timer pill</strong> at the top — turns red and pulses in the last minute. <strong>Auto-submits</strong> when time runs out.</li>
+<li><strong>Progress dots</strong> at the bottom showing problem 1/3, 2/3, etc.</li>
+<li><strong>Anti-cheat:</strong><ul>
+<li><strong>Paste disabled</strong> in the editor (with a toast warning).</li>
+<li><strong>Copy disabled</strong> at the page level.</li>
+<li><strong>Right-click / context menu disabled.</strong></li>
+<li><strong>Tab switches counted</strong> — a pill at the top turns amber after 1 switch and red after 3+. A warning modal appears on return.</li>
+<li><strong>Tab switch count persists across page refresh</strong> (stored in localStorage).</li>
+</ul>
+</li>
+<li>Candidate writes solutions for each problem, navigates with Previous/Next, hits <strong>Submit and finish</strong> on the last one.</li>
+</ul>
+<p><strong>Auto-execution (server-side):</strong></p>
+<ul>
+<li>On submit, the backend runs each problem&#39;s code through the <strong>Piston public API</strong> (a free multi-language code-execution sandbox).</li>
+<li>Each test case runs with the candidate&#39;s code as a child process; stdout / stderr / exit code are captured.</li>
+<li>A test case <strong>passes</strong> if <code>actualStdout.trim() === expectedStdout.trim()</code> and exit code is 0.</li>
+<li><strong>Hidden test cases</strong> are run too — the candidate only sees the visible (sample) ones during the test.</li>
+</ul>
+<p><strong>HR review — the dedicated coding test page:</strong></p>
+<ul>
+<li>Accessed via the <strong>View coding test submission</strong> button on the candidate detail page (separate route to keep the candidate detail clean).</li>
+<li>Top summary card: sent/submitted dates, outcome pill (Pending review / Shortlisted / Rejected), three stat boxes — test cases passed (with %), tab switches, languages used.</li>
+<li>For each problem:<ul>
+<li>Difficulty badge, language pill, pass-ratio pill.</li>
+<li><strong>Test case results</strong> — each case in a card with a green/red border, colored pass/fail icon, Input / Expected / Got blocks (mismatched &quot;Got&quot; shows dark red).</li>
+<li><strong>Read-only Monaco editor</strong> showing the candidate&#39;s code in VSCode-dark theme.</li>
+<li><strong>Re-run tests</strong> button (re-executes against Piston without saving a new submission).</li>
+<li><strong>5-star rating</strong> + comment box per problem.</li>
+</ul>
+</li>
+<li><strong>Final decision panel</strong> (only when all problems are rated): Shortlist or Reject buttons. Each fires the corresponding Round 1 email to the candidate.</li>
+</ul>
+<h3>4.7  Interviews (Round 2)</h3>
+<p>After Round 1 (MCQ + optional coding), HR schedules a live interview with a specific interviewer.</p>
+<p><strong>Interviewer management:</strong></p>
+<ul>
+<li>HR adds interviewers with name, email, and <strong>expertise areas</strong> (e.g., <code>react</code>, <code>node</code>, <code>system design</code>).</li>
+<li>On creation, the interviewer gets an email with a <strong>password setup link</strong> — they pick their own password.</li>
+<li>Interviewers can be marked active / inactive.</li>
+</ul>
+<p><strong>Scheduling an interview:</strong></p>
+<ul>
+<li>HR opens a shortlisted candidate, clicks <strong>Schedule interview</strong>, picks:<ul>
+<li>An interviewer (filtered by overlapping expertise).</li>
+<li>Date + time, duration, meeting URL (Zoom / Meet / Teams link HR pastes in).</li>
+<li>Optional notes for the interviewer.</li>
+</ul>
+</li>
+<li>The system fires two emails simultaneously:<ul>
+<li><strong>To the candidate</strong>: meeting time, link, interviewer name.</li>
+<li><strong>To the interviewer</strong>: candidate summary, meeting time, link, <strong>a magic interviewer-only URL</strong> to load the review form.</li>
+</ul>
+</li>
+</ul>
+<p><strong>Interview reminders:</strong></p>
+<ul>
+<li>A scheduler runs every minute on the backend.</li>
+<li><strong>30 minutes before</strong> each scheduled interview, it emails BOTH the candidate and the interviewer with a reminder + meeting link.</li>
+<li>A <code>reminderSentAt</code> flag prevents double-sends, and it auto-resets if HR reschedules the interview.</li>
+</ul>
+<p><strong>Reschedule flow:</strong></p>
+<ul>
+<li>Interviewers can request a new time + reason from their portal.</li>
+<li>HR sees a <strong>&quot;Pending reschedule&quot; banner</strong> on the interview detail page with: current time, proposed time, reason.</li>
+<li>HR can <strong>Approve</strong> (reschedule is applied, both parties emailed) or <strong>Reject</strong> (interview stays, interviewer notified). HR can add a decision note.</li>
+<li>Full reschedule history is visible per interview.</li>
+</ul>
+<p><strong>Interview detail page (HR view):</strong></p>
+<ul>
+<li>Top card: schedule time, duration, status badge, candidate + interviewer info, meeting URL with copy button, magic link copy buttons, notes.</li>
+<li><strong>Action bar</strong>: Edit, Mark complete, Cancel (with reason prompt).</li>
+<li><strong>Pending reschedule banner</strong> when applicable.</li>
+<li><strong>Reschedule history</strong> collapsible list.</li>
+<li><strong>Interviewer review</strong> section (appears once the interview is completed).</li>
+</ul>
+<p><strong>Interview list page:</strong></p>
+<ul>
+<li>Filter by status / from-date / to-date.</li>
+<li><strong>Export CSV</strong> — downloads every interview with: time, candidate, interviewer, status, meeting URL, notes, completion details, etc.</li>
+</ul>
+<h3>4.8  Interviewer Portal</h3>
+<p>A separate dashboard so external interviewers only see their assigned interviews and nothing else.</p>
+<ul>
+<li><strong>My interviews list</strong> — upcoming + past, with status.</li>
+<li><strong>Interview detail</strong> — candidate name, resume download (if available), tech stack chips, scheduled time, notes from HR.</li>
+<li><strong>Review form</strong> — three required 1–5 star ratings:<ul>
+<li><strong>Knowledge</strong> — technical depth.</li>
+<li><strong>Communication</strong> — clarity, articulation.</li>
+<li><strong>Confidence</strong> — composure, problem-solving demeanor.</li>
+<li>Plus a <strong>free-text comments</strong> box.</li>
+</ul>
+</li>
+<li><strong>Auto-complete on submit</strong> — submitting the review automatically marks the interview as <code>completed</code>, no separate &quot;mark complete&quot; step.</li>
+<li><strong>Edit-request flow</strong> — if the interviewer wants to amend their review later, they submit an edit request with a reason. HR reviews + approves/rejects with a decision note.</li>
+</ul>
+<h3>4.9  Reviews &amp; Edit Requests (HR oversight)</h3>
+<ul>
+<li>All interviewer reviews appear on both the <strong>candidate detail page</strong> and the <strong>interview detail page</strong> with: interviewer name, average rating, per-axis stars, comments, submitted-at, edit count.</li>
+<li><strong>Edit-request center</strong> at <code>/admin/review-edit-requests</code> — a queue of pending requests across all interviews. HR can approve or reject each with a note.</li>
+<li>Full <strong>edit history</strong> is shown on the review panel — every previous request, decision, reason, and HR&#39;s decision note.</li>
+</ul>
+<h3>4.10  Submissions module</h3>
+<p>A dedicated browsing view of all MCQ submissions across candidates.</p>
+<ul>
+<li>Filterable, paginated list with score, outcome, cheat status.</li>
+<li>Click into a submission to see: each question, the candidate&#39;s answer, the correct answer, per-question evaluation, and the photo captured at the start of the test.</li>
+</ul>
+<hr>
+<h2>5. Automation summary</h2>
+<p>Things that happen without HR doing anything:</p>
+<table>
+<thead>
+<tr>
+<th>Trigger</th>
+<th>What fires</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Resume uploaded</td>
+<td>AI screening starts, match % + flags stored, candidate detail updates.</td>
+</tr>
+<tr>
+<td>Candidate created without resume</td>
+<td>Status set to <code>resume_pending</code> (manual approve required).</td>
+</tr>
+<tr>
+<td>Resume Approved</td>
+<td>Email to candidate informing they&#39;re shortlisted for the test.</td>
+</tr>
+<tr>
+<td>Resume Declined</td>
+<td>Polite rejection email.</td>
+</tr>
+<tr>
+<td>Send MCQ test</td>
+<td>Email to candidate with timed test link.</td>
+</tr>
+<tr>
+<td>MCQ submitted</td>
+<td>Auto-graded, status flips, score report to HR, result email to candidate.</td>
+</tr>
+<tr>
+<td>Tab switches exceed threshold</td>
+<td>Test auto-submits, status set to <code>Cheated</code>.</td>
+</tr>
+<tr>
+<td>Send coding test</td>
+<td>Email with link, problems sampled (or AI-generated).</td>
+</tr>
+<tr>
+<td>Coding test submitted</td>
+<td>Test cases auto-run via Piston, HR notification email with pass/fail count.</td>
+</tr>
+<tr>
+<td>Coding test Shortlisted</td>
+<td>Round 1 shortlist email to candidate.</td>
+</tr>
+<tr>
+<td>Coding test Rejected</td>
+<td>Round 1 rejection email to candidate.</td>
+</tr>
+<tr>
+<td>Interview scheduled</td>
+<td>Two emails: candidate + interviewer.</td>
+</tr>
+<tr>
+<td>30 min before interview</td>
+<td>Reminder emails to candidate + interviewer.</td>
+</tr>
+<tr>
+<td>Interview rescheduled</td>
+<td>Re-fired notifications to both parties; reminder flag reset.</td>
+</tr>
+<tr>
+<td>Reschedule approved/rejected</td>
+<td>Notification to interviewer with HR&#39;s decision note.</td>
+</tr>
+<tr>
+<td>Interviewer submits review</td>
+<td>Interview auto-completed.</td>
+</tr>
+<tr>
+<td>HR shortlists for culture / rejects</td>
+<td>Final-stage email to candidate.</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>6. Anti-cheat measures</h2>
+<p>Both the MCQ test and the coding test have layered protections:</p>
+<p><strong>MCQ test:</strong></p>
+<ul>
+<li><strong>Photo capture</strong> before the test starts — stored as visual proof.</li>
+<li><strong>Tab-switch counter</strong> — N switches → auto-submit with <code>Cheated</code> status.</li>
+<li><strong>Server-side timer enforcement</strong> — even if a candidate fakes the client clock, the backend tracks the real elapsed time.</li>
+<li><strong>Single-use token</strong> — once submitted, the link can&#39;t be reused.</li>
+<li><strong>Token expiry</strong> — links expire 24 hours after issue.</li>
+</ul>
+<p><strong>Coding test:</strong></p>
+<ul>
+<li><strong>Paste blocked</strong> in the Monaco editor (toast warning shown).</li>
+<li><strong>Copy / Cut blocked</strong> at the page level (Ctrl/Cmd + C/V/X intercepted).</li>
+<li><strong>Context menu disabled</strong> (no right-click).</li>
+<li><strong>Tab-switch counter</strong> with a visible amber/red pill that updates live; HR sees the final count on the review page.</li>
+<li><strong>Tab-switch count persists across refresh</strong> (localStorage, keyed by token).</li>
+<li><strong>Auto-submit on timer expiry</strong>.</li>
+<li><strong>Test cases run server-side only</strong> — candidate code never executes in the browser.</li>
+<li><strong>Hidden test cases</strong> that the candidate never sees, so the answers can&#39;t be hard-coded.</li>
+</ul>
+<hr>
+<h2>7. Reporting &amp; data export</h2>
+<ul>
+<li><strong>CSV export from the Candidates page</strong> — every column needed for offline reporting (name, email, tech stack, status, match %, coding outcome, dates, links).</li>
+<li><strong>CSV export from the Interviews page</strong> — schedule, candidate, interviewer, status, meeting URL, completion details, cancel reasons.</li>
+<li>Both exports <strong>respect the current filters</strong> — so if you&#39;ve filtered &quot;Status = Shortlisted&quot;, only those rows are exported.</li>
+<li>Files open cleanly in Excel / Google Sheets (UTF-8 BOM + Excel-friendly escaping).</li>
+</ul>
+<hr>
+<h2>8. Quick reference — where to find what</h2>
+<table>
+<thead>
+<tr>
+<th>Need to…</th>
+<th>Go to</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Add a new candidate</td>
+<td>Candidates → <strong>+ New candidate</strong></td>
+</tr>
+<tr>
+<td>See AI&#39;s match % for a candidate</td>
+<td>Candidates → click candidate → Screening panel</td>
+</tr>
+<tr>
+<td>Approve / Decline a resume</td>
+<td>Candidates list (inline) or candidate detail page</td>
+</tr>
+<tr>
+<td>Send the MCQ test</td>
+<td>Candidate detail page → <strong>Send test</strong> (after resume approved)</td>
+</tr>
+<tr>
+<td>See an MCQ submission</td>
+<td>Submissions → click row</td>
+</tr>
+<tr>
+<td>Build the question bank</td>
+<td>Questions → <strong>+ New question</strong> or <strong>AI generate</strong></td>
+</tr>
+<tr>
+<td>Create / edit a JD</td>
+<td>Job Descriptions → <strong>+ New JD</strong></td>
+</tr>
+<tr>
+<td>Build a coding problem</td>
+<td>Coding Problems → <strong>+ New problem</strong> (manual or AI)</td>
+</tr>
+<tr>
+<td>Send the coding test</td>
+<td>Candidate detail page → <strong>Send coding test</strong></td>
+</tr>
+<tr>
+<td>Review coding submission</td>
+<td>Candidate detail → <strong>View coding test submission</strong></td>
+</tr>
+<tr>
+<td>Add an interviewer</td>
+<td>Interviewers → <strong>+ New interviewer</strong></td>
+</tr>
+<tr>
+<td>Schedule an interview</td>
+<td>Candidate detail (after shortlisted) → <strong>Schedule interview</strong></td>
+</tr>
+<tr>
+<td>Approve a reschedule request</td>
+<td>Interview detail → Pending reschedule banner</td>
+</tr>
+<tr>
+<td>See an interviewer&#39;s review</td>
+<td>Candidate detail OR Interview detail</td>
+</tr>
+<tr>
+<td>Approve a review edit request</td>
+<td>Admin → <strong>Edit requests</strong></td>
+</tr>
+<tr>
+<td>Export everything</td>
+<td>Candidates / Interviews → <strong>↓ Export CSV</strong></td>
+</tr>
+</tbody></table>
+<hr>
+<h2>9. Tech stack (for IT / dev reference)</h2>
+<ul>
+<li><strong>Backend</strong>: Node.js, Express, MongoDB (Mongoose), Joi validation, Jest tests.</li>
+<li><strong>Frontend</strong>: React, Redux Toolkit, Vite, SCSS, React Router, Monaco editor.</li>
+<li><strong>AI providers</strong>: Google Gemini (primary, multiple model tiers) → Groq (fallback) for resume screening, MCQ grading, question drafting, problem drafting.</li>
+<li><strong>Code execution</strong>: Piston public API (<a href="https://emkc.org/api/v2/piston/execute">https://emkc.org/api/v2/piston/execute</a>) — no Docker, no API key, supports JS / Python / PHP.</li>
+<li><strong>Email</strong>: SMTP via Nodemailer.</li>
+<li><strong>File storage</strong>: Cloudinary (resumes, photos).</li>
+<li><strong>Auth</strong>: JWT with role claims (admin / interviewer), token-based public links for candidates.</li>
+</ul>
+
+<div class="footer-note">Interview Management System — Feature Guide · Generated 2026-05-12</div>
+</body></html>

@@ -4,7 +4,6 @@ import Modal from '@/components/common/Modal';
 import Button from '@/components/common/Button';
 import Input from '@/components/common/Input';
 import { useToast } from '@/components/common/Toast';
-import { copyToClipboard } from '@/utils/formatters';
 import { createCandidate, uploadCandidateResume } from './candidateSlice';
 import { fetchTechStacks } from '@/features/questions/questionSlice';
 import './CreateCandidateModal.scss';
@@ -26,6 +25,7 @@ const initialForm = () => ({
   questionCount: 10,
   durationMinutes: computeAutoDuration(10),
   durationManual: false,
+  experience: 'mid',
 });
 
 export default function CreateCandidateModal({ open, onClose }) {
@@ -36,9 +36,21 @@ export default function CreateCandidateModal({ open, onClose }) {
   const [stack, setStack] = useState(new Set());
   const [stackInput, setStackInput] = useState('');
   const [busy, setBusy] = useState(false);
-  const [created, setCreated] = useState(null);
   const [resumeFile, setResumeFile] = useState(null);
+  const [scanPhase, setScanPhase] = useState(null); // 'creating' | 'uploading' | 'scanning' | 'matching'
+  const [resumePreviewUrl, setResumePreviewUrl] = useState(null);
   const resumeInputRef = useRef(null);
+
+  // Generate (and clean up) an object URL for previewing the resume during scan.
+  useEffect(() => {
+    if (!resumeFile) {
+      setResumePreviewUrl(null);
+      return undefined;
+    }
+    const url = URL.createObjectURL(resumeFile);
+    setResumePreviewUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [resumeFile]);
 
   // Fetch the list of tech stacks that actually have questions in the bank
   // whenever the modal opens, so HR picks values that match what was loaded.
@@ -55,7 +67,6 @@ export default function CreateCandidateModal({ open, onClose }) {
     setForm(initialForm());
     setStack(new Set());
     setStackInput('');
-    setCreated(null);
     setResumeFile(null);
     if (resumeInputRef.current) resumeInputRef.current.value = '';
   };
@@ -125,25 +136,46 @@ export default function CreateCandidateModal({ open, onClose }) {
       return;
     }
     setBusy(true);
+    setScanPhase(resumeFile ? 'creating' : null);
+
     const action = await dispatch(createCandidate({
       name: form.name,
       email: form.email,
       techStack: [...stack],
       questionCount: Number(form.questionCount) || 10,
       durationMinutes: Number(form.durationMinutes) || computeAutoDuration(form.questionCount),
+      experience: form.experience,
     }));
     if (!createCandidate.fulfilled.match(action)) {
       setBusy(false);
+      setScanPhase(null);
       push({ type: 'error', message: action.payload?.message || 'Failed to create candidate' });
       return;
     }
-    let candidate = action.payload.candidate;
+    const candidate = action.payload.candidate;
 
     if (resumeFile) {
-      const upload = await dispatch(uploadCandidateResume({ id: candidate.id, file: resumeFile }));
+      // Phase progression: upload → scan (the long visible portion) → match (final).
+      setScanPhase('uploading');
+      const toScan = setTimeout(() => setScanPhase('scanning'), 600);
+
+      const uploadPromise = dispatch(uploadCandidateResume({ id: candidate.id, file: resumeFile }));
+      const upload = await uploadPromise;
+
+      // The backend already finished — flash a brief 'matching' phase so the last step
+      // visibly lights up before the modal closes.
+      clearTimeout(toScan);
+      setScanPhase('matching');
+      await new Promise((r) => setTimeout(r, 500));
+
       if (uploadCandidateResume.fulfilled.match(upload)) {
-        candidate = upload.payload.candidate;
-        push({ type: 'success', message: 'Candidate created — resume attached' });
+        const scr = upload.payload.candidate?.screening;
+        const msg =
+          scr?.status === 'scored' ? `Candidate created — screening complete (match: ${scr.matchPercent}%)`
+          : scr?.status === 'skipped' ? 'Candidate created — no matching JD, screening skipped'
+          : scr?.status === 'failed' ? 'Candidate created — AI screening unavailable, review manually'
+          : 'Candidate created — resume uploaded';
+        push({ type: 'success', message: msg });
       } else {
         push({
           type: 'warn',
@@ -151,27 +183,87 @@ export default function CreateCandidateModal({ open, onClose }) {
         });
       }
     } else {
-      push({ type: 'success', message: 'Candidate created' });
+      push({ type: 'success', message: 'Candidate created — upload a resume to start screening' });
     }
 
     setBusy(false);
-    setCreated(candidate);
+    setScanPhase(null);
+    handleClose();
   };
 
-  const onCopy = async () => {
-    const ok = await copyToClipboard(created.testUrl);
-    push({ type: ok ? 'success' : 'error', message: ok ? 'Test link copied' : 'Failed to copy' });
+  const PHASE_LABELS = {
+    creating: { title: 'Creating candidate record…', step: 1 },
+    uploading: { title: 'Uploading resume to secure storage…', step: 2 },
+    scanning: { title: 'Scanning resume content…', step: 3 },
+    matching: { title: 'Matching against job descriptions…', step: 4 },
+  };
+
+  const ScanView = () => {
+    const meta = PHASE_LABELS[scanPhase] || PHASE_LABELS.creating;
+    const isPdf = resumeFile?.type === 'application/pdf';
+    return (
+      <div className="resume-scan">
+        <div className="resume-scan__doc">
+          {isPdf && resumePreviewUrl ? (
+            <iframe
+              key={resumePreviewUrl}
+              src={`${resumePreviewUrl}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
+              title="Resume preview"
+              className="resume-scan__pdf"
+            />
+          ) : (
+            <div className="resume-scan__paper">
+              <div className="resume-scan__file-icon">📄</div>
+              <div className="resume-scan__filename">{resumeFile?.name || 'resume'}</div>
+              <div className="resume-scan__filesize">
+                {resumeFile ? `${(resumeFile.size / 1024).toFixed(0)} KB` : ''}
+              </div>
+              <div className="resume-scan__line resume-scan__line--title" />
+              <div className="resume-scan__line" />
+              <div className="resume-scan__line resume-scan__line--short" />
+              <div className="resume-scan__line resume-scan__line--medium" />
+              <div className="resume-scan__line" />
+              <div className="resume-scan__line resume-scan__line--short" />
+            </div>
+          )}
+          <div className="resume-scan__beam" />
+          <div className="resume-scan__glow" />
+        </div>
+        <div className="resume-scan__status">
+          <div className="resume-scan__title">{meta.title}</div>
+          <div className="resume-scan__steps">
+            {[1, 2, 3, 4].map((n) => (
+              <div
+                key={n}
+                className={`resume-scan__step ${
+                  n < meta.step ? 'is-done' : n === meta.step ? 'is-current' : ''
+                }`}
+              >
+                <span className="resume-scan__step-dot">{n < meta.step ? '✓' : n}</span>
+                <span className="resume-scan__step-label">
+                  {n === 1 && 'Create'}
+                  {n === 2 && 'Upload'}
+                  {n === 3 && 'Scan'}
+                  {n === 4 && 'Match'}
+                </span>
+              </div>
+            ))}
+          </div>
+          <div className="resume-scan__hint">
+            This usually takes 5–15 seconds. Hang tight.
+          </div>
+        </div>
+      </div>
+    );
   };
 
   return (
     <Modal
       open={open}
-      onClose={handleClose}
-      title={created ? 'Test link generated' : 'New candidate'}
+      onClose={scanPhase ? () => {} : handleClose}
+      title={scanPhase ? 'Processing resume' : 'New candidate'}
       footer={
-        created ? (
-          <Button onClick={handleClose}>Done</Button>
-        ) : (
+        scanPhase ? null : (
           <>
             <Button variant="secondary" onClick={handleClose}>Cancel</Button>
             <Button onClick={submit} loading={busy}>Create candidate</Button>
@@ -179,17 +271,7 @@ export default function CreateCandidateModal({ open, onClose }) {
         )
       }
     >
-      {created ? (
-        <div className="created-summary">
-          <p>
-            Share this secure link with <strong>{created.name}</strong>.
-            They will answer <strong>{created.questionCount}</strong> question{created.questionCount === 1 ? '' : 's'}
-            in <strong>{created.durationMinutes}</strong> minute{created.durationMinutes === 1 ? '' : 's'}.
-          </p>
-          <code className="created-summary__url">{created.testUrl}</code>
-          <Button onClick={onCopy} fullWidth variant="secondary">Copy link</Button>
-        </div>
-      ) : (
+      {scanPhase ? <ScanView /> : (
         <form onSubmit={submit} className="create-candidate" noValidate>
           <Input
             label="Full name"
@@ -261,6 +343,18 @@ export default function CreateCandidateModal({ open, onClose }) {
                 ))}
               </div>
             )}
+          </div>
+          <div className="field">
+            <span className="field__label">Experience</span>
+            <div className="create-candidate__exp">
+              {['entry', 'mid', 'senior'].map((e) => (
+                <button type="button" key={e}
+                  className={`chip-toggle ${form.experience === e ? 'is-on' : ''}`}
+                  onClick={() => setForm({ ...form, experience: e })}>
+                  {e}
+                </button>
+              ))}
+            </div>
           </div>
           <div className="field">
             <span className="field__label">Resume <span className="field__optional">(optional)</span></span>

@@ -150,12 +150,27 @@ const queueScheduledEmails = (interview) => {
       }
 
       try {
+        let setupUrl = null;
+        try {
+          const fresh = await interviewerRepository.findByEmailWithPassword(interviewer.email);
+          if (fresh && !fresh.passwordHash) {
+            const accountSetupService = require('./accountSetupService');
+            const result = await accountSetupService.issueToken({ email: interviewer.email, purpose: 'initial_setup' });
+            if (result && result.token) {
+              setupUrl = `${env.frontendUrl.replace(/\/$/, '')}/account/setup/${result.token}`;
+            }
+          }
+        } catch (err) {
+          logger.warn('Inline setup-token issuance failed', { interviewerEmail: interviewer.email, err: err.message });
+        }
+
         await emailService.sendInterviewScheduled({
           recipient: 'interviewer',
           interview,
           candidate,
           interviewer,
           accessUrl: interviewerUrl,
+          setupUrl,
         });
       } catch (err) {
         logger.error('Scheduled email to interviewer failed', {
@@ -330,6 +345,10 @@ const update = async (id, patch, adminId) => {
     }
   }
 
+  if (patch.scheduledAt) {
+    patch.reminderSentAt = null; // fresh schedule → reminder re-fires
+  }
+
   const updated = await interviewRepository.updateById(id, patch);
 
   const timingOrUrlChanged =
@@ -414,6 +433,7 @@ const decideReschedule = async (interviewId, { decision, note }, adminId) => {
     interview.scheduledAt = newStart;
     interview.durationMinutes = newDuration;
     interview.status = INTERVIEW_STATUS.SCHEDULED;
+    interview.reminderSentAt = null; // fresh window → re-send reminder closer to new time
     await interview.save();
 
     request.status = RESCHEDULE_STATUS.APPROVED;

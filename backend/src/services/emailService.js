@@ -14,6 +14,20 @@ const { buildScheduledHtml, buildScheduledText } = require('../templates/intervi
 const { buildRescheduleRequestedHtml, buildRescheduleRequestedText } = require('../templates/rescheduleRequestedEmail');
 const { buildRescheduleApprovedHtml, buildRescheduleApprovedText } = require('../templates/rescheduleApprovedEmail');
 const { buildRescheduleRejectedHtml, buildRescheduleRejectedText } = require('../templates/rescheduleRejectedEmail');
+const { buildAccountSetupHtml, buildAccountSetupText } = require('../templates/accountSetupEmail');
+const { buildReviewSubmittedHtml, buildReviewSubmittedText } = require('../templates/reviewSubmittedEmail');
+const { buildReviewEditedHtml, buildReviewEditedText } = require('../templates/reviewEditedEmail');
+const { buildEditRequestSubmittedHtml, buildEditRequestSubmittedText } = require('../templates/editRequestSubmittedEmail');
+const { buildEditRequestApprovedHtml, buildEditRequestApprovedText } = require('../templates/editRequestApprovedEmail');
+const { buildEditRequestRejectedHtml, buildEditRequestRejectedText } = require('../templates/editRequestRejectedEmail');
+const { buildCultureFitInviteHtml, buildCultureFitInviteText } = require('../templates/cultureFitInviteEmail');
+const { buildFinalRejectionHtml, buildFinalRejectionText } = require('../templates/finalRejectionEmail');
+const { buildResumeShortlistedHtml, buildResumeShortlistedText } = require('../templates/resumeShortlistedEmail');
+const { buildResumeDeclinedHtml, buildResumeDeclinedText } = require('../templates/resumeDeclinedEmail');
+const { buildCodingTestInviteHtml, buildCodingTestInviteText } = require('../templates/codingTestInviteEmail');
+const { buildCandidateReminderHtml, buildCandidateReminderText } = require('../templates/interviewReminderCandidateEmail');
+const { buildInterviewerReminderHtml, buildInterviewerReminderText } = require('../templates/interviewReminderInterviewerEmail');
+const { buildCodingSubmissionReceivedHtml, buildCodingSubmissionReceivedText } = require('../templates/codingSubmissionReceivedEmail');
 const { ROUND1_OUTCOMES } = require('../utils/constants');
 
 let cachedTransporter = null;
@@ -150,7 +164,7 @@ const buildResumeAttachment = (candidate) => {
   };
 };
 
-const sendInterviewScheduled = async ({ recipient, interview, candidate, interviewer, accessUrl }) => {
+const sendInterviewScheduled = async ({ recipient, interview, candidate, interviewer, accessUrl, setupUrl }) => {
   const transporter = getTransporter();
   if (!transporter) throw new Error('SMTP not configured');
 
@@ -173,6 +187,7 @@ const sendInterviewScheduled = async ({ recipient, interview, candidate, intervi
     accessUrl,
     notes: interview.notes,
     hasResume: !!candidate?.resumeUrl,
+    setupUrl,
   });
   const text = buildScheduledText({
     recipient,
@@ -184,6 +199,7 @@ const sendInterviewScheduled = async ({ recipient, interview, candidate, intervi
     accessUrl,
     notes: interview.notes,
     hasResume: !!candidate?.resumeUrl,
+    setupUrl,
   });
 
   const attachments = [];
@@ -273,6 +289,251 @@ const sendRescheduleRejected = async ({ interview, candidate, interviewer, reque
   return info;
 };
 
+const sendAccountSetup = async ({ interviewer, setupUrl, purpose, expiresAt }) => {
+  const transporter = getTransporter();
+  if (!transporter) throw new Error('SMTP not configured');
+  if (!interviewer?.email) throw new Error('Interviewer email missing');
+
+  const isReset = purpose === 'forgot_password';
+  const subject = isReset ? `Reset your ${env.appName} password` : `Set up your ${env.appName} interviewer account`;
+  const html = buildAccountSetupHtml({ name: interviewer.name, setupUrl, purpose, expiresAt, appName: env.appName });
+  const text = buildAccountSetupText({ name: interviewer.name, setupUrl, purpose, expiresAt, appName: env.appName });
+
+  const info = await transporter.sendMail({ from: env.smtp.from, to: interviewer.email, subject, text, html });
+  logger.info('Account setup email sent', { messageId: info.messageId, to: interviewer.email, purpose });
+  return info;
+};
+
+const sendReviewSubmitted = async ({ review, candidate, interviewer }) => {
+  const transporter = getTransporter();
+  if (!transporter) throw new Error('SMTP not configured');
+  const hrTo = await resolveHrEmail();
+  if (!hrTo) throw new Error('No HR email recipient configured');
+
+  const baseUrl = env.frontendUrl.replace(/\/$/, '');
+  const candidateId = candidate.id || candidate._id;
+  const adminUrl = `${baseUrl}/candidates/${candidateId}`;
+  const avg = Math.round(((review.ratings.knowledge + review.ratings.communication + review.ratings.confidence) / 3) * 10) / 10;
+
+  const subject = `Review submitted — ${candidate.name} (${avg}/5)`;
+  const html = buildReviewSubmittedHtml({ review, candidate, interviewer, adminUrl, appName: env.appName });
+  const text = buildReviewSubmittedText({ review, candidate, interviewer, adminUrl, appName: env.appName });
+
+  const info = await transporter.sendMail({ from: env.smtp.from, to: hrTo, subject, text, html });
+  logger.info('Review submitted email sent', { messageId: info.messageId, to: hrTo, candidate: candidateId });
+  return info;
+};
+
+const sendReviewEdited = async ({ review, candidate, interviewer }) => {
+  const transporter = getTransporter();
+  if (!transporter) throw new Error('SMTP not configured');
+  const hrTo = await resolveHrEmail();
+  if (!hrTo) throw new Error('No HR email recipient configured');
+
+  const baseUrl = env.frontendUrl.replace(/\/$/, '');
+  const candidateId = candidate.id || candidate._id;
+  const adminUrl = `${baseUrl}/candidates/${candidateId}`;
+
+  const subject = `Review updated — ${candidate.name}`;
+  const html = buildReviewEditedHtml({ review, candidate, interviewer, adminUrl, appName: env.appName });
+  const text = buildReviewEditedText({ review, candidate, interviewer, adminUrl, appName: env.appName });
+
+  const info = await transporter.sendMail({ from: env.smtp.from, to: hrTo, subject, text, html });
+  logger.info('Review edited email sent', { messageId: info.messageId, to: hrTo, candidate: candidateId });
+  return info;
+};
+
+const sendEditRequestSubmitted = async ({ request }) => {
+  const transporter = getTransporter();
+  if (!transporter) throw new Error('SMTP not configured');
+  const hrTo = await resolveHrEmail();
+  if (!hrTo) throw new Error('No HR email recipient configured');
+
+  const review = request.review;
+  const candidate = review?.candidate || {};
+  const interviewer = review?.interviewer || {};
+
+  const baseUrl = env.frontendUrl.replace(/\/$/, '');
+  const adminUrl = `${baseUrl}/admin/review-edit-requests`;
+
+  const subject = `Edit request — ${interviewer.name || 'Interviewer'} for ${candidate.name || 'Candidate'}`;
+  const html = buildEditRequestSubmittedHtml({ request, candidate, interviewer, adminUrl, appName: env.appName });
+  const text = buildEditRequestSubmittedText({ request, candidate, interviewer, adminUrl, appName: env.appName });
+
+  const info = await transporter.sendMail({ from: env.smtp.from, to: hrTo, subject, text, html });
+  logger.info('Edit-request email sent', { messageId: info.messageId, to: hrTo });
+  return info;
+};
+
+const sendEditRequestApproved = async ({ request }) => {
+  const transporter = getTransporter();
+  if (!transporter) throw new Error('SMTP not configured');
+  const review = request.review;
+  const candidate = review?.candidate || {};
+  const interviewer = review?.interviewer || {};
+  if (!interviewer.email) throw new Error('Interviewer email missing');
+
+  const baseUrl = env.frontendUrl.replace(/\/$/, '');
+  const dashboardUrl = `${baseUrl}/interviewer/dashboard`;
+
+  const subject = `Edit permission granted`;
+  const html = buildEditRequestApprovedHtml({
+    request, candidate, interviewer, dashboardUrl,
+    decisionNote: request.decisionNote || null, appName: env.appName,
+  });
+  const text = buildEditRequestApprovedText({
+    request, candidate, interviewer, dashboardUrl,
+    decisionNote: request.decisionNote || null, appName: env.appName,
+  });
+
+  const info = await transporter.sendMail({ from: env.smtp.from, to: interviewer.email, subject, text, html });
+  logger.info('Edit-request approved email sent', { messageId: info.messageId, to: interviewer.email });
+  return info;
+};
+
+const sendEditRequestRejected = async ({ request }) => {
+  const transporter = getTransporter();
+  if (!transporter) throw new Error('SMTP not configured');
+  const review = request.review;
+  const candidate = review?.candidate || {};
+  const interviewer = review?.interviewer || {};
+  if (!interviewer.email) throw new Error('Interviewer email missing');
+
+  const subject = `Edit request not approved`;
+  const html = buildEditRequestRejectedHtml({
+    request, candidate, interviewer,
+    decisionNote: request.decisionNote || null, appName: env.appName,
+  });
+  const text = buildEditRequestRejectedText({
+    request, candidate, interviewer,
+    decisionNote: request.decisionNote || null, appName: env.appName,
+  });
+
+  const info = await transporter.sendMail({ from: env.smtp.from, to: interviewer.email, subject, text, html });
+  logger.info('Edit-request rejected email sent', { messageId: info.messageId, to: interviewer.email });
+  return info;
+};
+
+const sendCultureFitInvite = async ({ candidate }) => {
+  const transporter = getTransporter();
+  if (!transporter) throw new Error('SMTP not configured');
+  if (!candidate?.email) throw new Error('Candidate email is missing');
+
+  const subject = `You've advanced — ${env.appName} final culture-fit round`;
+  const html = buildCultureFitInviteHtml({ candidate, appName: env.appName });
+  const text = buildCultureFitInviteText({ candidate, appName: env.appName });
+
+  const info = await transporter.sendMail({ from: env.smtp.from, to: candidate.email, subject, text, html });
+  logger.info('Culture-fit invite sent', { messageId: info.messageId, to: candidate.email });
+  return info;
+};
+
+const sendFinalRejection = async ({ candidate, note }) => {
+  const transporter = getTransporter();
+  if (!transporter) throw new Error('SMTP not configured');
+  if (!candidate?.email) throw new Error('Candidate email is missing');
+
+  const subject = `Update on your ${env.appName} application`;
+  const html = buildFinalRejectionHtml({ candidate, note: note || null, appName: env.appName });
+  const text = buildFinalRejectionText({ candidate, note: note || null, appName: env.appName });
+
+  const info = await transporter.sendMail({ from: env.smtp.from, to: candidate.email, subject, text, html });
+  logger.info('Final rejection sent', { messageId: info.messageId, to: candidate.email });
+  return info;
+};
+
+const sendResumeShortlisted = async ({ candidate }) => {
+  const transporter = getTransporter();
+  if (!transporter) throw new Error('SMTP not configured');
+  const subject = 'Your application has been shortlisted';
+  const html = buildResumeShortlistedHtml({ candidate });
+  const text = buildResumeShortlistedText({ candidate });
+  const info = await transporter.sendMail({
+    from: env.smtp.from,
+    to: candidate.email,
+    subject, text, html,
+  });
+  logger.info('Resume shortlisted email sent', { messageId: info.messageId, candidate: candidate.id });
+  return info;
+};
+
+const sendResumeDeclined = async ({ candidate }) => {
+  const transporter = getTransporter();
+  if (!transporter) throw new Error('SMTP not configured');
+  const subject = 'Update on your application';
+  const html = buildResumeDeclinedHtml({ candidate });
+  const text = buildResumeDeclinedText({ candidate });
+  const info = await transporter.sendMail({
+    from: env.smtp.from,
+    to: candidate.email,
+    subject, text, html,
+  });
+  logger.info('Resume declined email sent', { messageId: info.messageId, candidate: candidate.id });
+  return info;
+};
+
+const sendInterviewReminderCandidate = async ({ interview, candidate, interviewer }) => {
+  const transporter = getTransporter();
+  if (!transporter) throw new Error('SMTP not configured');
+  const subject = 'Reminder: your interview starts in 30 minutes';
+  const html = buildCandidateReminderHtml({ interview, candidate, interviewer });
+  const text = buildCandidateReminderText({ interview, candidate, interviewer });
+  const info = await transporter.sendMail({
+    from: env.smtp.from,
+    to: candidate.email,
+    subject, text, html,
+  });
+  logger.info('Interview reminder sent to candidate', { messageId: info.messageId, interview: interview.id || interview._id, candidate: candidate.id });
+  return info;
+};
+
+const sendCodingTestInvite = async ({ candidate, codingTestUrl, problemCount, durationMinutes }) => {
+  const transporter = getTransporter();
+  if (!transporter) throw new Error('SMTP not configured');
+  const subject = `Your coding challenge is ready — ${(candidate.techStack || []).join(', ')}`;
+  const html = buildCodingTestInviteHtml({ candidate, codingTestUrl, problemCount, durationMinutes });
+  const text = buildCodingTestInviteText({ candidate, codingTestUrl, problemCount, durationMinutes });
+  const info = await transporter.sendMail({
+    from: env.smtp.from,
+    to: candidate.email,
+    subject, text, html,
+  });
+  logger.info('Coding test invite sent', { messageId: info.messageId, candidate: candidate.id });
+  return info;
+};
+
+const sendCodingSubmissionReceived = async ({ candidate, submissions }) => {
+  const transporter = getTransporter();
+  if (!transporter) throw new Error('SMTP not configured');
+  const hrTo = await resolveHrEmail();
+  const adminUrl = `${env.frontendUrl.replace(/\/$/, '')}/candidates/${candidate.id}`;
+  const subject = `Coding submission received — ${candidate.name}`;
+  const html = buildCodingSubmissionReceivedHtml({ candidate, submissions, adminUrl });
+  const text = buildCodingSubmissionReceivedText({ candidate, submissions, adminUrl });
+  const info = await transporter.sendMail({
+    from: env.smtp.from,
+    to: hrTo,
+    subject, text, html,
+  });
+  logger.info('Coding submission notification sent', { messageId: info.messageId, candidate: candidate.id });
+  return info;
+};
+
+const sendInterviewReminderInterviewer = async ({ interview, candidate, interviewer }) => {
+  const transporter = getTransporter();
+  if (!transporter) throw new Error('SMTP not configured');
+  const subject = `Reminder: interview with ${candidate.name} starts in 30 minutes`;
+  const html = buildInterviewerReminderHtml({ interview, candidate, interviewer });
+  const text = buildInterviewerReminderText({ interview, candidate, interviewer });
+  const info = await transporter.sendMail({
+    from: env.smtp.from,
+    to: interviewer.email,
+    subject, text, html,
+  });
+  logger.info('Interview reminder sent to interviewer', { messageId: info.messageId, interview: interview.id || interview._id, interviewer: interviewer.id });
+  return info;
+};
+
 module.exports = {
   resolveHrEmail,
   sendInterviewReport,
@@ -282,5 +543,19 @@ module.exports = {
   sendRescheduleRequested,
   sendRescheduleApproved,
   sendRescheduleRejected,
+  sendAccountSetup,
+  sendReviewSubmitted,
+  sendReviewEdited,
+  sendEditRequestSubmitted,
+  sendEditRequestApproved,
+  sendEditRequestRejected,
+  sendCultureFitInvite,
+  sendFinalRejection,
+  sendResumeShortlisted,
+  sendResumeDeclined,
+  sendInterviewReminderCandidate,
+  sendInterviewReminderInterviewer,
+  sendCodingTestInvite,
+  sendCodingSubmissionReceived,
   getTransporter,
 };

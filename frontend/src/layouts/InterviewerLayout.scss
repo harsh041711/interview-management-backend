@@ -1,0 +1,94 @@
+.interviewer-layout {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  background: $color-surface-2;
+
+  @media (max-width: $bp-md) {
+    grid-template-columns: 1fr;
+  }
+
+  &__side {
+    background: $color-surface;
+    border-right: 1px solid $color-border;
+    padding: $space-5 $space-3;
+    display: flex;
+    flex-direction: column;
+    gap: $space-5;
+  }
+
+  &__brand {
+    display: flex;
+    align-items: center;
+    gap: $space-3;
+    padding: 0 $space-3;
+  }
+  &__brand-mark {
+    color: $color-primary;
+    font-size: 22px;
+  }
+  &__brand-title {
+    font-weight: 700;
+    font-size: 15px;
+  }
+  &__brand-sub {
+    font-size: 12px;
+    color: $color-text-muted;
+  }
+
+  &__nav {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  &__link {
+    padding: 9px $space-3;
+    border-radius: $radius-md;
+    color: $color-text-muted;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    &:hover { background: $color-surface-2; color: $color-text; }
+    &.is-active { background: $color-primary; color: white; }
+  }
+
+  &__main {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  &__header {
+    background: $color-surface;
+    border-bottom: 1px solid $color-border;
+    padding: $space-3 $space-5;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  &__user {
+    display: flex;
+    flex-direction: column;
+  }
+  &__name { font-weight: 600; font-size: 14px; }
+  &__email { color: $color-text-muted; font-size: 12px; }
+
+  &__logout {
+    background: $color-surface-2;
+    border: 1px solid $color-border;
+    padding: 7px 14px;
+    border-radius: $radius-md;
+    cursor: pointer;
+    font-size: 13px;
+    color: $color-text;
+    @include focus-ring;
+    &:hover { border-color: $color-border-strong; }
+  }
+
+  &__content {
+    padding: $space-5;
+    flex: 1;
+    overflow-x: auto;
+  }
+}

@@ -5,7 +5,7 @@ import EmptyState from '@/components/common/EmptyState';
 import Loader from '@/components/common/Loader';
 import { useToast } from '@/components/common/Toast';
 import { formatDate } from '@/utils/formatters';
-import { fetchInterviewers, deleteInterviewer } from './interviewerSlice';
+import { fetchInterviewers, deleteInterviewer, sendInterviewerSetupLink } from './interviewerSlice';
 import InterviewerFormModal from './InterviewerFormModal';
 import './InterviewerListPage.scss';
 
@@ -28,6 +28,16 @@ export default function InterviewerListPage() {
   const openCreate = () => { setEditing(null); setModalOpen(true); };
   const openEdit = (interviewer) => { setEditing(interviewer); setModalOpen(true); };
   const closeModal = () => { setModalOpen(false); setEditing(null); };
+
+  const sendSetup = async (id) => {
+    if (!window.confirm('Send a setup link email to this interviewer?')) return;
+    const action = await dispatch(sendInterviewerSetupLink(id));
+    if (sendInterviewerSetupLink.fulfilled.match(action)) {
+      push({ type: 'success', message: `Setup link sent to ${action.payload.sentTo}` });
+    } else {
+      push({ type: 'error', message: action.payload?.message || 'Could not send setup link' });
+    }
+  };
 
   const onDelete = async (id) => {
     if (!window.confirm('Delete this interviewer? This cannot be undone.')) return;
@@ -91,6 +101,7 @@ export default function InterviewerListPage() {
                 <th>Email</th>
                 <th>Expertise</th>
                 <th>Active</th>
+                <th>Account Status</th>
                 <th>Created</th>
                 <th />
               </tr>
@@ -113,10 +124,18 @@ export default function InterviewerListPage() {
                       {iv.isActive ? 'Active' : 'Inactive'}
                     </span>
                   </td>
+                  <td>
+                    <span className={`int-badge ${iv.passwordSetAt ? 'is-active' : 'is-pending'}`}>
+                      {iv.passwordSetAt ? 'Account active' : 'Setup pending'}
+                    </span>
+                  </td>
                   <td>{formatDate(iv.createdAt)}</td>
                   <td>
                     <div className="interviewers-table__actions">
                       <Button size="sm" variant="secondary" onClick={() => openEdit(iv)}>Edit</Button>
+                      <Button size="sm" variant="secondary" onClick={() => sendSetup(iv.id)}>
+                        {iv.passwordSetAt ? 'Resend setup link' : 'Send setup link'}
+                      </Button>
                       <Button size="sm" variant="ghost" onClick={() => onDelete(iv.id)}>Delete</Button>
                     </div>
                   </td>

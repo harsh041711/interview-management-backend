@@ -18,6 +18,10 @@ const VARIANTS = {
   reschedule_requested: 'warn',
   cancelled: 'pending',
   disqualified: 'danger',
+  // Phase 3 additions
+  awaiting_decision: 'warn',
+  selected_for_culture: 'success',
+  final_rejected: 'danger',
 };
 
 const LABELS = {
@@ -38,6 +42,10 @@ const LABELS = {
   reschedule_requested: 'Reschedule requested',
   cancelled: 'Cancelled',
   disqualified: 'Disqualified',
+  // Phase 3 additions
+  awaiting_decision: 'Awaiting decision',
+  selected_for_culture: 'Selected — culture round',
+  final_rejected: 'Rejected (final)',
 };
 
 export default function StatusBadge({ status }) {

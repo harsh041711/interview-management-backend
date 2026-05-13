@@ -11,7 +11,7 @@ import {
 
 const initialState = {
   token: getToken(),
-  admin: getStoredAdmin(),
+  user: getStoredAdmin(),
   status: 'idle',
   error: null,
 };
@@ -20,8 +20,9 @@ export const loginThunk = createAsyncThunk('auth/login', async (payload, { rejec
   try {
     const result = await authApi.login(payload);
     setToken(result.token);
-    setStoredAdmin(result.admin);
-    return result;
+    const user = result.user || result.admin;
+    setStoredAdmin(user);
+    return { token: result.token, user };
   } catch (err) {
     return rejectWithValue(extractError(err));
   }
@@ -30,8 +31,9 @@ export const loginThunk = createAsyncThunk('auth/login', async (payload, { rejec
 export const fetchMeThunk = createAsyncThunk('auth/me', async (_arg, { rejectWithValue }) => {
   try {
     const result = await authApi.me();
-    setStoredAdmin(result.admin);
-    return result.admin;
+    const user = result.user || result.admin;
+    setStoredAdmin(user);
+    return user;
   } catch (err) {
     return rejectWithValue(extractError(err));
   }
@@ -44,7 +46,7 @@ const authSlice = createSlice({
     logout(state) {
       clearToken();
       state.token = null;
-      state.admin = null;
+      state.user = null;
       state.status = 'idle';
       state.error = null;
     },
@@ -61,18 +63,18 @@ const authSlice = createSlice({
       .addCase(loginThunk.fulfilled, (state, action) => {
         state.status = 'succeeded';
         state.token = action.payload.token;
-        state.admin = action.payload.admin;
+        state.user = action.payload.user;
       })
       .addCase(loginThunk.rejected, (state, action) => {
         state.status = 'failed';
         state.error = action.payload?.message || 'Login failed';
       })
       .addCase(fetchMeThunk.fulfilled, (state, action) => {
-        state.admin = action.payload;
+        state.user = action.payload;
       })
       .addCase(fetchMeThunk.rejected, (state) => {
         // me() failure usually means token invalid; let interceptor redirect.
-        state.admin = null;
+        state.user = null;
       });
   },
 });

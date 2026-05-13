@@ -8,6 +8,8 @@ const initialState = {
   filters: { search: '', status: '', techStack: '' },
   selected: null,
   selectedSubmission: null,
+  current: null,
+  currentStatus: 'idle',
   stats: {},
   status: 'idle',
   error: null,
@@ -86,6 +88,22 @@ export const removeCandidateResume = createAsyncThunk(
   },
 );
 
+export const selectCandidate = createAsyncThunk(
+  'candidates/select',
+  async (id, { rejectWithValue }) => {
+    try { return await candidateApi.select(id); }
+    catch (err) { return rejectWithValue(extractError(err)); }
+  },
+);
+
+export const rejectCandidate = createAsyncThunk(
+  'candidates/reject',
+  async ({ id, note }, { rejectWithValue }) => {
+    try { return await candidateApi.reject(id, note); }
+    catch (err) { return rejectWithValue(extractError(err)); }
+  },
+);
+
 const candidateSlice = createSlice({
   name: 'candidates',
   initialState,
@@ -116,9 +134,16 @@ const candidateSlice = createSlice({
         state.error = action.payload?.message || 'Failed to load candidates';
       })
       .addCase(fetchCandidateStats.fulfilled, (state, action) => { state.stats = action.payload || {}; })
+      .addCase(fetchCandidate.pending, (state) => { state.currentStatus = 'loading'; state.error = null; })
       .addCase(fetchCandidate.fulfilled, (state, action) => {
+        state.currentStatus = 'succeeded';
+        state.current = action.payload.candidate;
         state.selected = action.payload.candidate;
         state.selectedSubmission = action.payload.submission;
+      })
+      .addCase(fetchCandidate.rejected, (state, action) => {
+        state.currentStatus = 'failed';
+        state.error = action.payload?.message || 'Failed to load';
       })
       .addCase(createCandidate.pending, (state) => { state.createStatus = 'loading'; })
       .addCase(createCandidate.fulfilled, (state, action) => {
@@ -141,6 +166,16 @@ const candidateSlice = createSlice({
         if (state.selected?.id === c.id) state.selected = c;
       })
       .addCase(removeCandidateResume.fulfilled, (state, action) => {
+        const c = action.payload.candidate;
+        state.list = state.list.map((x) => (x.id === c.id ? c : x));
+        if (state.selected?.id === c.id) state.selected = c;
+      })
+      .addCase(selectCandidate.fulfilled, (state, action) => {
+        const c = action.payload.candidate;
+        state.list = state.list.map((x) => (x.id === c.id ? c : x));
+        if (state.selected?.id === c.id) state.selected = c;
+      })
+      .addCase(rejectCandidate.fulfilled, (state, action) => {
         const c = action.payload.candidate;
         state.list = state.list.map((x) => (x.id === c.id ? c : x));
         if (state.selected?.id === c.id) state.selected = c;

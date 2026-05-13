@@ -176,4 +176,15 @@
     border-radius: $radius-md;
     strong { color: $color-text; margin-right: 4px; }
   }
+
+  &__review {
+    margin-top: $space-2;
+  }
+
+  &__review-title {
+    margin: 0 0 $space-3;
+    font-size: 15px;
+    font-weight: 600;
+    color: $color-text;
+  }
 }

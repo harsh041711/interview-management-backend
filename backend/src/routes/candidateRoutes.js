@@ -9,6 +9,8 @@ const {
   createCandidateSchema,
   idParamSchema,
   listCandidatesSchema,
+  rejectSchema,
+  sendCodingTestSchema,
 } = require('../validators/candidateValidator');
 
 const router = express.Router();
@@ -21,6 +23,17 @@ router.get('/stats', candidateController.stats);
 router.get('/:id', validate(idParamSchema), candidateController.getCandidate);
 router.post('/:id/regenerate-token', validate(idParamSchema), candidateController.regenerateToken);
 router.post('/:id/resend-invite', validate(idParamSchema), candidateController.resendInvite);
+router.post('/:id/select', validate(idParamSchema), candidateController.selectCandidate);
+router.post('/:id/reject', validate(rejectSchema), candidateController.rejectCandidate);
+router.post('/:id/resume/approve', validate(idParamSchema), candidateController.approveResume);
+router.post('/:id/resume/decline', validate(idParamSchema), candidateController.declineResume);
+router.post('/:id/resume/rescreen', validate(idParamSchema), candidateController.rescreenResume);
+router.post('/:id/send-test', validate(idParamSchema), candidateController.sendTest);
+router.post('/:id/coding-test/send', validate(sendCodingTestSchema), candidateController.sendCodingTest);
+router.post('/:id/coding-test/regenerate', validate(idParamSchema), candidateController.regenerateCodingTest);
+router.post('/:id/coding-test/resend', validate(idParamSchema), candidateController.resendCodingTest);
+router.post('/:id/coding-test/shortlist', validate(idParamSchema), candidateController.codingShortlist);
+router.post('/:id/coding-test/reject', validate(idParamSchema), candidateController.codingReject);
 router.post('/:id/resume', singleResume('resume'), validate(idParamSchema), candidateController.uploadResume);
 router.delete('/:id/resume', validate(idParamSchema), candidateController.removeResume);
 router.delete('/:id', validate(idParamSchema), candidateController.deleteCandidate);

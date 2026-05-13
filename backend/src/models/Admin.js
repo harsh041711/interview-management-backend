@@ -2,7 +2,7 @@
 
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
-const { ROLES } = require('../utils/constants');
+const { ROLE } = require('../utils/constants');
 
 const adminSchema = new mongoose.Schema(
   {
@@ -16,7 +16,7 @@ const adminSchema = new mongoose.Schema(
       index: true,
     },
     password: { type: String, required: true, minlength: 8, select: false },
-    role: { type: String, enum: Object.values(ROLES), default: ROLES.ADMIN },
+    role: { type: String, enum: Object.values(ROLE), default: ROLE.ADMIN },
     hrNotificationEmail: { type: String, trim: true, lowercase: true },
     lastLoginAt: { type: Date },
   },

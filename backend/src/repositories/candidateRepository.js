@@ -8,6 +8,9 @@ const findById = (id) => Candidate.findById(id);
 
 const findByTestToken = (token) => Candidate.findOne({ testToken: token });
 
+const findByCodingTestToken = (token) =>
+  require('../models/Candidate').findOne({ 'codingTest.token': token });
+
 const updateById = (id, update) => Candidate.findByIdAndUpdate(id, update, { new: true });
 
 const deleteById = (id) => Candidate.findByIdAndDelete(id);
@@ -37,6 +40,7 @@ module.exports = {
   create,
   findById,
   findByTestToken,
+  findByCodingTestToken,
   updateById,
   deleteById,
   list,

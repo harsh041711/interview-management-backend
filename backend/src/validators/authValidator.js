@@ -20,4 +20,21 @@ const loginSchema = {
   }),
 };
 
-module.exports = { registerSchema, loginSchema };
+const forgotPasswordSchema = {
+  body: Joi.object({
+    email: Joi.string().email().lowercase().required(),
+  }),
+};
+
+const accountSetupSchema = {
+  body: Joi.object({
+    token: Joi.string().required(),
+    password: Joi.string().min(8).max(200).required(),
+  }),
+};
+
+const accountSetupTokenParamSchema = {
+  params: Joi.object({ token: Joi.string().required() }),
+};
+
+module.exports = { registerSchema, loginSchema, forgotPasswordSchema, accountSetupSchema, accountSetupTokenParamSchema };

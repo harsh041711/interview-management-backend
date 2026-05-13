@@ -38,6 +38,7 @@ const interviewSchema = new mongoose.Schema(
     completionNote: { type: String, default: null },
     cancelledAt: { type: Date, default: null },
     cancelReason: { type: String, default: null },
+    reminderSentAt: { type: Date, default: null },
   },
   {
     timestamps: true,

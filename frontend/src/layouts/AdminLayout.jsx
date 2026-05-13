@@ -11,16 +11,19 @@ const NAV = [
   { to: '/submissions',  label: 'Submissions',  icon: '☰' },
   { to: '/interviewers', label: 'Interviewers', icon: '◈' },
   { to: '/interviews',   label: 'Interviews',   icon: '⌖' },
+  { to: '/job-descriptions', label: 'Job Descriptions', icon: '🗎' },
+  { to: '/coding-problems', label: 'Coding Problems', icon: '⌨' },
+  { to: '/admin/review-edit-requests', label: 'Edit requests', icon: '✎' },
 ];
 
 export default function AdminLayout() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { admin, token } = useSelector((s) => s.auth);
+  const { user, token } = useSelector((s) => s.auth);
 
   useEffect(() => {
-    if (token && !admin) dispatch(fetchMeThunk());
-  }, [token, admin, dispatch]);
+    if (token && !user) dispatch(fetchMeThunk());
+  }, [token, user, dispatch]);
 
   const onLogout = () => {
     dispatch(logout());
@@ -47,8 +50,8 @@ export default function AdminLayout() {
         </nav>
         <div className="admin-layout__user">
           <div>
-            <div className="admin-layout__user-name">{admin?.name || 'Admin'}</div>
-            <div className="admin-layout__user-email">{admin?.email || ''}</div>
+            <div className="admin-layout__user-name">{user?.name || 'Admin'}</div>
+            <div className="admin-layout__user-email">{user?.email || ''}</div>
           </div>
           <button type="button" onClick={onLogout} className="admin-layout__logout" aria-label="Log out">⏻</button>
         </div>

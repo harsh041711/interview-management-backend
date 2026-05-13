@@ -17,6 +17,7 @@ import {
   decideReschedule,
 } from './interviewSlice';
 import ScheduleInterviewModal from './ScheduleInterviewModal';
+import ReviewPanel from '@/features/reviews/ReviewPanel';
 import './InterviewDetailPage.scss';
 
 const FRONTEND_URL =
@@ -248,6 +249,14 @@ export default function InterviewDetailPage() {
               ))}
             </ul>
           )}
+        </div>
+      )}
+
+      {/* Interviewer review (only after the interview is completed) */}
+      {selected.status === 'completed' && candidate.id && (
+        <div className="interview-detail__review">
+          <h3 className="interview-detail__review-title">Interviewer review</h3>
+          <ReviewPanel candidateId={candidate.id} />
         </div>
       )}
 

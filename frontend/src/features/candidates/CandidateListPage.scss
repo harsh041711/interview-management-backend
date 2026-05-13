@@ -91,6 +91,12 @@
   }
 }
 
+.candidates-table__expanded {
+  background: $color-surface-2;
+  &:hover { background: $color-surface-2; }
+  td { padding: $space-4; }
+}
+
 .chip {
   background: $color-surface-2;
   color: $color-text-muted;

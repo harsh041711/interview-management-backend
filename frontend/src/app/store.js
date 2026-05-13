@@ -7,6 +7,13 @@ import testReducer from '@/features/test/testSlice';
 import interviewerReducer from '@/features/interviewers/interviewerSlice';
 import interviewReducer from '@/features/interviews/interviewSlice';
 import interviewViewReducer from '@/features/interviewView/interviewViewSlice';
+import accountSetupReducer from '@/features/accountSetup/accountSetupSlice';
+import myInterviewsReducer from '@/features/myInterviews/myInterviewsSlice';
+import reviewEditRequestsReducer from '@/features/reviewEditRequests/reviewEditRequestsSlice';
+import reviewsReducer from '@/features/reviews/reviewSlice';
+import jdsReducer from '@/features/jobDescriptions/jobDescriptionsSlice';
+import codingProblemsReducer from '@/features/codingProblems/codingProblemsSlice';
+import codingTestReducer from '@/features/codingTest/codingTestSlice';
 
 export const store = configureStore({
   reducer: {
@@ -18,6 +25,13 @@ export const store = configureStore({
     interviewers: interviewerReducer,
     interviews: interviewReducer,
     interviewView: interviewViewReducer,
+    accountSetup: accountSetupReducer,
+    myInterviews: myInterviewsReducer,
+    reviewEditRequests: reviewEditRequestsReducer,
+    reviews: reviewsReducer,
+    jds: jdsReducer,
+    codingProblems: codingProblemsReducer,
+    codingTest: codingTestReducer,
   },
   middleware: (getDefault) =>
     getDefault({

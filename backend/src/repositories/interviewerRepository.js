@@ -29,6 +29,34 @@ const list = async ({ page = 1, limit = 20, search, isActive } = {}) => {
 
 const countActive = () => Interviewer.countDocuments({ isActive: true });
 
+const findBySetupTokenHash = (tokenHash) => Interviewer.findOne({ setupTokenHash: tokenHash });
+
+const saveSetupToken = (id, { tokenHash, expiresAt, purpose }) =>
+  Interviewer.findByIdAndUpdate(
+    id,
+    { setupTokenHash: tokenHash, setupTokenExpiresAt: expiresAt, setupTokenPurpose: purpose },
+    { new: true },
+  );
+
+const setPassword = (id, { passwordHash, passwordSetAt }) =>
+  Interviewer.findByIdAndUpdate(
+    id,
+    {
+      passwordHash,
+      passwordSetAt,
+      setupTokenHash: null,
+      setupTokenExpiresAt: null,
+      setupTokenPurpose: null,
+    },
+    { new: true },
+  );
+
+const findByEmailWithPassword = (email) =>
+  Interviewer.findOne({ email: (email || '').toLowerCase() }).select('+passwordHash');
+
+const updateLastLogin = (id) =>
+  Interviewer.findByIdAndUpdate(id, { lastLoginAt: new Date() });
+
 module.exports = {
   create,
   findById,
@@ -37,4 +65,9 @@ module.exports = {
   deleteById,
   list,
   countActive,
+  findBySetupTokenHash,
+  saveSetupToken,
+  setPassword,
+  findByEmailWithPassword,
+  updateLastLogin,
 };

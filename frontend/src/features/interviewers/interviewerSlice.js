@@ -52,6 +52,14 @@ export const deleteInterviewer = createAsyncThunk(
   },
 );
 
+export const sendInterviewerSetupLink = createAsyncThunk(
+  'interviewers/sendSetupLink',
+  async (id, { rejectWithValue }) => {
+    try { return await interviewerApi.sendSetupLink(id); }
+    catch (err) { return rejectWithValue(extractError(err)); }
+  },
+);
+
 const interviewerSlice = createSlice({
   name: 'interviewers',
   initialState,

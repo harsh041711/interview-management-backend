@@ -32,6 +32,7 @@ const buildScheduledHtml = ({
   accessUrl,
   notes,
   hasResume,
+  setupUrl,
 }) => {
   const isInterviewer = recipient === 'interviewer';
   const greeting = isInterviewer
@@ -41,6 +42,14 @@ const buildScheduledHtml = ({
   const otherParty = isInterviewer
     ? `<p style="margin:0 0 14px">You have been assigned to interview <strong>${escapeHtml(candidate.name)}</strong> (${escapeHtml(candidate.email)}).</p>`
     : `<p style="margin:0 0 14px">Your Round 2 interview has been scheduled with <strong>${escapeHtml(interviewer.name)}</strong>.</p>`;
+
+  const setupBlock = (recipient === 'interviewer' && setupUrl)
+    ? `<div style="margin:18px 0;padding:14px 16px;background:#fff7ed;border-left:4px solid #f59e0b;border-radius:4px">
+        <div style="font-size:13px;font-weight:600;color:#9a3412;margin-bottom:6px">First time? Activate your account</div>
+        <div style="color:#334155;font-size:14px;margin-bottom:10px">You don't have a password yet. Use the link below to set one and then access your interview dashboard.</div>
+        <a href="${escapeHtml(setupUrl)}" style="display:inline-block;background:#f59e0b;color:white;text-decoration:none;padding:10px 18px;border-radius:6px;font-weight:600;font-size:14px">Set up my account</a>
+      </div>`
+    : '';
 
   const notesBlock =
     isInterviewer && notes
@@ -80,6 +89,8 @@ const buildScheduledHtml = ({
               <strong>${escapeHtml(String(durationMinutes))} minutes</strong>
             </div>
           </div>
+
+          ${setupBlock}
 
           <p style="margin:0 0 14px;color:#475569;font-size:14px">
             The meeting link will be available on your personal interview page. Open it using the button below.
@@ -121,6 +132,7 @@ const buildScheduledText = ({
   accessUrl,
   notes,
   hasResume,
+  setupUrl,
 }) => {
   const isInterviewer = recipient === 'interviewer';
   const greeting = isInterviewer
@@ -130,6 +142,10 @@ const buildScheduledText = ({
   const who = isInterviewer
     ? `You have been assigned to interview ${candidate.name} (${candidate.email}).`
     : `Your Round 2 interview has been scheduled with ${interviewer.name}.`;
+
+  const setupSection = (isInterviewer && setupUrl)
+    ? `\nYou don't have a password yet. Set one up here:\n${setupUrl}\n`
+    : '';
 
   const notesSection =
     isInterviewer && notes ? `\nHR Notes:\n${notes}\n` : '';
@@ -146,7 +162,7 @@ Interview details:
   ISO: ${new Date(scheduledAt).toISOString()}
   Duration: ${durationMinutes} minutes
 
-Open your interview page to access the meeting link:
+${setupSection}Open your interview page to access the meeting link:
 ${accessUrl}
 ${notesSection}${resumeSection}
 If you have any questions, please contact the HR team.
