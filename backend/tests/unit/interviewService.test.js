@@ -428,3 +428,50 @@ describe('interviewService.decideReschedule — Google Calendar sync', () => {
     expect(result.interview.id).toBe('intv001'); // DB still succeeded
   });
 });
+
+describe('interviewService.cancel — Google Calendar delete', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  test('deletes calendar event when googleCalendarEventId is set', async () => {
+    const doc = makeInterview({
+      googleCalendarEventId: 'evt-789',
+      save: jest.fn().mockResolvedValue(undefined),
+    });
+    interviewRepository.findById.mockResolvedValue(doc);
+    rescheduleRequestRepository.findPendingForInterview.mockResolvedValue(null);
+    interviewRepository.findByIdPopulated.mockResolvedValue(doc);
+    googleCalendarService.deleteEvent.mockResolvedValue();
+
+    await interviewService.cancel('intv001', { reason: 'no-show' }, 'admin1');
+
+    expect(googleCalendarService.deleteEvent).toHaveBeenCalledWith('evt-789');
+  });
+
+  test('does not call calendar when googleCalendarEventId is null', async () => {
+    const doc = makeInterview({
+      googleCalendarEventId: null,
+      save: jest.fn().mockResolvedValue(undefined),
+    });
+    interviewRepository.findById.mockResolvedValue(doc);
+    rescheduleRequestRepository.findPendingForInterview.mockResolvedValue(null);
+    interviewRepository.findByIdPopulated.mockResolvedValue(doc);
+
+    await interviewService.cancel('intv001', {}, 'admin1');
+
+    expect(googleCalendarService.deleteEvent).not.toHaveBeenCalled();
+  });
+
+  test('calendar failure does not block cancel', async () => {
+    const doc = makeInterview({
+      googleCalendarEventId: 'evt-789',
+      save: jest.fn().mockResolvedValue(undefined),
+    });
+    interviewRepository.findById.mockResolvedValue(doc);
+    rescheduleRequestRepository.findPendingForInterview.mockResolvedValue(null);
+    interviewRepository.findByIdPopulated.mockResolvedValue(doc);
+    googleCalendarService.deleteEvent.mockRejectedValue(new Error('Calendar 500'));
+
+    const result = await interviewService.cancel('intv001', {}, 'admin1');
+    expect(result.id).toBe('intv001');
+  });
+});

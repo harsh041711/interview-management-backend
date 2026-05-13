@@ -539,6 +539,19 @@ const cancel = async (id, { reason } = {}, adminId) => {
   interview.cancelReason = reason || null;
   await interview.save();
 
+  if (interview.googleCalendarEventId) {
+    try {
+      await googleCalendarService.deleteEvent(interview.googleCalendarEventId);
+    } catch (err) {
+      logger.error('Google Calendar deleteEvent failed', {
+        interviewId: interview.id || interview._id,
+        eventId: interview.googleCalendarEventId,
+        err: err.message,
+      });
+      // Continue — cancellation already persisted.
+    }
+  }
+
   const populated = await interviewRepository.findByIdPopulated(interview.id);
   return presentInterview(populated || interview);
 };
