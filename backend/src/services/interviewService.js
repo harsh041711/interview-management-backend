@@ -472,6 +472,22 @@ const decideReschedule = async (interviewId, { decision, note }, adminId) => {
     interview.reminderSentAt = null; // fresh window → re-send reminder closer to new time
     await interview.save();
 
+    if (interview.googleCalendarEventId) {
+      try {
+        await googleCalendarService.patchEvent(interview.googleCalendarEventId, {
+          startISO: newStart.toISOString(),
+          endISO: newEnd.toISOString(),
+        });
+      } catch (err) {
+        logger.error('Google Calendar patchEvent failed', {
+          interviewId: interview.id || interview._id,
+          eventId: interview.googleCalendarEventId,
+          err: err.message,
+        });
+        // Continue — reschedule already persisted in DB.
+      }
+    }
+
     request.status = RESCHEDULE_STATUS.APPROVED;
     request.decidedBy = adminId;
     request.decidedAt = now;

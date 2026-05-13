@@ -362,3 +362,69 @@ describe('interviewService.schedule — Google Calendar auto-mode', () => {
     }, 'admin001')).rejects.toMatchObject({ code: 'E_CALENDAR_FAILED' });
   });
 });
+
+describe('interviewService.decideReschedule — Google Calendar sync', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  test('patches calendar event on approve when googleCalendarEventId is set', async () => {
+    const newTime = new Date(Date.now() + 7 * 86400_000);
+    const interviewDoc = makeInterview({
+      googleCalendarEventId: 'evt-456',
+      save: jest.fn().mockResolvedValue(undefined),
+    });
+    interviewRepository.findById.mockResolvedValue(interviewDoc);
+    rescheduleRequestRepository.findPendingForInterview.mockResolvedValue({
+      _id: 'req1', id: 'req1',
+      proposedAt: newTime,
+      proposedDurationMinutes: 60,
+      save: jest.fn().mockResolvedValue(undefined),
+    });
+    interviewRepository.findOverlapping.mockResolvedValue(null);
+    interviewRepository.findByIdPopulated.mockResolvedValue(interviewDoc);
+    googleCalendarService.patchEvent.mockResolvedValue();
+
+    await interviewService.decideReschedule('intv001', { decision: 'approved', note: 'OK' }, 'admin1');
+
+    expect(googleCalendarService.patchEvent).toHaveBeenCalledWith('evt-456', expect.objectContaining({
+      startISO: newTime.toISOString(),
+    }));
+  });
+
+  test('does not call calendar when googleCalendarEventId is null', async () => {
+    const interviewDoc = makeInterview({
+      googleCalendarEventId: null,
+      save: jest.fn().mockResolvedValue(undefined),
+    });
+    interviewRepository.findById.mockResolvedValue(interviewDoc);
+    rescheduleRequestRepository.findPendingForInterview.mockResolvedValue({
+      _id: 'req1', id: 'req1',
+      proposedAt: new Date(Date.now() + 86400_000),
+      save: jest.fn().mockResolvedValue(undefined),
+    });
+    interviewRepository.findOverlapping.mockResolvedValue(null);
+    interviewRepository.findByIdPopulated.mockResolvedValue(interviewDoc);
+
+    await interviewService.decideReschedule('intv001', { decision: 'approved' }, 'admin1');
+
+    expect(googleCalendarService.patchEvent).not.toHaveBeenCalled();
+  });
+
+  test('calendar failure during approve does not fail the reschedule', async () => {
+    const interviewDoc = makeInterview({
+      googleCalendarEventId: 'evt-456',
+      save: jest.fn().mockResolvedValue(undefined),
+    });
+    interviewRepository.findById.mockResolvedValue(interviewDoc);
+    rescheduleRequestRepository.findPendingForInterview.mockResolvedValue({
+      _id: 'req1', id: 'req1',
+      proposedAt: new Date(Date.now() + 86400_000),
+      save: jest.fn().mockResolvedValue(undefined),
+    });
+    interviewRepository.findOverlapping.mockResolvedValue(null);
+    interviewRepository.findByIdPopulated.mockResolvedValue(interviewDoc);
+    googleCalendarService.patchEvent.mockRejectedValue(new Error('Calendar 500'));
+
+    const result = await interviewService.decideReschedule('intv001', { decision: 'approved' }, 'admin1');
+    expect(result.interview.id).toBe('intv001'); // DB still succeeded
+  });
+});
