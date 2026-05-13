@@ -31,6 +31,7 @@ import CodingTestSuccessPage from '@/features/codingTest/CodingTestSuccessPage';
 import InterviewerDashboardPage from '@/features/myInterviews/InterviewerDashboardPage';
 import MyInterviewDetailPage from '@/features/myInterviews/MyInterviewDetailPage';
 import ReviewEditRequestsPage from '@/features/reviewEditRequests/ReviewEditRequestsPage';
+import SettingsPage from '@/features/settings/SettingsPage';
 
 export default function AppRoutes() {
   return (
@@ -69,6 +70,7 @@ export default function AppRoutes() {
         <Route path="/job-descriptions" element={<JobDescriptionListPage />} />
         <Route path="/coding-problems" element={<CodingProblemListPage />} />
         <Route path="/admin/review-edit-requests" element={<ReviewEditRequestsPage />} />
+        <Route path="/admin/settings" element={<SettingsPage />} />
       </Route>
 
       <Route

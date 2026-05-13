@@ -14,6 +14,7 @@ const NAV = [
   { to: '/job-descriptions', label: 'Job Descriptions', icon: '🗎' },
   { to: '/coding-problems', label: 'Coding Problems', icon: '⌨' },
   { to: '/admin/review-edit-requests', label: 'Edit requests', icon: '✎' },
+  { to: '/admin/settings', label: 'Settings', icon: '⚙' },
 ];
 
 export default function AdminLayout() {
