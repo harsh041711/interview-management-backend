@@ -187,15 +187,23 @@ covered in detail later in the doc.</p>
 <h2>4. Module-by-module breakdown</h2>
 <h3>4.1  Candidates</h3>
 <p>The home base for every applicant.</p>
+<p><img src="./screenshots/01-candidates-list.png" alt="Candidates list page">
+<em><code>01-candidates-list.png</code> — the main Candidates list with filters, inline actions, and Export CSV button.</em></p>
 <ul>
-<li><strong>Create a candidate</strong> — name, email, tech stack, experience level, number of MCQ questions, test duration, and an optional resume (PDF / DOC / DOCX up to 5 MB).</li>
-<li><strong>Resume scanning animation</strong> — when a resume is uploaded, HR sees a live &quot;document scanner&quot; preview of the candidate&#39;s resume with a 4-step progress tracker (Create → Upload → Scan → Match) instead of a blank waiting screen.</li>
-<li><strong>Candidate list page</strong> — searchable, filterable by status / experience, paginated.<ul>
+<li><p><strong>Create a candidate</strong> — name, email, tech stack, experience level, number of MCQ questions, test duration, and an optional resume (PDF / DOC / DOCX up to 5 MB).</p>
+</li>
+<li><p><strong>Resume scanning animation</strong> — when a resume is uploaded, HR sees a live &quot;document scanner&quot; preview of the candidate&#39;s resume with a 4-step progress tracker (Create → Upload → Scan → Match) instead of a blank waiting screen.</p>
+</li>
+<li><p><strong>Candidate list page</strong> — searchable, filterable by status / experience, paginated.</p>
+<ul>
 <li><strong>Inline quick-actions</strong> per row: Approve / Decline (during resume review), Copy test link, Resend invite, Regenerate token, View details, Delete.</li>
-<li><strong>Export CSV</strong> — downloads every candidate matching the current filters: name, email, tech stack, status, resume match %, coding test outcome, and more.</li>
+<li><strong>Export CSV</strong> — downloads every candidate matching the current filters: name, email, tech stack, status, resume match %, coding test outcome, and more.
+<img src="./screenshots/02-resume-scan-animation.png" alt="Resume scanning animation">
+<em><code>02-resume-scan-animation.png</code> — the live resume scanner animation that runs while uploading + AI screening.</em></li>
 </ul>
 </li>
-<li><strong>Candidate detail page</strong> — the full profile, with:<ul>
+<li><p><strong>Candidate detail page</strong> — the full profile, with:</p>
+<ul>
 <li>Avatar, contact, tech-stack chips, experience level, status badge.</li>
 <li><strong>Screening panel</strong> — the AI&#39;s match %, green flags, red flags, JD title, and AI recommendation. (See §4.3.)</li>
 <li><strong>Coding Test summary</strong> card with a button that opens a dedicated review page.</li>
@@ -204,6 +212,8 @@ covered in detail later in the doc.</p>
 </ul>
 </li>
 </ul>
+<p><img src="./screenshots/03-candidate-detail.png" alt="Candidate detail page">
+<em><code>03-candidate-detail.png</code> — the candidate detail view showing the screening panel (match %, flags), action bar, and coding test summary.</em></p>
 <h3>4.2  Job Descriptions (JD library)</h3>
 <p>A reusable bank of role descriptions, used by the AI to score resumes.</p>
 <ul>
@@ -212,6 +222,8 @@ covered in detail later in the doc.</p>
 <li>JDs can be marked active / inactive without deletion.</li>
 <li>When a candidate is created with a matching tech stack, the system automatically picks the right JD for screening.</li>
 </ul>
+<p><img src="./screenshots/04-job-descriptions.png" alt="Job descriptions page">
+<em><code>04-job-descriptions.png</code> — the JD library where HR manages role descriptions.</em></p>
 <h3>4.3  AI Resume Screening</h3>
 <p>Runs automatically when a resume is uploaded for a candidate whose tech
 stack has an active JD.</p>
@@ -231,6 +243,8 @@ stack has an active JD.</p>
 </ul>
 <p>The AI uses a <strong>fallback chain</strong> for reliability:
 Gemini 2.5-flash → Gemini 2.5-flash-lite → Gemini 2.0-flash → Gemini 2.0-flash-lite → Groq llama-3.3-70b → Groq llama-3.1-8b. If all providers are down, screening is marked <code>failed</code> and HR reviews manually.</p>
+<p><img src="./screenshots/05-ai-screening-panel.png" alt="AI screening panel close-up">
+<em><code>05-ai-screening-panel.png</code> — the AI screening result on a candidate page (match %, green flags, red flags, recommendation).</em></p>
 <h3>4.4  Question Bank</h3>
 <p>Used to generate the MCQ test.</p>
 <ul>
@@ -268,6 +282,8 @@ Gemini 2.5-flash → Gemini 2.5-flash-lite → Gemini 2.0-flash → Gemini 2.0-f
 <li>A <strong>result email</strong> is sent to the candidate (different template per outcome).</li>
 </ul>
 <p>If a coding test is also pending review, the MCQ auto-outcome is <strong>suppressed</strong> — the final decision waits until both tests are reviewed together.</p>
+<p><img src="./screenshots/06-mcq-test.png" alt="MCQ test page (candidate view)">
+<em><code>06-mcq-test.png</code> — the candidate-facing MCQ test with timer and tab-switch tracking.</em></p>
 <h3>4.6  Coding Test (optional second-round assessment)</h3>
 <p>Lets HR evaluate the candidate&#39;s coding ability with real programming
 problems, runnable in three languages.</p>
@@ -281,6 +297,8 @@ problems, runnable in three languages.</p>
 </li>
 <li>Problems can be edited, deactivated, filtered by source (manual / AI), difficulty, language.</li>
 </ul>
+<p><img src="./screenshots/07-coding-problems-admin.png" alt="Coding problems admin">
+<em><code>07-coding-problems-admin.png</code> — the Coding Problems bank where HR builds and AI-drafts coding problems.</em></p>
 <p><strong>Sending the test:</strong></p>
 <ul>
 <li>On the candidate detail page, HR clicks <strong>Send coding test</strong> → modal asks for: number of problems (1–5), duration (minutes), difficulty.</li>
@@ -304,14 +322,18 @@ problems, runnable in three languages.</p>
 <li><strong>Tab switch count persists across page refresh</strong> (stored in localStorage).</li>
 </ul>
 </li>
-<li>Candidate writes solutions for each problem, navigates with Previous/Next, hits <strong>Submit and finish</strong> on the last one.</li>
+<li>Candidate writes solutions for each problem, navigates with Previous/Next, and can click <strong>▶ Run</strong> at any time to test their code against the visible examples — pass/fail per example with input / expected / actual / runtime is shown live. Running does NOT count toward tab-switch tracking and is rate-limited to 30 runs/minute.</li>
+<li>On the last problem, <strong>Submit and finish</strong> sends everything to the auto-grader (including hidden test cases).</li>
 </ul>
+<p><img src="./screenshots/08-coding-test-candidate.png" alt="Coding test candidate view">
+<em><code>08-coding-test-candidate.png</code> — the IDE-style coding test page with problem on the left and Monaco editor on the right.</em></p>
 <p><strong>Auto-execution (server-side):</strong></p>
 <ul>
-<li>On submit, the backend runs each problem&#39;s code through the <strong>Piston public API</strong> (a free multi-language code-execution sandbox).</li>
-<li>Each test case runs with the candidate&#39;s code as a child process; stdout / stderr / exit code are captured.</li>
+<li>The backend runs candidate code through a <strong>self-hosted Piston instance</strong> (multi-language sandbox running locally as a Docker container — JS / Python / PHP).</li>
+<li>Both the <strong>Run</strong> button (visible examples only) and <strong>Submit</strong> (all cases including hidden) go through the same execution pipeline.</li>
+<li>Each test case runs with the candidate&#39;s code as an isolated process; stdout / stderr / exit code / runtime are captured.</li>
 <li>A test case <strong>passes</strong> if <code>actualStdout.trim() === expectedStdout.trim()</code> and exit code is 0.</li>
-<li><strong>Hidden test cases</strong> are run too — the candidate only sees the visible (sample) ones during the test.</li>
+<li><strong>Hidden test cases</strong> never appear in the candidate UI, even on Run — so answers can&#39;t be hard-coded.</li>
 </ul>
 <p><strong>HR review — the dedicated coding test page:</strong></p>
 <ul>
@@ -327,6 +349,8 @@ problems, runnable in three languages.</p>
 </li>
 <li><strong>Final decision panel</strong> (only when all problems are rated): Shortlist or Reject buttons. Each fires the corresponding Round 1 email to the candidate.</li>
 </ul>
+<p><img src="./screenshots/09-coding-test-review.png" alt="HR coding test review">
+<em><code>09-coding-test-review.png</code> — the HR review page showing test case results, candidate code, star rating, and shortlist/reject.</em></p>
 <h3>4.7  Interviews (Round 2)</h3>
 <p>After Round 1 (MCQ + optional coding), HR schedules a live interview with a specific interviewer.</p>
 <p><strong>Interviewer management:</strong></p>
@@ -339,8 +363,12 @@ problems, runnable in three languages.</p>
 <ul>
 <li>HR opens a shortlisted candidate, clicks <strong>Schedule interview</strong>, picks:<ul>
 <li>An interviewer (filtered by overlapping expertise).</li>
-<li>Date + time, duration, meeting URL (Zoom / Meet / Teams link HR pastes in).</li>
-<li>Optional notes for the interviewer.</li>
+<li>Date + time, duration, optional notes for the interviewer.</li>
+<li><strong>Two modes</strong> for the meeting link:<ul>
+<li><strong>⚡ Auto-generate with Google Meet</strong> (default when Google Calendar is connected) — the system creates a real Google Calendar event with a freshly-minted Meet link, invites both candidate and interviewer as attendees, and Google sends them native calendar invitations alongside our custom emails.</li>
+<li><strong>✎ Paste meeting URL manually</strong> — fallback for Zoom / Teams / Whereby or when Google isn&#39;t connected. The modal automatically falls back to manual mode on any Google failure.</li>
+</ul>
+</li>
 </ul>
 </li>
 <li>The system fires two emails simultaneously:<ul>
@@ -360,12 +388,13 @@ problems, runnable in three languages.</p>
 <li>Interviewers can request a new time + reason from their portal.</li>
 <li>HR sees a <strong>&quot;Pending reschedule&quot; banner</strong> on the interview detail page with: current time, proposed time, reason.</li>
 <li>HR can <strong>Approve</strong> (reschedule is applied, both parties emailed) or <strong>Reject</strong> (interview stays, interviewer notified). HR can add a decision note.</li>
+<li><strong>If the interview was auto-generated</strong>, approving a reschedule updates the existing Google Calendar event time too — both attendees get a native &quot;Event updated&quot; notification.</li>
 <li>Full reschedule history is visible per interview.</li>
 </ul>
 <p><strong>Interview detail page (HR view):</strong></p>
 <ul>
 <li>Top card: schedule time, duration, status badge, candidate + interviewer info, meeting URL with copy button, magic link copy buttons, notes.</li>
-<li><strong>Action bar</strong>: Edit, Mark complete, Cancel (with reason prompt).</li>
+<li><strong>Action bar</strong>: Edit, Mark complete, Cancel (with reason prompt). Cancelling an auto-generated interview also deletes the underlying Google Calendar event, so attendees get a cancellation notification.</li>
 <li><strong>Pending reschedule banner</strong> when applicable.</li>
 <li><strong>Reschedule history</strong> collapsible list.</li>
 <li><strong>Interviewer review</strong> section (appears once the interview is completed).</li>
@@ -375,6 +404,10 @@ problems, runnable in three languages.</p>
 <li>Filter by status / from-date / to-date.</li>
 <li><strong>Export CSV</strong> — downloads every interview with: time, candidate, interviewer, status, meeting URL, notes, completion details, etc.</li>
 </ul>
+<p><img src="./screenshots/10-interviews-list.png" alt="Interviews list page">
+<em><code>10-interviews-list.png</code> — the Interviews list with date filters and Export CSV.</em></p>
+<p><img src="./screenshots/11-interview-detail.png" alt="Interview detail page">
+<em><code>11-interview-detail.png</code> — an interview detail page showing schedule, links, action bar, and the interviewer review section.</em></p>
 <h3>4.8  Interviewer Portal</h3>
 <p>A separate dashboard so external interviewers only see their assigned interviews and nothing else.</p>
 <ul>
@@ -390,6 +423,8 @@ problems, runnable in three languages.</p>
 <li><strong>Auto-complete on submit</strong> — submitting the review automatically marks the interview as <code>completed</code>, no separate &quot;mark complete&quot; step.</li>
 <li><strong>Edit-request flow</strong> — if the interviewer wants to amend their review later, they submit an edit request with a reason. HR reviews + approves/rejects with a decision note.</li>
 </ul>
+<p><img src="./screenshots/12-interviewer-review.png" alt="Interviewer review form">
+<em><code>12-interviewer-review.png</code> — the interviewer-side review form with three star ratings and comments.</em></p>
 <h3>4.9  Reviews &amp; Edit Requests (HR oversight)</h3>
 <ul>
 <li>All interviewer reviews appear on both the <strong>candidate detail page</strong> and the <strong>interview detail page</strong> with: interviewer name, average rating, per-axis stars, comments, submitted-at, edit count.</li>
@@ -401,6 +436,16 @@ problems, runnable in three languages.</p>
 <ul>
 <li>Filterable, paginated list with score, outcome, cheat status.</li>
 <li>Click into a submission to see: each question, the candidate&#39;s answer, the correct answer, per-question evaluation, and the photo captured at the start of the test.</li>
+</ul>
+<h3>4.11  Settings — Integrations</h3>
+<p>A new admin Settings page (sidebar <strong>⚙ Settings</strong>) holds workspace-level integrations.</p>
+<p><strong>Google Calendar integration:</strong></p>
+<ul>
+<li>One-click <strong>Connect Google Calendar</strong> — opens Google&#39;s standard OAuth consent screen (admin signs in, grants <code>calendar.events</code> + email + profile scopes).</li>
+<li>Status panel shows: connected account email, connection date, green dot.</li>
+<li><strong>Disconnect</strong> removes the stored tokens. Existing interviews keep their meeting links; new interviews will need a manually pasted URL until you reconnect.</li>
+<li><strong>One shared Google account per workspace</strong> — all admins on the team use the same connected account. The connect/disconnect controls are admin-only.</li>
+<li><strong>Failure modes</strong> are handled gracefully — if Google access is revoked or the API is unreachable, the system automatically clears the broken integration and the schedule modal falls back to manual-URL mode with a clear banner.</li>
 </ul>
 <hr>
 <h2>5. Automation summary</h2>
@@ -445,8 +490,12 @@ problems, runnable in three languages.</p>
 <td>Email with link, problems sampled (or AI-generated).</td>
 </tr>
 <tr>
+<td>Candidate clicks Run</td>
+<td>Code executes against visible examples only via Piston; results shown live. Not persisted.</td>
+</tr>
+<tr>
 <td>Coding test submitted</td>
-<td>Test cases auto-run via Piston, HR notification email with pass/fail count.</td>
+<td>All test cases (including hidden) auto-run via Piston, HR notification email with pass/fail count.</td>
 </tr>
 <tr>
 <td>Coding test Shortlisted</td>
@@ -457,20 +506,32 @@ problems, runnable in three languages.</p>
 <td>Round 1 rejection email to candidate.</td>
 </tr>
 <tr>
-<td>Interview scheduled</td>
-<td>Two emails: candidate + interviewer.</td>
+<td>Interview scheduled (auto mode)</td>
+<td>Google Calendar event created with Meet link; native Google invitations to candidate + interviewer; plus our custom HR-branded emails.</td>
+</tr>
+<tr>
+<td>Interview scheduled (manual mode)</td>
+<td>Two custom emails: candidate + interviewer.</td>
 </tr>
 <tr>
 <td>30 min before interview</td>
 <td>Reminder emails to candidate + interviewer.</td>
 </tr>
 <tr>
-<td>Interview rescheduled</td>
+<td>Interview rescheduled (auto mode)</td>
+<td>Calendar event time patched on Google; both attendees get &quot;Event updated&quot; notification + our reschedule emails.</td>
+</tr>
+<tr>
+<td>Interview rescheduled (manual mode)</td>
 <td>Re-fired notifications to both parties; reminder flag reset.</td>
 </tr>
 <tr>
 <td>Reschedule approved/rejected</td>
 <td>Notification to interviewer with HR&#39;s decision note.</td>
+</tr>
+<tr>
+<td>Interview cancelled (auto mode)</td>
+<td>Google Calendar event deleted; attendees get cancellation notification + our cancellation email.</td>
 </tr>
 <tr>
 <td>Interviewer submits review</td>
@@ -584,6 +645,10 @@ problems, runnable in three languages.</p>
 <td>Export everything</td>
 <td>Candidates / Interviews → <strong>↓ Export CSV</strong></td>
 </tr>
+<tr>
+<td>Connect Google Calendar (auto-generate Meet links)</td>
+<td>Settings (⚙ in sidebar) → <strong>Connect Google Calendar</strong></td>
+</tr>
 </tbody></table>
 <hr>
 <h2>9. Tech stack (for IT / dev reference)</h2>
@@ -591,11 +656,10 @@ problems, runnable in three languages.</p>
 <li><strong>Backend</strong>: Node.js, Express, MongoDB (Mongoose), Joi validation, Jest tests.</li>
 <li><strong>Frontend</strong>: React, Redux Toolkit, Vite, SCSS, React Router, Monaco editor.</li>
 <li><strong>AI providers</strong>: Google Gemini (primary, multiple model tiers) → Groq (fallback) for resume screening, MCQ grading, question drafting, problem drafting.</li>
-<li><strong>Code execution</strong>: Piston public API (<a href="https://emkc.org/api/v2/piston/execute">https://emkc.org/api/v2/piston/execute</a>) — no Docker, no API key, supports JS / Python / PHP.</li>
+<li><strong>Code execution</strong>: <strong>Self-hosted Piston</strong> (Docker — <code>ghcr.io/engineer-man/piston</code> on port 2000) — runs JS / Python / PHP in isolated sandboxes. URL is configurable via <code>PISTON_URL</code> env var so the same code can target a remote/managed Piston in production.</li>
+<li><strong>Calendar integration</strong>: Google Calendar API + Meet, via OAuth 2.0 with <code>googleapis</code> Node SDK. Tokens stored in a singleton <code>GoogleIntegration</code> Mongo document. Token refresh + CSRF-signed OAuth state handled in the backend.</li>
 <li><strong>Email</strong>: SMTP via Nodemailer.</li>
 <li><strong>File storage</strong>: Cloudinary (resumes, photos).</li>
 <li><strong>Auth</strong>: JWT with role claims (admin / interviewer), token-based public links for candidates.</li>
 </ul>
-
-<div class="footer-note">Interview Management System — Feature Guide · Generated 2026-05-12</div>
 </body></html>

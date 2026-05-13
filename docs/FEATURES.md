@@ -197,16 +197,18 @@ problems, runnable in three languages.
   - **Right-click / context menu disabled.**
   - **Tab switches counted** — a pill at the top turns amber after 1 switch and red after 3+. A warning modal appears on return.
   - **Tab switch count persists across page refresh** (stored in localStorage).
-- Candidate writes solutions for each problem, navigates with Previous/Next, hits **Submit and finish** on the last one.
+- Candidate writes solutions for each problem, navigates with Previous/Next, and can click **▶ Run** at any time to test their code against the visible examples — pass/fail per example with input / expected / actual / runtime is shown live. Running does NOT count toward tab-switch tracking and is rate-limited to 30 runs/minute.
+- On the last problem, **Submit and finish** sends everything to the auto-grader (including hidden test cases).
 
 ![Coding test candidate view](./screenshots/08-coding-test-candidate.png)
 *`08-coding-test-candidate.png` — the IDE-style coding test page with problem on the left and Monaco editor on the right.*
 
 **Auto-execution (server-side):**
-- On submit, the backend runs each problem's code through the **Piston public API** (a free multi-language code-execution sandbox).
-- Each test case runs with the candidate's code as a child process; stdout / stderr / exit code are captured.
+- The backend runs candidate code through a **self-hosted Piston instance** (multi-language sandbox running locally as a Docker container — JS / Python / PHP).
+- Both the **Run** button (visible examples only) and **Submit** (all cases including hidden) go through the same execution pipeline.
+- Each test case runs with the candidate's code as an isolated process; stdout / stderr / exit code / runtime are captured.
 - A test case **passes** if `actualStdout.trim() === expectedStdout.trim()` and exit code is 0.
-- **Hidden test cases** are run too — the candidate only sees the visible (sample) ones during the test.
+- **Hidden test cases** never appear in the candidate UI, even on Run — so answers can't be hard-coded.
 
 **HR review — the dedicated coding test page:**
 - Accessed via the **View coding test submission** button on the candidate detail page (separate route to keep the candidate detail clean).
@@ -234,8 +236,10 @@ After Round 1 (MCQ + optional coding), HR schedules a live interview with a spec
 **Scheduling an interview:**
 - HR opens a shortlisted candidate, clicks **Schedule interview**, picks:
   - An interviewer (filtered by overlapping expertise).
-  - Date + time, duration, meeting URL (Zoom / Meet / Teams link HR pastes in).
-  - Optional notes for the interviewer.
+  - Date + time, duration, optional notes for the interviewer.
+  - **Two modes** for the meeting link:
+    - **⚡ Auto-generate with Google Meet** (default when Google Calendar is connected) — the system creates a real Google Calendar event with a freshly-minted Meet link, invites both candidate and interviewer as attendees, and Google sends them native calendar invitations alongside our custom emails.
+    - **✎ Paste meeting URL manually** — fallback for Zoom / Teams / Whereby or when Google isn't connected. The modal automatically falls back to manual mode on any Google failure.
 - The system fires two emails simultaneously:
   - **To the candidate**: meeting time, link, interviewer name.
   - **To the interviewer**: candidate summary, meeting time, link, **a magic interviewer-only URL** to load the review form.
@@ -249,11 +253,12 @@ After Round 1 (MCQ + optional coding), HR schedules a live interview with a spec
 - Interviewers can request a new time + reason from their portal.
 - HR sees a **"Pending reschedule" banner** on the interview detail page with: current time, proposed time, reason.
 - HR can **Approve** (reschedule is applied, both parties emailed) or **Reject** (interview stays, interviewer notified). HR can add a decision note.
+- **If the interview was auto-generated**, approving a reschedule updates the existing Google Calendar event time too — both attendees get a native "Event updated" notification.
 - Full reschedule history is visible per interview.
 
 **Interview detail page (HR view):**
 - Top card: schedule time, duration, status badge, candidate + interviewer info, meeting URL with copy button, magic link copy buttons, notes.
-- **Action bar**: Edit, Mark complete, Cancel (with reason prompt).
+- **Action bar**: Edit, Mark complete, Cancel (with reason prompt). Cancelling an auto-generated interview also deletes the underlying Google Calendar event, so attendees get a cancellation notification.
 - **Pending reschedule banner** when applicable.
 - **Reschedule history** collapsible list.
 - **Interviewer review** section (appears once the interview is completed).
@@ -298,6 +303,17 @@ A dedicated browsing view of all MCQ submissions across candidates.
 - Filterable, paginated list with score, outcome, cheat status.
 - Click into a submission to see: each question, the candidate's answer, the correct answer, per-question evaluation, and the photo captured at the start of the test.
 
+### 4.11  Settings — Integrations
+
+A new admin Settings page (sidebar **⚙ Settings**) holds workspace-level integrations.
+
+**Google Calendar integration:**
+- One-click **Connect Google Calendar** — opens Google's standard OAuth consent screen (admin signs in, grants `calendar.events` + email + profile scopes).
+- Status panel shows: connected account email, connection date, green dot.
+- **Disconnect** removes the stored tokens. Existing interviews keep their meeting links; new interviews will need a manually pasted URL until you reconnect.
+- **One shared Google account per workspace** — all admins on the team use the same connected account. The connect/disconnect controls are admin-only.
+- **Failure modes** are handled gracefully — if Google access is revoked or the API is unreachable, the system automatically clears the broken integration and the schedule modal falls back to manual-URL mode with a clear banner.
+
 ---
 
 ## 5. Automation summary
@@ -314,13 +330,17 @@ Things that happen without HR doing anything:
 | MCQ submitted | Auto-graded, status flips, score report to HR, result email to candidate. |
 | Tab switches exceed threshold | Test auto-submits, status set to `Cheated`. |
 | Send coding test | Email with link, problems sampled (or AI-generated). |
-| Coding test submitted | Test cases auto-run via Piston, HR notification email with pass/fail count. |
+| Candidate clicks Run | Code executes against visible examples only via Piston; results shown live. Not persisted. |
+| Coding test submitted | All test cases (including hidden) auto-run via Piston, HR notification email with pass/fail count. |
 | Coding test Shortlisted | Round 1 shortlist email to candidate. |
 | Coding test Rejected | Round 1 rejection email to candidate. |
-| Interview scheduled | Two emails: candidate + interviewer. |
+| Interview scheduled (auto mode) | Google Calendar event created with Meet link; native Google invitations to candidate + interviewer; plus our custom HR-branded emails. |
+| Interview scheduled (manual mode) | Two custom emails: candidate + interviewer. |
 | 30 min before interview | Reminder emails to candidate + interviewer. |
-| Interview rescheduled | Re-fired notifications to both parties; reminder flag reset. |
+| Interview rescheduled (auto mode) | Calendar event time patched on Google; both attendees get "Event updated" notification + our reschedule emails. |
+| Interview rescheduled (manual mode) | Re-fired notifications to both parties; reminder flag reset. |
 | Reschedule approved/rejected | Notification to interviewer with HR's decision note. |
+| Interview cancelled (auto mode) | Google Calendar event deleted; attendees get cancellation notification + our cancellation email. |
 | Interviewer submits review | Interview auto-completed. |
 | HR shortlists for culture / rejects | Final-stage email to candidate. |
 
@@ -378,6 +398,7 @@ Both the MCQ test and the coding test have layered protections:
 | See an interviewer's review | Candidate detail OR Interview detail |
 | Approve a review edit request | Admin → **Edit requests** |
 | Export everything | Candidates / Interviews → **↓ Export CSV** |
+| Connect Google Calendar (auto-generate Meet links) | Settings (⚙ in sidebar) → **Connect Google Calendar** |
 
 ---
 
@@ -386,7 +407,8 @@ Both the MCQ test and the coding test have layered protections:
 - **Backend**: Node.js, Express, MongoDB (Mongoose), Joi validation, Jest tests.
 - **Frontend**: React, Redux Toolkit, Vite, SCSS, React Router, Monaco editor.
 - **AI providers**: Google Gemini (primary, multiple model tiers) → Groq (fallback) for resume screening, MCQ grading, question drafting, problem drafting.
-- **Code execution**: Piston public API (https://emkc.org/api/v2/piston/execute) — no Docker, no API key, supports JS / Python / PHP.
+- **Code execution**: **Self-hosted Piston** (Docker — `ghcr.io/engineer-man/piston` on port 2000) — runs JS / Python / PHP in isolated sandboxes. URL is configurable via `PISTON_URL` env var so the same code can target a remote/managed Piston in production.
+- **Calendar integration**: Google Calendar API + Meet, via OAuth 2.0 with `googleapis` Node SDK. Tokens stored in a singleton `GoogleIntegration` Mongo document. Token refresh + CSRF-signed OAuth state handled in the backend.
 - **Email**: SMTP via Nodemailer.
 - **File storage**: Cloudinary (resumes, photos).
 - **Auth**: JWT with role claims (admin / interviewer), token-based public links for candidates.
