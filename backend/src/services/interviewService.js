@@ -4,6 +4,8 @@ const interviewRepository = require('../repositories/interviewRepository');
 const rescheduleRequestRepository = require('../repositories/rescheduleRequestRepository');
 const candidateRepository = require('../repositories/candidateRepository');
 const interviewerRepository = require('../repositories/interviewerRepository');
+const googleIntegrationRepository = require('../repositories/googleIntegrationRepository');
+const googleCalendarService = require('./googleCalendarService');
 const { generateInterviewToken } = require('../utils/interviewToken');
 const emailService = require('./emailService');
 const { resolveHrEmail } = emailService;
@@ -294,12 +296,46 @@ const schedule = async (
     interviewerToken = generateInterviewToken().token;
   } while (candidateToken === interviewerToken);
 
+  // Google Calendar branch — if meetingUrl is empty/null, auto-create the event.
+  let finalMeetingUrl = (meetingUrl || '').trim();
+  let googleCalendarEventId;
+  if (!finalMeetingUrl) {
+    const integration = await googleIntegrationRepository.findCurrent();
+    if (!integration) {
+      throw ApiError.badRequest(
+        'Google Calendar is not connected. Connect it in Settings or paste a meeting URL manually.',
+        { code: 'E_GOOGLE_NOT_CONNECTED' },
+      );
+    }
+    try {
+      const event = await googleCalendarService.createEvent({
+        summary: `Interview: ${candidate.name} with ${interviewer.name}`,
+        description: notes ? `Notes:\n${notes}` : 'Interview scheduled via the interview management system.',
+        startISO: start.toISOString(),
+        endISO: end.toISOString(),
+        attendees: [candidate.email, interviewer.email],
+      });
+      finalMeetingUrl = event.hangoutLink;
+      googleCalendarEventId = event.id;
+    } catch (err) {
+      if (err.code === 'E_GOOGLE_NOT_CONNECTED' || err.code === 'E_GOOGLE_TOKEN_REVOKED') {
+        throw err;
+      }
+      logger.error('Google Calendar createEvent failed', { err: err.message });
+      throw ApiError.badRequest(
+        'Couldn\'t auto-generate the meeting on Google Calendar. Paste a meeting URL manually instead.',
+        { code: 'E_CALENDAR_FAILED' },
+      );
+    }
+  }
+
   const saved = await interviewRepository.create({
     candidate: candidateId,
     interviewer: interviewerId,
     scheduledAt: start,
     durationMinutes: duration,
-    meetingUrl,
+    meetingUrl: finalMeetingUrl,
+    googleCalendarEventId,
     notes: notes || undefined,
     candidateAccessToken: candidateToken,
     interviewerAccessToken: interviewerToken,

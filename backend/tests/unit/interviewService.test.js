@@ -15,6 +15,8 @@ jest.mock('../../src/repositories/interviewerRepository');
 jest.mock('../../src/repositories/interviewRepository');
 jest.mock('../../src/repositories/rescheduleRequestRepository');
 jest.mock('../../src/repositories/adminRepository');
+jest.mock('../../src/repositories/googleIntegrationRepository');
+jest.mock('../../src/services/googleCalendarService');
 
 // Mock email service — all send functions are no-ops
 jest.mock('../../src/services/emailService', () => ({
@@ -29,6 +31,8 @@ const candidateRepository = require('../../src/repositories/candidateRepository'
 const interviewerRepository = require('../../src/repositories/interviewerRepository');
 const interviewRepository = require('../../src/repositories/interviewRepository');
 const rescheduleRequestRepository = require('../../src/repositories/rescheduleRequestRepository');
+const googleIntegrationRepository = require('../../src/repositories/googleIntegrationRepository');
+const googleCalendarService = require('../../src/services/googleCalendarService');
 
 const interviewService = require('../../src/services/interviewService');
 const { INTERVIEW_STATUS, RESCHEDULE_STATUS, CANDIDATE_STATUS } = require('../../src/utils/constants');
@@ -277,5 +281,84 @@ describe('interviewService.decideReschedule', () => {
     expect(request.decidedBy).toBe('admin001');
     expect(request.decisionNote).toBe('Not possible');
     expect(request.save).toHaveBeenCalled();
+  });
+});
+
+describe('interviewService.schedule — Google Calendar auto-mode', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  test('uses pasted meetingUrl directly when provided (no calendar call)', async () => {
+    candidateRepository.findById.mockResolvedValue(makeCandidate());
+    interviewerRepository.findById.mockResolvedValue(makeInterviewer());
+    interviewRepository.findOverlapping.mockResolvedValue(null);
+    interviewRepository.create.mockResolvedValue(makeInterview({ meetingUrl: 'https://meet.example/x' }));
+    interviewRepository.findByIdPopulated.mockResolvedValue(makeInterview({ meetingUrl: 'https://meet.example/x' }));
+
+    await interviewService.schedule({
+      candidateId: 'cand001', interviewerId: 'ivwr001',
+      scheduledAt: new Date(Date.now() + 86400_000),
+      durationMinutes: 45,
+      meetingUrl: 'https://meet.example/x',
+    }, 'admin001');
+
+    expect(googleCalendarService.createEvent).not.toHaveBeenCalled();
+    expect(interviewRepository.create).toHaveBeenCalledWith(
+      expect.objectContaining({ meetingUrl: 'https://meet.example/x', googleCalendarEventId: undefined }),
+    );
+  });
+
+  test('auto-mode (no meetingUrl) calls calendar and stores hangoutLink + eventId', async () => {
+    candidateRepository.findById.mockResolvedValue(makeCandidate());
+    interviewerRepository.findById.mockResolvedValue(makeInterviewer());
+    interviewRepository.findOverlapping.mockResolvedValue(null);
+    googleIntegrationRepository.findCurrent.mockResolvedValue({ accountEmail: 'a@x.com' });
+    googleCalendarService.createEvent.mockResolvedValue({
+      id: 'evt-123', hangoutLink: 'https://meet.google.com/abc-def-ghi',
+    });
+    interviewRepository.create.mockResolvedValue(makeInterview({ meetingUrl: 'https://meet.google.com/abc-def-ghi' }));
+    interviewRepository.findByIdPopulated.mockResolvedValue(makeInterview());
+
+    await interviewService.schedule({
+      candidateId: 'cand001', interviewerId: 'ivwr001',
+      scheduledAt: new Date(Date.now() + 86400_000),
+      durationMinutes: 45,
+      meetingUrl: '',
+    }, 'admin001');
+
+    expect(googleCalendarService.createEvent).toHaveBeenCalledWith(expect.objectContaining({
+      summary: expect.stringContaining('Alice'),
+      attendees: ['alice@example.com', 'bob@example.com'],
+    }));
+    expect(interviewRepository.create).toHaveBeenCalledWith(expect.objectContaining({
+      meetingUrl: 'https://meet.google.com/abc-def-ghi',
+      googleCalendarEventId: 'evt-123',
+    }));
+  });
+
+  test('auto-mode with no integration throws E_GOOGLE_NOT_CONNECTED', async () => {
+    candidateRepository.findById.mockResolvedValue(makeCandidate());
+    interviewerRepository.findById.mockResolvedValue(makeInterviewer());
+    interviewRepository.findOverlapping.mockResolvedValue(null);
+    googleIntegrationRepository.findCurrent.mockResolvedValue(null);
+
+    await expect(interviewService.schedule({
+      candidateId: 'cand001', interviewerId: 'ivwr001',
+      scheduledAt: new Date(Date.now() + 86400_000),
+      durationMinutes: 45,
+    }, 'admin001')).rejects.toMatchObject({ code: 'E_GOOGLE_NOT_CONNECTED' });
+  });
+
+  test('auto-mode calendar failure throws E_CALENDAR_FAILED', async () => {
+    candidateRepository.findById.mockResolvedValue(makeCandidate());
+    interviewerRepository.findById.mockResolvedValue(makeInterviewer());
+    interviewRepository.findOverlapping.mockResolvedValue(null);
+    googleIntegrationRepository.findCurrent.mockResolvedValue({ accountEmail: 'a@x.com' });
+    googleCalendarService.createEvent.mockRejectedValue(new Error('network down'));
+
+    await expect(interviewService.schedule({
+      candidateId: 'cand001', interviewerId: 'ivwr001',
+      scheduledAt: new Date(Date.now() + 86400_000),
+      durationMinutes: 45,
+    }, 'admin001')).rejects.toMatchObject({ code: 'E_CALENDAR_FAILED' });
   });
 });
