@@ -451,7 +451,7 @@ const sendTest = async (id) => {
   return presentCandidate(candidate);
 };
 
-const sendCodingTest = async (id, { problemCount = 1, durationMinutes = 30, difficulty = 'medium' }, adminId) => {
+const sendCodingTest = async (id, { problemCount = 1, durationMinutes = 30, difficulty = 'medium', problemIds }, adminId) => {
   const candidate = await candidateRepository.findById(id);
   if (!candidate) throw ApiError.notFound('Candidate not found');
   if (candidate.codingTest?.sentAt && !candidate.codingTest?.submittedAt) {
@@ -463,18 +463,35 @@ const sendCodingTest = async (id, { problemCount = 1, durationMinutes = 30, diff
       );
     }
   }
-  const sampled = await codingProblemService.sampleForCandidate({
-    techStacks: candidate.techStack,
-    difficulty,
-    problemCount,
-    adminId,
-  });
+
+  let chosen;
+  if (Array.isArray(problemIds) && problemIds.length > 0) {
+    // Manual selection: HR picked specific problems.
+    const docs = await Promise.all(problemIds.map((pid) => codingProblemService.detail(pid)));
+    const inactive = docs.filter((p) => !p.isActive);
+    if (inactive.length > 0) {
+      throw ApiError.conflict(
+        `Selected problem(s) are inactive: ${inactive.map((p) => p.title).join(', ')}`,
+        { code: 'E_PROBLEM_INACTIVE' },
+      );
+    }
+    chosen = docs;
+  } else {
+    // Auto-sample from the bank (with AI fallback when bank is short).
+    chosen = await codingProblemService.sampleForCandidate({
+      techStacks: candidate.techStack,
+      difficulty,
+      problemCount,
+      adminId,
+    });
+  }
+
   const { token, expiresAt } = generateTestToken({ minutes: 60 * CODING_TEST_EXPIRY_HOURS });
   candidate.codingTest = {
     token,
     expiresAt,
-    problems: sampled.map((p) => p.id),
-    problemCount,
+    problems: chosen.map((p) => p.id),
+    problemCount: chosen.length,
     durationMinutes,
     difficulty,
     sentAt: new Date(),
@@ -491,7 +508,7 @@ const sendCodingTest = async (id, { problemCount = 1, durationMinutes = 30, diff
       await emailService.sendCodingTestInvite({
         candidate: presented,
         codingTestUrl: presented.codingTest.codingTestUrl,
-        problemCount,
+        problemCount: chosen.length,
         durationMinutes,
       });
     } catch (err) {

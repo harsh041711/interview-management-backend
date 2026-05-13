@@ -42,6 +42,8 @@ const sendCodingTestSchema = {
     problemCount: Joi.number().integer().min(1).max(5).default(1),
     durationMinutes: Joi.number().integer().min(5).max(240).default(30),
     difficulty: Joi.string().valid('easy', 'medium', 'hard').default('medium'),
+    // When provided, use these exact problems instead of auto-sampling.
+    problemIds: Joi.array().items(objectId).min(1).max(5).optional(),
   }),
 };
 
