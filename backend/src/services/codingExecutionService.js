@@ -1,11 +1,12 @@
 'use strict';
 
 const logger = require('../config/logger');
+const env = require('../config/env');
 
-const PISTON_URL = 'https://emkc.org/api/v2/piston/execute';
+const PISTON_URL = env.piston.url;
 const LANG_MAP = { js: 'javascript', python: 'python', php: 'php' };
 const FILE_NAMES = { js: 'main.js', python: 'main.py', php: 'main.php' };
-const RUN_TIMEOUT_MS = 5000;
+const RUN_TIMEOUT_MS = 3000;
 const COMPILE_TIMEOUT_MS = 10000;
 const MEMORY_LIMIT = 256_000_000;
 const FETCH_TIMEOUT_MS = 15000;

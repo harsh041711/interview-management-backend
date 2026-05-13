@@ -100,6 +100,10 @@ const env = {
     ],
   },
 
+  piston: {
+    url: optional('PISTON_URL', 'http://localhost:2000/api/v2/execute'),
+  },
+
   smtp: {
     host: optional('SMTP_HOST'),
     port: toInt(process.env.SMTP_PORT, 587),
