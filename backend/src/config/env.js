@@ -89,6 +89,17 @@ const env = {
     },
   },
 
+  google: {
+    clientId: optional('GOOGLE_OAUTH_CLIENT_ID'),
+    clientSecret: optional('GOOGLE_OAUTH_CLIENT_SECRET'),
+    redirectUri: optional('GOOGLE_OAUTH_REDIRECT_URI', 'http://localhost:5000/api/v1/integrations/google/callback'),
+    scopes: [
+      'https://www.googleapis.com/auth/calendar.events',
+      'https://www.googleapis.com/auth/userinfo.email',
+      'https://www.googleapis.com/auth/userinfo.profile',
+    ],
+  },
+
   smtp: {
     host: optional('SMTP_HOST'),
     port: toInt(process.env.SMTP_PORT, 587),
