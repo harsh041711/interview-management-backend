@@ -200,6 +200,9 @@ problems, runnable in three languages.
 - Candidate writes solutions for each problem, navigates with Previous/Next, and can click **▶ Run** at any time to test their code against the visible examples — pass/fail per example with input / expected / actual / runtime is shown live. Running does NOT count toward tab-switch tracking and is rate-limited to 30 runs/minute.
 - On the last problem, **Submit and finish** sends everything to the auto-grader (including hidden test cases).
 
+![Coding test with Run button](./screenshots/15-coding-test-run.png)
+*`15-coding-test-run.png` — the coding test page with the new ▶ Run button next to Previous and Submit; candidates can dry-run their code against visible examples before final submission.*
+
 ![Coding test candidate view](./screenshots/08-coding-test-candidate.png)
 *`08-coding-test-candidate.png` — the IDE-style coding test page with problem on the left and Monaco editor on the right.*
 
@@ -243,6 +246,9 @@ After Round 1 (MCQ + optional coding), HR schedules a live interview with a spec
 - The system fires two emails simultaneously:
   - **To the candidate**: meeting time, link, interviewer name.
   - **To the interviewer**: candidate summary, meeting time, link, **a magic interviewer-only URL** to load the review form.
+
+![Schedule interview modal — auto-generate mode](./screenshots/14-schedule-modal-auto.png)
+*`14-schedule-modal-auto.png` — the Schedule Interview modal showing the new mode toggle. With Google Calendar connected, "⚡ Auto-generate with Google Meet" is selected by default and the submit button reads "Schedule with Google Meet".*
 
 **Interview reminders:**
 - A scheduler runs every minute on the backend.
@@ -313,6 +319,9 @@ A new admin Settings page (sidebar **⚙ Settings**) holds workspace-level integ
 - **Disconnect** removes the stored tokens. Existing interviews keep their meeting links; new interviews will need a manually pasted URL until you reconnect.
 - **One shared Google account per workspace** — all admins on the team use the same connected account. The connect/disconnect controls are admin-only.
 - **Failure modes** are handled gracefully — if Google access is revoked or the API is unreachable, the system automatically clears the broken integration and the schedule modal falls back to manual-URL mode with a clear banner.
+
+![Settings — Google Calendar connected](./screenshots/13-settings-google-connected.png)
+*`13-settings-google-connected.png` — the Settings page with Google Calendar connected. Shows the green "Connected" pill, the account email, the connection date, and the Disconnect button.*
 
 ---
 
