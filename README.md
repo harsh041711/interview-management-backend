@@ -19,18 +19,29 @@ Production-ready MERN application for running secure, AI-graded technical interv
     └── superpowers/plans/
 ```
 
-## Quickstart
+## Prerequisites
+
+| Tool | Why | Tested with |
+| ---- | --- | ----------- |
+| **Node.js ≥ 18** | Backend + frontend dev servers | 20.x |
+| **MongoDB ≥ 6** | Application database (system service or container) | 7.0 |
+| **Docker** | Hosts the Piston code-execution sandbox for the coding test (Phase 5) | Docker Desktop / Docker CE |
+| **Google Cloud OAuth client** *(optional)* | Required only if you want auto-generated Google Meet links + Calendar events when scheduling interviews | OAuth 2.0 Web client |
+
+## Quickstart (first-time setup)
 
 ### 1. Backend
 
 ```bash
 cd backend
 cp .env.example .env
-# fill in MONGODB_URI, JWT_SECRET, TEST_TOKEN_SECRET, CLOUDINARY_*, GEMINI_API_KEY, SMTP_*
+# Fill in at minimum: MONGODB_URI, JWT_SECRET, TEST_TOKEN_SECRET, INTERVIEW_TOKEN_SECRET,
+# CLOUDINARY_*, GEMINI_API_KEY, SMTP_*, SEED_ADMIN_*
+# (PISTON_URL and GOOGLE_OAUTH_* can be left at defaults / blank for now.)
 npm install
 npm run seed   # creates the bootstrap admin from SEED_ADMIN_*
 npm run dev    # http://localhost:5000
-npm test       # runs the unit tests (token, evaluation)
+npm test       # runs the unit suite (133 tests)
 ```
 
 Health check: `GET http://localhost:5000/api/v1/health`.
@@ -45,7 +56,83 @@ npm install
 npm run dev    # http://localhost:5173
 ```
 
-Login at `/login` with the seeded admin credentials, then create candidates.
+Login at `/login` with the seeded admin credentials.
+
+### 3. Piston (code-execution sandbox — needed for the coding test)
+
+The public `emkc.org` Piston API went whitelist-only in Feb 2026, so the coding test
+runs against a **self-hosted Piston Docker** instance on port 2000.
+
+```bash
+# One-time: pull, run, and persist a Piston container
+docker run --privileged -d \
+  --name piston_api \
+  -v piston_data:/piston \
+  -p 2000:2000 \
+  ghcr.io/engineer-man/piston
+
+# Install the three language runtimes (each takes 10–60s)
+curl -X POST http://localhost:2000/api/v2/packages \
+  -H 'Content-Type: application/json' -d '{"language":"node","version":"20.11.1"}'
+curl -X POST http://localhost:2000/api/v2/packages \
+  -H 'Content-Type: application/json' -d '{"language":"python","version":"*"}'
+curl -X POST http://localhost:2000/api/v2/packages \
+  -H 'Content-Type: application/json' -d '{"language":"php","version":"*"}'
+
+# Smoke test
+curl -s http://localhost:2000/api/v2/runtimes
+```
+
+`PISTON_URL` in `backend/.env` should point at `http://localhost:2000/api/v2/execute`
+(the default value in `.env.example`).
+
+### 4. Google Calendar integration (optional)
+
+If you want the Schedule Interview modal to auto-generate Meet links and Calendar invites:
+
+1. In [Google Cloud Console](https://console.cloud.google.com) → enable the Google Calendar API.
+2. Create an **OAuth 2.0 Client (Web application)**. Add this exact redirect URI:
+   `http://localhost:5000/api/v1/integrations/google/callback`
+3. Configure the OAuth consent screen with these scopes:
+   `auth/calendar.events`, `auth/userinfo.email`, `auth/userinfo.profile`
+4. Copy the client ID + secret into `backend/.env`:
+   ```
+   GOOGLE_OAUTH_CLIENT_ID=...
+   GOOGLE_OAUTH_CLIENT_SECRET=...
+   ```
+5. Restart the backend, then in the app go to **Settings → Connect Google Calendar**.
+
+If you skip this, the Schedule modal automatically falls back to manual URL paste.
+
+## Daily startup (after the first-time setup)
+
+After a reboot or fresh shell, in this order:
+
+```bash
+# 1. MongoDB (skip if it's a systemd auto-start)
+sudo systemctl start mongod
+
+# 2. Docker Desktop (or Docker daemon) — start manually
+docker start piston_api          # the runtimes persist on the piston_data volume
+
+# 3. Backend
+cd /path/to/Interview\ management/backend && npm run dev
+
+# 4. Frontend
+cd /path/to/Interview\ management/frontend && npm run dev
+```
+
+Quick "is everything up?" probe:
+
+```bash
+curl -s http://localhost:5000/api/v1/health                # backend → {"success":true,...}
+curl -s http://localhost:2000/api/v2/runtimes | head -c 60 # piston  → [{"language":"javascript",...
+curl -sI http://localhost:5173 | head -1                   # frontend → HTTP/1.1 200 OK
+```
+
+Stopping everything: Ctrl+C in the npm terminals, plus `docker stop piston_api` if you want.
+The `piston_data` Docker volume persists the installed runtimes across restarts, so you
+don't need to re-install Node/Python/PHP after a stop/start.
 
 ## Environment variables
 
@@ -65,6 +152,8 @@ Required to actually run end-to-end:
 | `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD`, `SEED_ADMIN_HR_EMAIL` | backend | First admin + report recipient |
 | `VITE_API_BASE_URL` | frontend | Points to backend `/api/v1` |
 | `FRONTEND_URL` | backend | Used to compose candidate test URLs |
+| `PISTON_URL` | backend | Code-execution sandbox. Default `http://localhost:2000/api/v2/execute` for the self-hosted Docker container (see Quickstart §3). |
+| `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET`, `GOOGLE_OAUTH_REDIRECT_URI` | backend | Optional — only needed to enable auto-generate Google Meet + Calendar events in the Schedule Interview modal. See Quickstart §4. |
 
 ## Architecture
 
