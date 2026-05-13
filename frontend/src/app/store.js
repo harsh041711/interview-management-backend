@@ -14,6 +14,7 @@ import reviewsReducer from '@/features/reviews/reviewSlice';
 import jdsReducer from '@/features/jobDescriptions/jobDescriptionsSlice';
 import codingProblemsReducer from '@/features/codingProblems/codingProblemsSlice';
 import codingTestReducer from '@/features/codingTest/codingTestSlice';
+import settingsReducer from '@/features/settings/settingsSlice';
 
 export const store = configureStore({
   reducer: {
@@ -32,6 +33,7 @@ export const store = configureStore({
     jds: jdsReducer,
     codingProblems: codingProblemsReducer,
     codingTest: codingTestReducer,
+    settings: settingsReducer,
   },
   middleware: (getDefault) =>
     getDefault({
