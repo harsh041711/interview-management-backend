@@ -243,6 +243,9 @@
     border-radius: 999px;
     font-size: 10px;
     font-weight: 700;
+
+    &--pass { background: #dcfce7; color: #166534; }
+    &--fail { background: #fee2e2; color: #991b1b; }
   }
 
   &__sample {
@@ -254,6 +257,17 @@
     transition: border-color 0.15s ease;
     &:hover { border-color: #cbd5e1; }
     &:last-child { margin-bottom: 0; }
+
+    &--pass {
+      background: #f0fdf4;
+      border-color: #bbf7d0;
+      .coding-test__sample-head { color: #16a34a; }
+    }
+    &--fail {
+      background: #fef2f2;
+      border-color: #fecaca;
+      .coding-test__sample-head { color: #dc2626; }
+    }
   }
   &__sample-head {
     font-size: 11px;
@@ -291,6 +305,8 @@
     word-break: break-word;
     margin: 0;
     overflow-x: auto;
+
+    &--err { background: #450a0a; color: #fecaca; }
   }
 
   &__editor-bar {

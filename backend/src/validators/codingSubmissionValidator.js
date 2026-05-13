@@ -21,6 +21,15 @@ const tokenParamSchema = {
   params: Joi.object({ token: Joi.string().required() }),
 };
 
+const runSchema = {
+  params: Joi.object({ token: Joi.string().required() }),
+  body: Joi.object({
+    problemId: objectId.required(),
+    language: Joi.string().valid('js', 'python', 'php').required(),
+    code: Joi.string().allow('').max(50000).required(),
+  }),
+};
+
 const idParamSchema = {
   params: Joi.object({ id: objectId.required() }),
 };
@@ -33,4 +42,4 @@ const rateSchema = {
   }),
 };
 
-module.exports = { submitSchema, tokenParamSchema, idParamSchema, rateSchema };
+module.exports = { submitSchema, tokenParamSchema, runSchema, idParamSchema, rateSchema };

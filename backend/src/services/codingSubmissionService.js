@@ -179,7 +179,43 @@ const listForCandidate = async (candidateId) => {
   return subs.map(presentSubmission);
 };
 
+// Run candidate's code against VISIBLE test cases only. Hidden cases stay hidden
+// until final submission. Does not persist anything; pure execution.
+const runVisibleByToken = async ({ token, problemId, language, code }) => {
+  const candidate = await findCandidateByToken(token);
+  if (!candidate) throw ApiError.notFound('Invalid coding test link');
+  if (candidate.codingTest.submittedAt) {
+    throw ApiError.conflict('Already submitted', { code: 'E_ALREADY_SUBMITTED' });
+  }
+  if (candidate.codingTest.expiresAt && candidate.codingTest.expiresAt.getTime() < Date.now()) {
+    throw ApiError.gone('Coding test link has expired', { code: 'E_CODING_TEST_EXPIRED' });
+  }
+
+  const assigned = (candidate.codingTest.problems || []).map(String);
+  if (!assigned.includes(String(problemId))) {
+    throw ApiError.forbidden('Problem is not part of this candidate\'s test', { code: 'E_PROBLEM_NOT_ASSIGNED' });
+  }
+
+  const problem = await cpRepo.findById(problemId);
+  if (!problem) throw ApiError.notFound('Problem not found');
+  if (!problem.supportedLanguages.includes(language)) {
+    throw ApiError.badRequest(`Language '${language}' is not supported for this problem`, { code: 'E_LANGUAGE_UNSUPPORTED' });
+  }
+
+  const visible = (problem.testCases || []).filter((tc) => !tc.isHidden);
+  if (visible.length === 0) {
+    return { runs: [], message: 'No visible test cases to run against.' };
+  }
+
+  const runs = await exec.runAllTestCases({ language, code, testCases: visible });
+  return {
+    runs: runs.map(presentRun),
+    passedCount: runs.filter((r) => r.passed).length,
+    totalCount: runs.length,
+  };
+};
+
 module.exports = {
-  submitByToken, markFirstOpened, loadTestByToken,
+  submitByToken, markFirstOpened, loadTestByToken, runVisibleByToken,
   rate, rerun, listForCandidate, presentSubmission,
 };

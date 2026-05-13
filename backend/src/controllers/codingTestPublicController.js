@@ -20,4 +20,14 @@ const submit = asyncHandler(async (req, res) => {
   return ok(res, result, 'Coding test submitted');
 });
 
-module.exports = { loadTest, submit };
+const run = asyncHandler(async (req, res) => {
+  const result = await codingSubService.runVisibleByToken({
+    token: req.params.token,
+    problemId: req.body.problemId,
+    language: req.body.language,
+    code: req.body.code,
+  });
+  return ok(res, result, 'Ran visible test cases');
+});
+
+module.exports = { loadTest, submit, run };

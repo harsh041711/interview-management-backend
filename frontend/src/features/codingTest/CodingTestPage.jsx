@@ -8,6 +8,7 @@ import Loader from '@/components/common/Loader';
 import EmptyState from '@/components/common/EmptyState';
 import Modal from '@/components/common/Modal';
 import { useToast } from '@/components/common/Toast';
+import { codingTestApi } from '@/api/codingTestApi';
 import { loadCodingTest, submitCodingTest, clearState } from './codingTestSlice';
 import './CodingTestPage.scss';
 
@@ -41,6 +42,8 @@ export default function CodingTestPage() {
   const [tabSwitches, setTabSwitches] = useState(() => readStoredTabSwitches(token));
   const [warnOpen, setWarnOpen] = useState(false);
   const [remainingMs, setRemainingMs] = useState(null);
+  const [runResults, setRunResults] = useState({}); // { [problemId]: { runs, passedCount, totalCount } }
+  const [running, setRunning] = useState(false);
   const submittedRef = useRef(false);
 
   useEffect(() => {
@@ -140,6 +143,32 @@ export default function CodingTestPage() {
     setPerProblem((prev) => ({ ...prev, [problem.id]: { ...prev[problem.id], code } }));
   };
 
+  const doRun = async () => {
+    if (running || submittedRef.current) return;
+    setRunning(true);
+    try {
+      const result = await codingTestApi.run(token, {
+        problemId: problem.id,
+        language: state.language,
+        code: state.code,
+      });
+      setRunResults((prev) => ({ ...prev, [problem.id]: result }));
+      const { passedCount = 0, totalCount = 0 } = result;
+      if (totalCount === 0) {
+        push({ type: 'info', message: result.message || 'No visible test cases.' });
+      } else if (passedCount === totalCount) {
+        push({ type: 'success', message: `All ${totalCount} example(s) passed` });
+      } else {
+        push({ type: 'warn', message: `${passedCount}/${totalCount} example(s) passed` });
+      }
+    } catch (err) {
+      const msg = err.response?.data?.message || 'Run failed';
+      push({ type: 'error', message: msg });
+    } finally {
+      setRunning(false);
+    }
+  };
+
   const doSubmit = async (autoSubmitted = false) => {
     if (submittedRef.current && !autoSubmitted) return;
     submittedRef.current = true;
@@ -221,6 +250,53 @@ export default function CodingTestPage() {
               ))}
             </div>
           )}
+
+          {runResults[problem.id] && (
+            <div className="coding-test__card">
+              <div className="coding-test__samples-title">
+                <span>Run results</span>
+                <span className={`coding-test__samples-count ${
+                  runResults[problem.id].passedCount === runResults[problem.id].totalCount
+                    ? 'coding-test__samples-count--pass'
+                    : 'coding-test__samples-count--fail'
+                }`}>
+                  {runResults[problem.id].passedCount}/{runResults[problem.id].totalCount}
+                </span>
+              </div>
+              {(runResults[problem.id].runs || []).map((r, i) => (
+                <div key={i} className={`coding-test__sample coding-test__sample--${r.passed ? 'pass' : 'fail'}`}>
+                  <div className="coding-test__sample-head">
+                    Example {i + 1} {r.passed ? '✓ Passed' : '✗ Failed'}
+                    {typeof r.runtimeMs === 'number' && <span style={{ marginLeft: 8, opacity: 0.6, fontSize: 11 }}>{r.runtimeMs} ms</span>}
+                  </div>
+                  <div className="coding-test__sample-row">
+                    <span className="coding-test__sample-label">Input</span>
+                    <pre className="coding-test__sample-value">{r.stdin || '(empty)'}</pre>
+                  </div>
+                  <div className="coding-test__sample-row">
+                    <span className="coding-test__sample-label">Expected</span>
+                    <pre className="coding-test__sample-value">{r.expectedStdout || '(empty)'}</pre>
+                  </div>
+                  <div className="coding-test__sample-row">
+                    <span className="coding-test__sample-label">Got</span>
+                    <pre className="coding-test__sample-value">{r.actualStdout || '(empty)'}</pre>
+                  </div>
+                  {r.stderr && (
+                    <div className="coding-test__sample-row">
+                      <span className="coding-test__sample-label">Stderr</span>
+                      <pre className="coding-test__sample-value coding-test__sample-value--err">{r.stderr}</pre>
+                    </div>
+                  )}
+                  {r.error && (
+                    <div className="coding-test__sample-row">
+                      <span className="coding-test__sample-label">Error</span>
+                      <pre className="coding-test__sample-value coding-test__sample-value--err">{r.error}</pre>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="coding-test__right">
@@ -278,6 +354,7 @@ export default function CodingTestPage() {
             </div>
             <div className="coding-test__actions">
               <Button variant="secondary" disabled={current === 0} onClick={() => setCurrent((c) => c - 1)}>← Previous</Button>
+              <Button variant="secondary" onClick={doRun} loading={running}>▶ Run</Button>
               {current < data.problems.length - 1 && (
                 <Button onClick={() => setCurrent((c) => c + 1)}>Next →</Button>
               )}
