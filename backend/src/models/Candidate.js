@@ -87,6 +87,21 @@ const candidateSchema = new mongoose.Schema(
         default: null,
       },
     },
+    promptTest: {
+      token:           { type: String, default: null },
+      expiresAt:       { type: Date, default: null },
+      problemId:       { type: mongoose.Schema.Types.ObjectId, ref: 'PromptProblem', default: null },
+      durationMinutes: { type: Number, default: null, min: 1, max: 240 },
+      sentAt:          { type: Date, default: null },
+      firstOpenedAt:   { type: Date, default: null },
+      submittedAt:     { type: Date, default: null },
+      reviewedAt:      { type: Date, default: null },
+      outcome: {
+        type: String,
+        enum: ['pending_review', 'shortlisted', 'rejected', null],
+        default: null,
+      },
+    },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Admin', required: true },
   },
   {

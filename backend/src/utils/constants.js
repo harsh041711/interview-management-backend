@@ -110,6 +110,22 @@ const ROUND1_OUTCOMES = Object.freeze({
 
 const ROUND1_OUTCOMES_LIST = Object.values(ROUND1_OUTCOMES);
 
+const PROMPT_SUBMISSION_STATUS = Object.freeze({
+  ASSIGNED: 'assigned',
+  IN_PROGRESS: 'in_progress',
+  SUBMITTED: 'submitted',
+  EVALUATING: 'evaluating',
+  EVALUATED: 'evaluated',
+  EVALUATION_FAILED: 'evaluation_failed',
+});
+const PROMPT_SUBMISSION_STATUS_LIST = Object.values(PROMPT_SUBMISSION_STATUS);
+
+const PROMPT_PROBLEM_SOURCE = Object.freeze({
+  MANUAL: 'manual',
+  AI_PERSONALIZED: 'ai-personalized',
+});
+const PROMPT_PROBLEM_SOURCE_LIST = Object.values(PROMPT_PROBLEM_SOURCE);
+
 module.exports = {
   QUESTION_TYPES,
   QUESTION_TYPE_LIST,
@@ -135,4 +151,8 @@ module.exports = {
   REVIEW_EDIT_STATUS,
   SETUP_TOKEN_PURPOSE,
   PASSWORD_MIN_LENGTH,
+  PROMPT_SUBMISSION_STATUS,
+  PROMPT_SUBMISSION_STATUS_LIST,
+  PROMPT_PROBLEM_SOURCE,
+  PROMPT_PROBLEM_SOURCE_LIST,
 };
