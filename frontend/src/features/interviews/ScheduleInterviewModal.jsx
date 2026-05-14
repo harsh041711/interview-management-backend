@@ -86,7 +86,7 @@ export default function ScheduleInterviewModal({ open, onClose, initial }) {
         // Fetch all candidates (no status filter), then keep only those eligible
         // for scheduling — round 1 (shortlisted) or post-review for round 2+.
         const [cData, iData] = await Promise.all([
-          candidateApi.list({ limit: 200 }),
+          candidateApi.list({ limit: 100 }),
           interviewerApi.list({ isActive: true, limit: 100 }),
         ]);
         const eligible = (cData.items || []).filter((c) => SCHEDULEABLE_STATUSES.has(c.status));
