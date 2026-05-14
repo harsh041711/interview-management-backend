@@ -1,0 +1,120 @@
+.coding-tasks {
+  background: $color-surface;
+  border: 1px solid $color-border;
+  border-radius: $radius-lg;
+  padding: $space-3;
+
+  &--empty {
+    color: $color-text-muted;
+    font-size: 13px;
+    text-align: center;
+    padding: $space-4;
+    p { margin: 0; }
+  }
+
+  &__title-h {
+    margin: 0 0 $space-3;
+    font-size: 14px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: $color-text-muted;
+  }
+
+  &__list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: $space-3;
+  }
+
+  &__item {
+    border: 1px solid $color-border;
+    border-radius: $radius-md;
+    padding: $space-3;
+    background: $color-surface-2;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  &__head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: $space-2;
+  }
+
+  &__title { font-weight: 600; font-size: 14px; }
+
+  &__status {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 2px 10px;
+    border-radius: 9999px;
+    &--pending   { background: #fef3c7; color: #92400e; }
+    &--opened    { background: #dbeafe; color: #1e40af; }
+    &--submitted { background: #dcfce7; color: #166534; }
+    &--cancelled { background: #e5e7eb; color: #4b5563; }
+  }
+
+  &__meta { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  &__pill {
+    background: #f1f5f9;
+    color: #475569;
+    padding: 2px 8px;
+    border-radius: 9999px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    &--lang { background: #e0e7ff; color: #3730a3; }
+  }
+  &__time { color: $color-text-muted; font-size: 12px; }
+
+  &__actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  &__submission {
+    margin-top: $space-2;
+    background: $color-surface;
+    border: 1px solid $color-border;
+    border-radius: $radius-md;
+    padding: $space-3;
+  }
+  &__summary { font-size: 13px; margin-bottom: $space-2; }
+  &__code {
+    background: #0f172a;
+    color: #e2e8f0;
+    padding: $space-3;
+    border-radius: $radius-md;
+    overflow-x: auto;
+    font-size: 12px;
+    margin: 0 0 $space-2;
+  }
+  &__cases {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    li {
+      font-size: 13px;
+      &.pass { color: #166534; }
+      &.fail { color: #991b1b; }
+    }
+  }
+  &__diff {
+    margin-top: 4px;
+    display: grid;
+    gap: 4px;
+    font-size: 12px;
+    color: $color-text;
+    span { display: block; font-weight: 600; color: $color-text-muted; }
+    pre { margin: 0; background: #f9fafb; padding: 6px 8px; border-radius: $radius-md; }
+  }
+}
