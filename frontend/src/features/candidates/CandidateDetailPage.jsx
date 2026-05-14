@@ -20,6 +20,8 @@ import {
 import ScreeningPanel from './ScreeningPanel';
 import SendCodingTestModal from './SendCodingTestModal';
 import ReviewPanel from '@/features/reviews/ReviewPanel';
+import AssignPromptTestModal from '@/features/promptTest/AssignPromptTestModal';
+import PromptTestReviewPanel from '@/features/promptTest/PromptTestReviewPanel';
 import './CandidateDetailPage.scss';
 
 export default function CandidateDetailPage() {
@@ -31,6 +33,7 @@ export default function CandidateDetailPage() {
   const [actBusy, setActBusy] = useState(null); // 'approve' | 'decline' | 'rescreen' | 'sendTest' | 'resend' | 'regenerate' | 'select' | 'reject' | 'delete'
   const [confirmOverride, setConfirmOverride] = useState(null); // 'approve' | 'decline' | null
   const [codingTestOpen, setCodingTestOpen] = useState(false);
+  const [promptTestOpen, setPromptTestOpen] = useState(false);
 
   useEffect(() => {
     dispatch(fetchCandidate(id));
@@ -216,6 +219,11 @@ export default function CandidateDetailPage() {
             {c.codingTest?.sentAt ? 'Re-send coding test' : 'Send coding test'}
           </Button>
         )}
+        {['resume_approved', 'pending', 'in_progress', 'completed', 'awaiting_decision', 'shortlisted', 'selected_for_culture'].includes(c.status) && (
+          <Button variant="secondary" onClick={() => setPromptTestOpen(true)}>
+            {c.promptTest?.sentAt ? 'Re-assign prompt test' : 'Assign prompt test'}
+          </Button>
+        )}
         <Button variant="ghost" onClick={onDelete} loading={actBusy === 'delete'}>Delete</Button>
       </div>
 
@@ -252,6 +260,8 @@ export default function CandidateDetailPage() {
         </div>
       )}
 
+      {c.promptTest?.sentAt && <PromptTestReviewPanel candidateId={c.id} />}
+
       {['awaiting_decision', 'selected_for_culture', 'final_rejected'].includes(c.status) && (
         <ReviewPanel candidateId={c.id} />
       )}
@@ -273,6 +283,13 @@ export default function CandidateDetailPage() {
         candidateId={c.id}
         onClose={() => setCodingTestOpen(false)}
         onSent={refresh}
+      />
+
+      <AssignPromptTestModal
+        open={promptTestOpen}
+        candidateId={c.id}
+        onClose={() => setPromptTestOpen(false)}
+        onAssigned={refresh}
       />
 
       <Modal
