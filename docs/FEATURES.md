@@ -227,7 +227,30 @@ problems, runnable in three languages.
 ![HR coding test review](./screenshots/09-coding-test-review.png)
 *`09-coding-test-review.png` — the HR review page showing test case results, candidate code, star rating, and shortlist/reject.*
 
-### 4.7  Interviews (Round 2)
+### 4.7  Prompt Engineering Test (optional, AI-evaluated)
+
+A third Round-1 test type — independent of MCQ and Coding — designed to evaluate **prompt-engineering skill**. With AI tools now embedded in every developer workflow, the ability to write a clear, well-scoped prompt is a real hiring signal.
+
+**Flow:**
+- HR opens a candidate and clicks **Assign prompt test**. Two paths:
+  - **Pick from library** — choose a manually-authored scenario from the Prompt Problems library.
+  - **Generate with AI** — the system reads the candidate's resume + AI-screening summary + tech stack + experience level and asks the LLM to draft a scenario tailored to *that specific candidate*. HR previews and can edit any field before saving.
+- The candidate gets an email with a link. They open `/prompt-test/<token>`, see the scenario + a sample input, write a prompt, and can optionally click **▶ Try it** up to 5 times to preview the LLM's output against the sample. Then they submit.
+
+**3-step AI evaluation (runs in the background after submit):**
+1. **Rubric score (0–50)** — AI grades the prompt itself against a default 5-item rubric (clarity, role/context, output format, examples/constraints, edge-case handling), plus any scenario-specific custom criteria the admin added.
+2. **Execute** — the candidate's prompt is run against the sample input via the same Gemini → Groq fallback chain used for resume screening.
+3. **Output score (0–50)** — AI checks the produced output against the expected criteria (pass/fail per criterion).
+
+Total score 0–100. HR sees the full breakdown: the candidate's prompt verbatim, the executed LLM output, rubric scores with per-criterion notes, output criteria pass/fail. HR can re-run evaluation if it fails.
+
+**Coexistence with MCQ + Coding:** Independent — HR sends any combination. If any of (coding, prompt) is pending review, the MCQ auto-shortlist is suppressed so HR makes the final call.
+
+**Prompt Problems library** (admin sidebar) is for manually-authored, reusable scenarios. AI-generated problems are stored per-candidate (with `createdFor: candidateId`) and are NOT shown in the library list — they're one-off and personalized.
+
+**Rate limiting:** Preview is capped at 5 runs per test (enforced server-side) plus 10/min/IP HTTP-layer cap to control AI cost.
+
+### 4.8  Interviews (Round 2)
 
 After Round 1 (MCQ + optional coding), HR schedules a live interview with a specific interviewer.
 
@@ -279,7 +302,7 @@ After Round 1 (MCQ + optional coding), HR schedules a live interview with a spec
 ![Interview detail page](./screenshots/11-interview-detail.png)
 *`11-interview-detail.png` — an interview detail page showing schedule, links, action bar, and the interviewer review section.*
 
-### 4.8  Interviewer Portal
+### 4.9  Interviewer Portal
 
 A separate dashboard so external interviewers only see their assigned interviews and nothing else.
 
@@ -296,20 +319,20 @@ A separate dashboard so external interviewers only see their assigned interviews
 ![Interviewer review form](./screenshots/12-interviewer-review.png)
 *`12-interviewer-review.png` — the interviewer-side review form with three star ratings and comments.*
 
-### 4.9  Reviews & Edit Requests (HR oversight)
+### 4.10  Reviews & Edit Requests (HR oversight)
 
 - All interviewer reviews appear on both the **candidate detail page** and the **interview detail page** with: interviewer name, average rating, per-axis stars, comments, submitted-at, edit count.
 - **Edit-request center** at `/admin/review-edit-requests` — a queue of pending requests across all interviews. HR can approve or reject each with a note.
 - Full **edit history** is shown on the review panel — every previous request, decision, reason, and HR's decision note.
 
-### 4.10  Submissions module
+### 4.11  Submissions module
 
 A dedicated browsing view of all MCQ submissions across candidates.
 
 - Filterable, paginated list with score, outcome, cheat status.
 - Click into a submission to see: each question, the candidate's answer, the correct answer, per-question evaluation, and the photo captured at the start of the test.
 
-### 4.11  Settings — Integrations
+### 4.12  Settings — Integrations
 
 A new admin Settings page (sidebar **⚙ Settings**) holds workspace-level integrations.
 
