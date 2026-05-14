@@ -28,6 +28,9 @@ const { buildCodingTestInviteHtml, buildCodingTestInviteText } = require('../tem
 const { buildCandidateReminderHtml, buildCandidateReminderText } = require('../templates/interviewReminderCandidateEmail');
 const { buildInterviewerReminderHtml, buildInterviewerReminderText } = require('../templates/interviewReminderInterviewerEmail');
 const { buildCodingSubmissionReceivedHtml, buildCodingSubmissionReceivedText } = require('../templates/codingSubmissionReceivedEmail');
+const { buildPromptTestAssignedHtml, buildPromptTestAssignedText } = require('../templates/promptTestAssignedCandidateEmail');
+const { buildPromptTestSubmittedHtml, buildPromptTestSubmittedText } = require('../templates/promptTestSubmittedHrEmail');
+const { buildPromptTestEvaluationFailedHtml, buildPromptTestEvaluationFailedText } = require('../templates/promptTestEvaluationFailedHrEmail');
 const { ROUND1_OUTCOMES } = require('../utils/constants');
 
 let cachedTransporter = null;
@@ -534,6 +537,57 @@ const sendInterviewReminderInterviewer = async ({ interview, candidate, intervie
   return info;
 };
 
+const sendPromptTestAssignedCandidate = async ({ candidate, problem, accessToken, expiresAt }) => {
+  const transporter = getTransporter();
+  if (!transporter) throw new Error('SMTP not configured');
+  if (!candidate?.email) throw new Error('Candidate email is missing');
+  const base = env.frontendUrl.replace(/\/$/, '');
+  const accessUrl = `${base}/prompt-test/${accessToken}`;
+  const subject = `Prompt Engineering Test — ${problem.title}`;
+  const html = buildPromptTestAssignedHtml({ candidate, problem, accessUrl, expiresAt });
+  const text = buildPromptTestAssignedText({ candidate, problem, accessUrl, expiresAt });
+  const info = await transporter.sendMail({ from: env.smtp.from, to: candidate.email, subject, text, html });
+  logger.info('Prompt test assigned email sent', { messageId: info.messageId, to: candidate.email, candidate: candidate.id });
+  return info;
+};
+
+const sendPromptTestSubmittedHr = async ({ submissionId }) => {
+  const transporter = getTransporter();
+  if (!transporter) throw new Error('SMTP not configured');
+  const promptSubmissionRepository = require('../repositories/promptSubmissionRepository');
+  const candidateRepository = require('../repositories/candidateRepository');
+  const sub = await promptSubmissionRepository.findById(submissionId);
+  if (!sub) return;
+  const candidate = await candidateRepository.findById(sub.candidate);
+  const hrTo = await resolveHrEmail();
+  if (!hrTo) throw new Error('No HR email recipient configured');
+  const base = env.frontendUrl.replace(/\/$/, '');
+  const reviewUrl = `${base}/candidates/${candidate.id || candidate._id}`;
+  const subject = `Prompt test submitted: ${candidate.name}`;
+  const html = buildPromptTestSubmittedHtml({ candidate, reviewUrl });
+  const text = buildPromptTestSubmittedText({ candidate, reviewUrl });
+  const info = await transporter.sendMail({ from: env.smtp.from, to: hrTo, subject, text, html });
+  logger.info('Prompt test submitted email sent to HR', { messageId: info.messageId, to: hrTo, candidate: candidate.id || candidate._id });
+  return info;
+};
+
+const sendPromptTestEvaluationFailed = async ({ candidateId, reason }) => {
+  const transporter = getTransporter();
+  if (!transporter) throw new Error('SMTP not configured');
+  const candidateRepository = require('../repositories/candidateRepository');
+  const candidate = await candidateRepository.findById(candidateId);
+  const hrTo = await resolveHrEmail();
+  if (!hrTo) throw new Error('No HR email recipient configured');
+  const base = env.frontendUrl.replace(/\/$/, '');
+  const reviewUrl = `${base}/candidates/${candidate.id || candidate._id}`;
+  const subject = `Prompt test evaluation failed: ${candidate.name}`;
+  const html = buildPromptTestEvaluationFailedHtml({ candidate, reason, reviewUrl });
+  const text = buildPromptTestEvaluationFailedText({ candidate, reason, reviewUrl });
+  const info = await transporter.sendMail({ from: env.smtp.from, to: hrTo, subject, text, html });
+  logger.info('Prompt test evaluation failed email sent to HR', { messageId: info.messageId, to: hrTo, candidate: candidateId });
+  return info;
+};
+
 module.exports = {
   resolveHrEmail,
   sendInterviewReport,
@@ -557,5 +611,8 @@ module.exports = {
   sendInterviewReminderInterviewer,
   sendCodingTestInvite,
   sendCodingSubmissionReceived,
+  sendPromptTestAssignedCandidate,
+  sendPromptTestSubmittedHr,
+  sendPromptTestEvaluationFailed,
   getTransporter,
 };
