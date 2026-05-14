@@ -821,8 +821,8 @@ jest.mock('../../src/repositories/promptSubmissionRepository');
 jest.mock('../../src/repositories/candidateRepository');
 jest.mock('../../src/services/promptEvaluationService');
 jest.mock('../../src/services/emailService');
-jest.mock('../../src/utils/interviewToken', () => ({
-  generateInterviewToken: () => ({ token: 'tok-abc', expiresAt: new Date(Date.now() + 3600000) }),
+jest.mock('../../src/utils/tokenGenerator', () => ({
+  generateTestToken: () => ({ token: 'tok-abc', expiresAt: new Date(Date.now() + 3600000) }),
 }));
 
 const problemRepo = require('../../src/repositories/promptProblemRepository');
@@ -924,7 +924,7 @@ const candidateRepository = require('../repositories/candidateRepository');
 const promptEvaluationService = require('./promptEvaluationService');
 const promptProblemAiService = require('./promptProblemAiService');
 const emailService = require('./emailService');
-const { generateInterviewToken } = require('../utils/interviewToken');
+const { generateTestToken } = require('../utils/tokenGenerator');
 const ApiError = require('../utils/ApiError');
 const logger = require('../config/logger');
 const { PROMPT_SUBMISSION_STATUS, PROMPT_PROBLEM_SOURCE } = require('../utils/constants');
@@ -937,7 +937,7 @@ const assign = async ({ candidateId, problemId, adminId }) => {
   const problem = await promptProblemRepository.findById(problemId);
   if (!problem) throw ApiError.notFound('Prompt problem not found');
 
-  const { token, expiresAt } = generateInterviewToken({ ttlMinutes: problem.durationMinutes });
+  const { token, expiresAt } = generateTestToken({ minutes: problem.durationMinutes });
   const submission = await promptSubmissionRepository.create({
     candidate: candidateId,
     promptProblem: problemId,
