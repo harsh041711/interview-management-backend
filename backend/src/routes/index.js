@@ -21,6 +21,7 @@ const integrationsRoutes = require('./integrationsRoutes');
 const promptProblemRoutes = require('./promptProblemRoutes');
 const promptTestAdminRoutes = require('./promptTestAdminRoutes');
 const promptTestPublicRoutes = require('./promptTestPublicRoutes');
+const liveInterviewRoutes = require('./liveInterviewRoutes');
 
 const router = express.Router();
 
@@ -46,5 +47,6 @@ router.use('/integrations', integrationsRoutes);
 router.use('/prompt-problems', promptProblemRoutes);
 router.use('/candidates/:id/prompt-test', promptTestAdminRoutes);
 router.use('/prompt-test', promptTestPublicRoutes);
+router.use('/me', liveInterviewRoutes);
 
 module.exports = router;
