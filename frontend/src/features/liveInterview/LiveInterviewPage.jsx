@@ -105,7 +105,9 @@ export default function LiveInterviewPage() {
 
   const interview = detail?.interview;
   const candidate = interview?.candidate;
-  const jd = interview?.jobDescription;
+  // The Interview model has no JD reference. JD context lives in the snapshot
+  // captured during the candidate's resume screening.
+  const jd = candidate?.screening?.jdSnapshot || null;
   const priorReviews = (detail?.reviewHistory || []).filter(Boolean);
 
   return (

@@ -27,7 +27,15 @@
     &__body { padding: 0 $space-4 $space-3; }
   }
 
-  &__jd { white-space: pre-wrap; font-size: 13px; color: #374151; line-height: 1.5; max-height: 180px; overflow: auto; }
+  &__jd {
+    white-space: pre-wrap; font-size: 13px; color: #374151; line-height: 1.5;
+    max-height: 320px; overflow: auto;
+  }
+  &__section {
+    margin-top: $space-3;
+    h5 { margin: 0 0 4px; font-size: 12px; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.4px; }
+    div { font-size: 13px; color: #374151; line-height: 1.5; white-space: pre-wrap; }
+  }
   &__row {
     display: flex; justify-content: space-between; align-items: center;
     font-size: 13px; padding: 4px 0; border-bottom: 1px dashed #f1f5f9;

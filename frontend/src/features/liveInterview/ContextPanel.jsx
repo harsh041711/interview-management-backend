@@ -23,10 +23,29 @@ export default function ContextPanel({ interview, candidate, jd, priorReviews })
     <aside className="co-context">
       <Card
         title="Job description"
-        summary={i.role || (jd && jd.title) || 'Role'}
+        summary={jd?.title || i.role || 'Role'}
         defaultOpen
       >
-        <div className="co-context__jd">{(jd && (jd.text || jd.description)) || 'No JD attached.'}</div>
+        {jd ? (
+          <div className="co-context__jd">
+            {jd.title && <div className="co-context__row"><span>Title</span><strong>{jd.title}</strong></div>}
+            {jd.jobRole && <div className="co-context__row"><span>Role</span><strong>{jd.jobRole}</strong></div>}
+            {(jd.minYears != null || jd.maxYears != null) && (
+              <div className="co-context__row"><span>Experience</span><strong>{jd.minYears ?? '?'}–{jd.maxYears ?? '?'} yrs</strong></div>
+            )}
+            {jd.responsibilities && (
+              <div className="co-context__section"><h5>Responsibilities</h5><div>{jd.responsibilities}</div></div>
+            )}
+            {jd.qualifications && (
+              <div className="co-context__section"><h5>Qualifications</h5><div>{jd.qualifications}</div></div>
+            )}
+            {jd.niceToHave && (
+              <div className="co-context__section"><h5>Nice to have</h5><div>{jd.niceToHave}</div></div>
+            )}
+          </div>
+        ) : (
+          <div className="co-context__jd">No JD attached.</div>
+        )}
       </Card>
 
       <Card

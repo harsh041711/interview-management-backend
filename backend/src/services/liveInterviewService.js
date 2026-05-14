@@ -3,11 +3,27 @@ const liveSessionRepository = require('../repositories/liveSessionRepository');
 const interviewRepository = require('../repositories/interviewRepository');
 const candidateRepository = require('../repositories/candidateRepository');
 const reviewRepository = require('../repositories/reviewRepository');
-const jdRepository = require('../repositories/jobDescriptionRepository');
 const aiService = require('./liveInterviewAiService');
 const ApiError = require('../utils/ApiError');
 
 const toObj = (doc) => (doc && typeof doc.toObject === 'function' ? doc.toObject() : doc);
+
+// Builds a JD prompt string from the snapshot captured during resume screening
+// (lives at candidate.screening.jdSnapshot). The Interview model itself has no
+// JD reference — JD context only travels via this snapshot.
+const buildJdTextFromSnapshot = (snap) => {
+  if (!snap) return '';
+  const parts = [];
+  if (snap.title) parts.push(`Title: ${snap.title}`);
+  if (snap.jobRole) parts.push(`Role: ${snap.jobRole}`);
+  if (snap.minYears != null || snap.maxYears != null) {
+    parts.push(`Experience: ${snap.minYears ?? '?'}-${snap.maxYears ?? '?'} yrs`);
+  }
+  if (snap.responsibilities) parts.push(`Responsibilities:\n${snap.responsibilities}`);
+  if (snap.qualifications) parts.push(`Qualifications:\n${snap.qualifications}`);
+  if (snap.niceToHave) parts.push(`Nice to have:\n${snap.niceToHave}`);
+  return parts.join('\n\n');
+};
 
 const start = async ({ interviewId, interviewerId }) => {
   const existing = await liveSessionRepository.findActiveByInterview(interviewId);
@@ -20,13 +36,12 @@ const start = async ({ interviewId, interviewerId }) => {
   if (!candidateId) throw ApiError.badRequest('Interview has no candidate');
 
   const candidate = await candidateRepository.findById(candidateId);
-  const jdId = (interview.jobDescription && (interview.jobDescription._id || interview.jobDescription)) || null;
-  const jd = jdId ? await jdRepository.findById(jdId) : null;
+  const jdText = buildJdTextFromSnapshot(candidate?.screening?.jdSnapshot);
   const priorReviews = await reviewRepository.findAllByCandidate(candidateId) || [];
 
   const { questions } = await aiService.generateQuestions({
     candidate: candidate || {},
-    jdText: jd ? (jd.text || jd.description || '') : '',
+    jdText,
     durationMinutes: interview.durationMinutes || 30,
     priorReviews,
   });
