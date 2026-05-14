@@ -18,6 +18,7 @@ const env = require('../config/env');
 const {
   CANDIDATE_STATUS,
   INTERVIEW_STATUS,
+  INTERVIEW_ROUND_TYPES,
   INTERVIEW_DEFAULT_DURATION_MINUTES,
   RESCHEDULE_STATUS,
 } = require('../utils/constants');
@@ -69,6 +70,8 @@ const presentInterview = (interview, { viewerRole, latestPendingReschedule } = {
       interviewer: interviewerOut,
       scheduledAt: doc.scheduledAt,
       durationMinutes: doc.durationMinutes,
+      round: doc.round || 1,
+      roundType: doc.roundType || 'technical',
       meetingUrl: doc.meetingUrl,
       notes: doc.notes ?? null,
       candidateAccessToken: doc.candidateAccessToken,
@@ -104,6 +107,8 @@ const presentInterview = (interview, { viewerRole, latestPendingReschedule } = {
     },
     meetingUrl: doc.meetingUrl,
     status: doc.status,
+    round: doc.round || 1,
+    roundType: doc.roundType || 'technical',
     viewerRole,
     canRequestReschedule: false,
     latestPendingReschedule: latestPendingReschedule
@@ -282,12 +287,36 @@ const queueRescheduleRejectedEmail = (interview, request) => {
 // ---------------------------------------------------------------------------
 
 const schedule = async (
-  { candidateId, interviewerId, scheduledAt, durationMinutes, meetingUrl, notes },
+  { candidateId, interviewerId, scheduledAt, durationMinutes, meetingUrl, notes, roundType },
   adminId,
 ) => {
   const candidate = await candidateRepository.findById(candidateId);
   if (!candidate) throw ApiError.notFound('Candidate not found');
-  if (candidate.status !== CANDIDATE_STATUS.SHORTLISTED) {
+
+  // Multi-round scheduling guard:
+  //   - Round 1: candidate must be SHORTLISTED (the pre-existing flow)
+  //   - Round 2+: latest existing interview must be COMPLETED and have a
+  //     submitted review. This is what enforces "next round only after the
+  //     previous round's review is submitted".
+  const latestInterview = await interviewRepository.findLatestByCandidate(candidateId);
+  let nextRound = 1;
+  if (latestInterview) {
+    if (latestInterview.status !== INTERVIEW_STATUS.COMPLETED) {
+      throw ApiError.conflict(
+        `Cannot schedule the next round while Round ${latestInterview.round} is '${latestInterview.status}'.`,
+        { code: 'E_PREV_ROUND_NOT_COMPLETE' },
+      );
+    }
+    const prevReview = await reviewRepository.findByInterview(latestInterview.id || latestInterview._id);
+    if (!prevReview) {
+      throw ApiError.conflict(
+        `Cannot schedule the next round until Round ${latestInterview.round}'s review is submitted.`,
+        { code: 'E_PREV_REVIEW_MISSING' },
+      );
+    }
+    nextRound = (latestInterview.round || 1) + 1;
+  } else if (candidate.status !== CANDIDATE_STATUS.SHORTLISTED) {
+    // First-round path is unchanged.
     throw ApiError.conflict('Candidate is not shortlisted', { code: 'E_NOT_SHORTLISTED' });
   }
 
@@ -361,7 +390,18 @@ const schedule = async (
     status: INTERVIEW_STATUS.SCHEDULED,
     scheduledBy: adminId,
     reminderSentAt: isWithinReminderWindow(start) ? new Date() : undefined,
+    round: nextRound,
+    roundType: roundType || INTERVIEW_ROUND_TYPES.TECHNICAL,
   });
+
+  // For round 2+, the candidate has already left SHORTLISTED (they're in
+  // AWAITING_DECISION or SELECTED_FOR_CULTURE). Reset to SHORTLISTED so the
+  // existing review-submission flow can transition them back to
+  // AWAITING_DECISION when the new round is reviewed.
+  if (nextRound > 1 && candidate.status !== CANDIDATE_STATUS.SHORTLISTED) {
+    candidate.status = CANDIDATE_STATUS.SHORTLISTED;
+    await candidate.save();
+  }
 
   queueScheduledEmails(saved);
   const populated = await interviewRepository.findByIdPopulated(saved.id);

@@ -21,6 +21,11 @@ const STATUS_LABELS = {
   completed: 'Completed',
   cancelled: 'Cancelled',
 };
+const ROUND_TYPE_LABELS = {
+  technical:  'Technical',
+  practical:  'Practical',
+  hr_culture: 'HR / Culture',
+};
 
 export default function InterviewListPage() {
   const dispatch = useDispatch();
@@ -177,6 +182,9 @@ export default function InterviewListPage() {
                     <td>
                       <div className="interviews-table__primary">{candidate.name || '—'}</div>
                       <div className="interviews-table__sub">{candidate.email || ''}</div>
+                      <div className="interviews-table__round">
+                        Round {iv.round || 1} · {ROUND_TYPE_LABELS[iv.roundType] || iv.roundType || 'Technical'}
+                      </div>
                     </td>
                     <td>
                       <div className="interviews-table__primary">{interviewer.name || '—'}</div>

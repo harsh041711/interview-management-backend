@@ -1,7 +1,10 @@
 'use strict';
 
 const mongoose = require('mongoose');
-const { INTERVIEW_STATUS, INTERVIEW_STATUS_LIST } = require('../utils/constants');
+const {
+  INTERVIEW_STATUS, INTERVIEW_STATUS_LIST,
+  INTERVIEW_ROUND_TYPES, INTERVIEW_ROUND_TYPES_LIST,
+} = require('../utils/constants');
 
 const interviewSchema = new mongoose.Schema(
   {
@@ -19,6 +22,13 @@ const interviewSchema = new mongoose.Schema(
     },
     scheduledAt: { type: Date, required: true, index: true },
     durationMinutes: { type: Number, default: 45, min: 15, max: 240 },
+    round:     { type: Number, default: 1, min: 1, max: 10, index: true },
+    roundType: {
+      type: String,
+      enum: INTERVIEW_ROUND_TYPES_LIST,
+      default: INTERVIEW_ROUND_TYPES.TECHNICAL,
+      index: true,
+    },
     meetingUrl: { type: String, default: null },
     googleCalendarEventId: { type: String, default: null },
     notes: { type: String, maxlength: 1000 },

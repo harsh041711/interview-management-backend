@@ -35,6 +35,11 @@ const countByInterviewer = (interviewerId, statuses) => {
 const countByCandidate = (candidateId) =>
   Interview.countDocuments({ candidate: candidateId });
 
+// Latest interview (any status) for a candidate — used by multi-round scheduling
+// to compute the next round number and verify the previous round's completion.
+const findLatestByCandidate = (candidateId) =>
+  Interview.findOne({ candidate: candidateId }).sort({ round: -1, scheduledAt: -1 });
+
 const list = async ({
   page = 1,
   limit = 20,
@@ -113,6 +118,7 @@ module.exports = {
   deleteById,
   countByInterviewer,
   countByCandidate,
+  findLatestByCandidate,
   list,
   findOverlapping,
 };

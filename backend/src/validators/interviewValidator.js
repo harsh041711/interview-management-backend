@@ -1,7 +1,7 @@
 'use strict';
 
 const Joi = require('joi');
-const { INTERVIEW_STATUS_LIST } = require('../utils/constants');
+const { INTERVIEW_STATUS_LIST, INTERVIEW_ROUND_TYPES_LIST } = require('../utils/constants');
 
 const objectId = Joi.string().hex().length(24);
 
@@ -13,6 +13,7 @@ const scheduleSchema = {
     durationMinutes: Joi.number().integer().min(15).max(240).optional(),
     meetingUrl: Joi.string().uri({ scheme: ['http', 'https'] }).allow('', null).optional(),
     notes: Joi.string().max(1000).empty('').optional(),
+    roundType: Joi.string().valid(...INTERVIEW_ROUND_TYPES_LIST).optional(),
   }),
 };
 

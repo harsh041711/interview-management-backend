@@ -14,11 +14,23 @@ import './ScheduleInterviewModal.scss';
 
 const ERROR_MESSAGES = {
   E_NOT_SHORTLISTED: "This candidate isn't shortlisted (so they can't be scheduled)",
+  E_PREV_ROUND_NOT_COMPLETE: "The previous round isn't completed yet — wait for it to finish first",
+  E_PREV_REVIEW_MISSING: "The previous round's review hasn't been submitted yet — the interviewer needs to submit it before scheduling the next round",
   E_INTERVIEWER_INACTIVE: "Interviewer is inactive — re-activate them or pick another",
   E_INTERVIEWER_BUSY: "Interviewer has another interview in this window",
   E_GOOGLE_NOT_CONNECTED: "Google Calendar isn't connected. Paste a meeting URL or connect Google in Settings.",
   E_CALENDAR_FAILED: "Couldn't auto-generate the meeting. Paste a meeting URL manually.",
 };
+
+// Statuses eligible for scheduling: round 1 (shortlisted) or round 2+ (awaiting
+// decision / selected for culture, gated by backend review check).
+const SCHEDULEABLE_STATUSES = new Set(['shortlisted', 'awaiting_decision', 'selected_for_culture']);
+
+const ROUND_TYPE_OPTIONS = [
+  { value: 'technical',  label: 'Technical' },
+  { value: 'practical',  label: 'Practical' },
+  { value: 'hr_culture', label: 'HR / Culture' },
+];
 
 const initialForm = () => ({
   candidateId: '',
@@ -27,6 +39,7 @@ const initialForm = () => ({
   durationMinutes: 45,
   meetingUrl: '',
   notes: '',
+  roundType: 'technical',
 });
 
 export default function ScheduleInterviewModal({ open, onClose, initial }) {
@@ -60,6 +73,7 @@ export default function ScheduleInterviewModal({ open, onClose, initial }) {
         durationMinutes: initial.durationMinutes || 45,
         meetingUrl: initial.meetingUrl || '',
         notes: initial.notes || '',
+        roundType: initial.roundType || 'technical',
       });
       setMode('manual'); // editing existing — always show the URL field
     } else {
@@ -69,11 +83,14 @@ export default function ScheduleInterviewModal({ open, onClose, initial }) {
     const load = async () => {
       setLoadingData(true);
       try {
+        // Fetch all candidates (no status filter), then keep only those eligible
+        // for scheduling — round 1 (shortlisted) or post-review for round 2+.
         const [cData, iData] = await Promise.all([
-          candidateApi.list({ status: 'shortlisted', limit: 100 }),
+          candidateApi.list({ limit: 200 }),
           interviewerApi.list({ isActive: true, limit: 100 }),
         ]);
-        setCandidates(cData.items || []);
+        const eligible = (cData.items || []).filter((c) => SCHEDULEABLE_STATUSES.has(c.status));
+        setCandidates(eligible);
         setInterviewers(iData.items || []);
       } catch {
         push({ type: 'error', message: 'Failed to load candidates or interviewers' });
@@ -135,6 +152,7 @@ export default function ScheduleInterviewModal({ open, onClose, initial }) {
     if (!isEdit) {
       payload.candidateId = form.candidateId;
       payload.interviewerId = form.interviewerId;
+      payload.roundType = form.roundType;
     }
 
     setBusy(true);
@@ -218,7 +236,7 @@ export default function ScheduleInterviewModal({ open, onClose, initial }) {
         )}
 
         <div className="field">
-          <span className="field__label">Candidate (shortlisted)</span>
+          <span className="field__label">Candidate</span>
           <select
             className="field__input"
             value={form.candidateId}
@@ -250,6 +268,24 @@ export default function ScheduleInterviewModal({ open, onClose, initial }) {
             ))}
           </select>
         </div>
+
+        {!isEdit && (
+          <div className="field">
+            <span className="field__label">Round type</span>
+            <select
+              className="field__input"
+              value={form.roundType}
+              onChange={set('roundType')}
+            >
+              {ROUND_TYPE_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
+            <span className="field__hint">
+              Round number is auto-assigned based on the candidate's prior rounds.
+            </span>
+          </div>
+        )}
 
         <DateTimeInput
           label="Date & Time"

@@ -61,6 +61,18 @@
   &__duration { color: $color-text-muted; font-size: 12px; margin-top: 2px; }
   &__primary { font-weight: 600; font-size: 14px; }
   &__sub { color: $color-text-muted; font-size: 13px; }
+  &__round {
+    display: inline-block;
+    margin-top: 6px;
+    padding: 2px 8px;
+    background: #eff6ff;
+    color: #1e40af;
+    border: 1px solid #dbeafe;
+    border-radius: 9999px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+  }
   &__chips {
     display: flex;
     flex-wrap: wrap;
