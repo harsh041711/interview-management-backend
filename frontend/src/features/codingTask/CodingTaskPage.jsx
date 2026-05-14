@@ -12,6 +12,26 @@ import './CodingTaskPage.scss';
 const LANG_LABEL = { js: 'JavaScript', python: 'Python', php: 'PHP' };
 const MONACO_LANG = { js: 'javascript', python: 'python', php: 'php' };
 
+// Safety net: a few early tasks were generated when the AI provider was
+// forced into JSON mode and returned starter code wrapped as
+// { "language": "...", "code": "..." }. If we see that shape (or a plain
+// JSON-string with escaped newlines), unwrap it so the candidate sees real
+// code instead of JSON. New tasks won't hit this path.
+const normalizeStarter = (raw) => {
+  if (!raw || typeof raw !== 'string') return raw || '';
+  const trimmed = raw.trim();
+  if (!trimmed.startsWith('{') && !trimmed.startsWith('[')) return raw;
+  try {
+    const parsed = JSON.parse(trimmed);
+    if (typeof parsed === 'string') return parsed;
+    if (parsed && typeof parsed.code === 'string') return parsed.code;
+    if (Array.isArray(parsed) && typeof parsed[0] === 'string') return parsed[0];
+  } catch {
+    // not JSON — leave as-is
+  }
+  return raw;
+};
+
 export default function CodingTaskPage() {
   const { token } = useParams();
   const { push } = useToast();
@@ -32,7 +52,7 @@ export default function CodingTaskPage() {
       .then((t) => {
         if (cancelled) return;
         setTask(t);
-        setCode(t.problem?.starterCode || '');
+        setCode(normalizeStarter(t.problem?.starterCode));
         setLoadStatus('ready');
       })
       .catch((err) => {
