@@ -1,0 +1,19 @@
+.assign-prompt-modal {
+  display: flex; flex-direction: column; gap: 12px;
+  min-width: 480px;
+  &__tabs {
+    display: flex; gap: 0; border-bottom: 1px solid #e5e7eb; margin-bottom: 12px;
+    button {
+      padding: 8px 16px; background: transparent; border: none; cursor: pointer; border-bottom: 2px solid transparent;
+      &.active { border-bottom-color: #2563eb; color: #2563eb; font-weight: 600; }
+    }
+  }
+  &__select { padding: 8px; width: 100%; border: 1px solid #d1d5db; border-radius: 6px; }
+  &__label { font-weight: 600; font-size: 14px; }
+  &__textarea {
+    width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px;
+    font-family: inherit; font-size: 14px; resize: vertical;
+  }
+  &__actions { display: flex; justify-content: flex-end; gap: 8px; }
+  &__err { color: #dc2626; font-size: 14px; }
+}
