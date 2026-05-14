@@ -68,4 +68,58 @@ const create = async ({ interviewId, interviewerId, difficulty, language }) => {
   return toObj(created);
 };
 
-module.exports = { create };
+const stripPublicFields = (task) => {
+  const out = toObj(task);
+  delete out.token;
+  delete out.interviewer;
+  delete out.liveSession;
+  delete out.submission; // candidate doesn't need to see their submission echoed back here
+  // Hide expected output of hidden test cases — candidate can see visible samples only.
+  if (out.problem && Array.isArray(out.problem.testCases)) {
+    out.problem.testCases = out.problem.testCases.map((tc) => {
+      if (tc.isHidden) {
+        const { expectedStdout, ...rest } = tc;
+        return rest;
+      }
+      return tc;
+    });
+  }
+  return out;
+};
+
+const loadByTokenOrThrow = async (token) => {
+  const t = await taskRepo.findByToken(token);
+  if (!t) throw ApiError.notFound('Coding task not found', { code: 'E_NOT_FOUND' });
+  if (t.status === LIVE_CODING_TASK_STATUS.CANCELLED) {
+    throw ApiError.gone('Your interviewer cancelled this task', { code: 'E_CANCELLED' });
+  }
+  return t;
+};
+
+const getPublic = async ({ token }) => {
+  const task = await loadByTokenOrThrow(token);
+  let current = task;
+  if (task.status === LIVE_CODING_TASK_STATUS.PENDING) {
+    current = await taskRepo.updateById(task._id || task.id, {
+      status: LIVE_CODING_TASK_STATUS.OPENED,
+      openedAt: new Date(),
+    });
+  }
+  return stripPublicFields(current);
+};
+
+const runPublic = async ({ token, code }) => {
+  const task = await loadByTokenOrThrow(token);
+  if (task.status === LIVE_CODING_TASK_STATUS.SUBMITTED) {
+    throw ApiError.conflict('Task already submitted', { code: 'E_ALREADY_SUBMITTED' });
+  }
+  const visibleCases = (task.problem.testCases || []).filter((tc) => !tc.isHidden);
+  const results = await execService.runAllTestCases({
+    language: task.problem.language,
+    code,
+    testCases: visibleCases,
+  });
+  return { results };
+};
+
+module.exports = { create, getPublic, runPublic };

@@ -111,3 +111,102 @@ describe('liveCodingTaskService.create', () => {
     })).rejects.toMatchObject({ statusCode: 404 });
   });
 });
+
+const baseStoredTask = (overrides = {}) => ({
+  _id: 't1', id: 't1',
+  token: 'tok-123',
+  status: 'pending',
+  problem: {
+    language: 'js',
+    starterCode: '// starter',
+    testCases: [
+      { stdin: '1 2', expectedStdout: '3', isHidden: false },
+      { stdin: '4 5', expectedStdout: '9', isHidden: true },
+    ],
+  },
+  submission: null,
+  toObject() { return { ...this }; },
+  ...overrides,
+});
+
+describe('liveCodingTaskService.getPublic', () => {
+  test('returns 404 when token is unknown', async () => {
+    taskRepo.findByToken = jest.fn().mockResolvedValue(null);
+    await expect(svc.getPublic({ token: 'bad' })).rejects.toMatchObject({ statusCode: 404 });
+  });
+
+  test('returns 410 when task is cancelled', async () => {
+    taskRepo.findByToken = jest.fn().mockResolvedValue(baseStoredTask({ status: 'cancelled' }));
+    await expect(svc.getPublic({ token: 'tok-123' })).rejects.toMatchObject({ statusCode: 410 });
+  });
+
+  test('flips pending → opened on first GET and sets openedAt', async () => {
+    const stored = baseStoredTask();
+    taskRepo.findByToken = jest.fn().mockResolvedValue(stored);
+    taskRepo.updateById = jest.fn().mockImplementation((id, patch) => Promise.resolve({
+      ...stored, ...patch, toObject() { return { ...this }; },
+    }));
+    const out = await svc.getPublic({ token: 'tok-123' });
+    expect(taskRepo.updateById).toHaveBeenCalledWith('t1', expect.objectContaining({
+      status: 'opened',
+      openedAt: expect.any(Date),
+    }));
+    expect(out.status).toBe('opened');
+  });
+
+  test('does not flip status if already opened', async () => {
+    taskRepo.findByToken = jest.fn().mockResolvedValue(baseStoredTask({ status: 'opened' }));
+    taskRepo.updateById = jest.fn();
+    await svc.getPublic({ token: 'tok-123' });
+    expect(taskRepo.updateById).not.toHaveBeenCalled();
+  });
+
+  test('strips expectedStdout from hidden test cases but keeps visible ones', async () => {
+    taskRepo.findByToken = jest.fn().mockResolvedValue(baseStoredTask({ status: 'opened' }));
+    const out = await svc.getPublic({ token: 'tok-123' });
+    expect(out.problem.testCases[0].expectedStdout).toBe('3'); // visible kept
+    expect(out.problem.testCases[1].expectedStdout).toBeUndefined(); // hidden stripped
+  });
+
+  test('strips internal fields (token, interviewer, liveSession) from response', async () => {
+    taskRepo.findByToken = jest.fn().mockResolvedValue(baseStoredTask({ status: 'opened', interviewer: 'i1', liveSession: 's1' }));
+    const out = await svc.getPublic({ token: 'tok-123' });
+    expect(out.token).toBeUndefined();
+    expect(out.interviewer).toBeUndefined();
+    expect(out.liveSession).toBeUndefined();
+  });
+});
+
+describe('liveCodingTaskService.runPublic', () => {
+  test('returns 404 for unknown token', async () => {
+    taskRepo.findByToken = jest.fn().mockResolvedValue(null);
+    await expect(svc.runPublic({ token: 'bad', code: 'x' })).rejects.toMatchObject({ statusCode: 404 });
+  });
+
+  test('rejects if already submitted', async () => {
+    taskRepo.findByToken = jest.fn().mockResolvedValue(baseStoredTask({ status: 'submitted' }));
+    await expect(svc.runPublic({ token: 'tok-123', code: 'x' })).rejects.toMatchObject({ statusCode: 409 });
+  });
+
+  test('rejects if cancelled', async () => {
+    taskRepo.findByToken = jest.fn().mockResolvedValue(baseStoredTask({ status: 'cancelled' }));
+    await expect(svc.runPublic({ token: 'tok-123', code: 'x' })).rejects.toMatchObject({ statusCode: 410 });
+  });
+
+  test('runs visible test cases only and does not persist', async () => {
+    taskRepo.findByToken = jest.fn().mockResolvedValue(baseStoredTask({ status: 'opened' }));
+    taskRepo.updateById = jest.fn();
+    execService.runAllTestCases.mockResolvedValue([
+      { stdin: '1 2', expectedStdout: '3', actualStdout: '3', stderr: '', passed: true, runtimeMs: 10, error: null },
+    ]);
+    const out = await svc.runPublic({ token: 'tok-123', code: 'console.log(3)' });
+    expect(execService.runAllTestCases).toHaveBeenCalledWith({
+      language: 'js',
+      code: 'console.log(3)',
+      testCases: [{ stdin: '1 2', expectedStdout: '3', isHidden: false }],
+    });
+    expect(taskRepo.updateById).not.toHaveBeenCalled();
+    expect(out.results).toHaveLength(1);
+    expect(out.results[0].passed).toBe(true);
+  });
+});
