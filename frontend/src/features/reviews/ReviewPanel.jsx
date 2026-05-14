@@ -5,13 +5,24 @@ import { formatDate } from '@/utils/formatters';
 import { fetchReviewByCandidate } from './reviewSlice';
 import './ReviewPanel.scss';
 
-export default function ReviewPanel({ candidateId }) {
+// Two modes:
+//   - <ReviewPanel candidateId="..." />            → fetches via reviewSlice (by candidate)
+//   - <ReviewPanel review={r} history={[...]} />   → renders provided data directly
+// The second mode is preferred when you already know the exact review (e.g.
+// interview detail page) — by-candidate lookup can return the wrong review
+// when a candidate has multiple interviews.
+export default function ReviewPanel({ candidateId, review: reviewProp, history: historyProp }) {
   const dispatch = useDispatch();
-  const data = useSelector((s) => s.reviews.byCandidate[candidateId]);
+  const fromStore = useSelector((s) => (candidateId ? s.reviews.byCandidate[candidateId] : null));
+  const usingProps = reviewProp !== undefined || historyProp !== undefined;
 
   useEffect(() => {
-    if (candidateId) dispatch(fetchReviewByCandidate(candidateId));
-  }, [candidateId, dispatch]);
+    if (!usingProps && candidateId) dispatch(fetchReviewByCandidate(candidateId));
+  }, [candidateId, dispatch, usingProps]);
+
+  const data = usingProps
+    ? { review: reviewProp || null, history: historyProp || [] }
+    : fromStore;
 
   if (!data) return null;
   if (!data.review) return <div className="review-panel review-panel--empty">No review submitted yet.</div>;

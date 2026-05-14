@@ -10,6 +10,8 @@ const initialState = {
   selectedStatus: 'idle',
   pendingReschedule: null,
   rescheduleHistory: [],
+  review: null,
+  reviewHistory: [],
   status: 'idle',
   error: null,
   scheduleStatus: 'idle',
@@ -82,6 +84,8 @@ const interviewSlice = createSlice({
       state.selected = null;
       state.pendingReschedule = null;
       state.rescheduleHistory = [];
+      state.review = null;
+      state.reviewHistory = [];
       state.selectedStatus = 'idle';
     },
   },
@@ -109,6 +113,8 @@ const interviewSlice = createSlice({
         state.selected = action.payload.interview;
         state.pendingReschedule = action.payload.pendingReschedule || null;
         state.rescheduleHistory = action.payload.rescheduleHistory || [];
+        state.review = action.payload.review || null;
+        state.reviewHistory = action.payload.reviewHistory || [];
       })
       .addCase(fetchInterview.rejected, (state, action) => {
         state.selectedStatus = 'failed';

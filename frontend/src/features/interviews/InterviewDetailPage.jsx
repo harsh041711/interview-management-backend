@@ -29,7 +29,7 @@ export default function InterviewDetailPage() {
   const { push } = useToast();
   const { id } = useParams();
 
-  const { selected, selectedStatus, pendingReschedule, rescheduleHistory, error } =
+  const { selected, selectedStatus, pendingReschedule, rescheduleHistory, review, reviewHistory, error } =
     useSelector((s) => s.interviews);
 
   const [editOpen, setEditOpen] = useState(false);
@@ -253,10 +253,10 @@ export default function InterviewDetailPage() {
       )}
 
       {/* Interviewer review (only after the interview is completed) */}
-      {selected.status === 'completed' && candidate.id && (
+      {selected.status === 'completed' && (
         <div className="interview-detail__review">
           <h3 className="interview-detail__review-title">Interviewer review</h3>
-          <ReviewPanel candidateId={candidate.id} />
+          <ReviewPanel review={review} history={reviewHistory} />
         </div>
       )}
 

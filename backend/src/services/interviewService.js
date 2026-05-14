@@ -2,6 +2,8 @@
 
 const interviewRepository = require('../repositories/interviewRepository');
 const rescheduleRequestRepository = require('../repositories/rescheduleRequestRepository');
+const reviewRepository = require('../repositories/reviewRepository');
+const reviewEditRequestRepository = require('../repositories/reviewEditRequestRepository');
 const candidateRepository = require('../repositories/candidateRepository');
 const interviewerRepository = require('../repositories/interviewerRepository');
 const googleIntegrationRepository = require('../repositories/googleIntegrationRepository');
@@ -9,6 +11,7 @@ const googleCalendarService = require('./googleCalendarService');
 const { generateInterviewToken } = require('../utils/interviewToken');
 const emailService = require('./emailService');
 const { resolveHrEmail } = emailService;
+const { REMINDER_WINDOW_MINUTES } = require('./interviewReminderService');
 const ApiError = require('../utils/ApiError');
 const logger = require('../config/logger');
 const env = require('../config/env');
@@ -28,6 +31,14 @@ const buildAccessUrl = (token) => {
   return `${base}/interview/${token}`;
 };
 
+// If an interview is scheduled (or rescheduled) with less lead time than the
+// reminder window, the cron would otherwise fire a "starts in 30 minutes"
+// reminder immediately — even when the real start is minutes away. Mark the
+// reminder as already-sent in that case so the cron skips it; the scheduling
+// email already conveyed the time.
+const isWithinReminderWindow = (start) =>
+  start.getTime() - Date.now() <= REMINDER_WINDOW_MINUTES * 60_000;
+
 // ---------------------------------------------------------------------------
 // Presenter
 // ---------------------------------------------------------------------------
@@ -43,11 +54,19 @@ const presentInterview = (interview, { viewerRole, latestPendingReschedule } = {
   const doc = interview.toObject ? interview.toObject() : interview;
 
   if (!viewerRole) {
-    // Admin — full payload
+    // Admin — full payload. Populated sub-docs come from .toObject() so they
+    // only carry `_id` (no `id` virtual); expose `id` explicitly so the
+    // frontend can use it without falling back to `_id`.
+    const candidateOut = doc.candidate
+      ? { ...doc.candidate, id: String(doc.candidate._id || doc.candidate.id) }
+      : doc.candidate;
+    const interviewerOut = doc.interviewer
+      ? { ...doc.interviewer, id: String(doc.interviewer._id || doc.interviewer.id) }
+      : doc.interviewer;
     return {
       id: doc._id || doc.id,
-      candidate: doc.candidate,
-      interviewer: doc.interviewer,
+      candidate: candidateOut,
+      interviewer: interviewerOut,
       scheduledAt: doc.scheduledAt,
       durationMinutes: doc.durationMinutes,
       meetingUrl: doc.meetingUrl,
@@ -341,6 +360,7 @@ const schedule = async (
     interviewerAccessToken: interviewerToken,
     status: INTERVIEW_STATUS.SCHEDULED,
     scheduledBy: adminId,
+    reminderSentAt: isWithinReminderWindow(start) ? new Date() : undefined,
   });
 
   queueScheduledEmails(saved);
@@ -382,7 +402,10 @@ const update = async (id, patch, adminId) => {
   }
 
   if (patch.scheduledAt) {
-    patch.reminderSentAt = null; // fresh schedule → reminder re-fires
+    // Fresh schedule → reminder re-fires. But if the new start is already
+    // inside the reminder window, suppress it so we don't blast a "starts in
+    // 30 minutes" email seconds after the reschedule confirmation.
+    patch.reminderSentAt = isWithinReminderWindow(newScheduledAt) ? new Date() : null;
   }
 
   const updated = await interviewRepository.updateById(id, patch);
@@ -469,7 +492,7 @@ const decideReschedule = async (interviewId, { decision, note }, adminId) => {
     interview.scheduledAt = newStart;
     interview.durationMinutes = newDuration;
     interview.status = INTERVIEW_STATUS.SCHEDULED;
-    interview.reminderSentAt = null; // fresh window → re-send reminder closer to new time
+    interview.reminderSentAt = isWithinReminderWindow(newStart) ? new Date() : null;
     await interview.save();
 
     if (interview.googleCalendarEventId) {
@@ -589,15 +612,22 @@ const detail = async (id) => {
   const interview = await interviewRepository.findByIdPopulated(id);
   if (!interview) throw ApiError.notFound('Interview not found');
 
-  const [pendingReschedule, rescheduleHistory] = await Promise.all([
+  const [pendingReschedule, rescheduleHistory, review] = await Promise.all([
     rescheduleRequestRepository.findPendingForInterview(id),
     rescheduleRequestRepository.findByInterview(id),
+    reviewRepository.findByInterview(id),
   ]);
+
+  const reviewHistory = review
+    ? await reviewEditRequestRepository.findHistory(review.id || review._id)
+    : [];
 
   return {
     interview: presentInterview(interview),
     pendingReschedule: pendingReschedule || null,
     rescheduleHistory,
+    review: review || null,
+    reviewHistory,
   };
 };
 

@@ -15,8 +15,13 @@ const listInterviews = asyncHandler(async (req, res) => {
 });
 
 const getInterview = asyncHandler(async (req, res) => {
-  const { interview, pendingReschedule, rescheduleHistory } = await interviewService.detail(req.params.id);
-  return ok(res, { interview, pendingReschedule, rescheduleHistory }, 'Interview fetched');
+  const { interview, pendingReschedule, rescheduleHistory, review, reviewHistory } =
+    await interviewService.detail(req.params.id);
+  return ok(
+    res,
+    { interview, pendingReschedule, rescheduleHistory, review, reviewHistory },
+    'Interview fetched',
+  );
 });
 
 const updateInterview = asyncHandler(async (req, res) => {
