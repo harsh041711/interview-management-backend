@@ -40,4 +40,47 @@ const start = async ({ interviewId, interviewerId }) => {
   return toObj(session);
 };
 
-module.exports = { start };
+const getActive = async ({ interviewId }) => {
+  const s = await liveSessionRepository.findActiveByInterview(interviewId);
+  return s ? toObj(s) : null;
+};
+
+const ensureOwnerActive = (session, interviewerId, { allowEnded = false } = {}) => {
+  if (!session) throw ApiError.notFound('Session not found');
+  if (String(session.interviewer) !== String(interviewerId)) {
+    throw ApiError.forbidden('Not your session', { code: 'E_FORBIDDEN' });
+  }
+  if (!allowEnded && session.endedAt) {
+    throw ApiError.conflict('Session already ended', { code: 'E_ALREADY_ENDED' });
+  }
+};
+
+const updateQuestions = async ({ sessionId, interviewerId, updates }) => {
+  const session = await liveSessionRepository.findById(sessionId);
+  ensureOwnerActive(session, interviewerId);
+  const updated = await liveSessionRepository.applyQuestionUpdates(sessionId, updates || []);
+  return toObj(updated);
+};
+
+const end = async ({ sessionId, interviewerId }) => {
+  const session = await liveSessionRepository.findById(sessionId);
+  ensureOwnerActive(session, interviewerId, { allowEnded: true });
+  if (session.endedAt) return toObj(session);
+
+  const { draft, provider, model } = await aiService.generateDraftReview({ questions: session.questions || [] });
+  const draftReview = {
+    knowledge: draft.knowledge,
+    communication: draft.communication,
+    confidence: draft.confidence,
+    comments: draft.comments,
+    recommendation: draft.recommendation,
+    generatedBy: provider && model ? `${provider}:${model}` : '',
+  };
+  const updated = await liveSessionRepository.updateById(sessionId, {
+    endedAt: new Date(),
+    draftReview,
+  });
+  return toObj(updated);
+};
+
+module.exports = { start, getActive, updateQuestions, end };

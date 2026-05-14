@@ -65,3 +65,96 @@ describe('liveInterviewService.start', () => {
     expect(repo.create).toHaveBeenCalledWith(expect.objectContaining({ questions: [] }));
   });
 });
+
+describe('liveInterviewService.getActive', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  test('returns active session', async () => {
+    repo.findActiveByInterview.mockResolvedValue({ id: 's1', toObject: () => ({ id: 's1' }) });
+    const out = await svc.getActive({ interviewId: 'i1' });
+    expect(out.id).toBe('s1');
+  });
+
+  test('returns null when none', async () => {
+    repo.findActiveByInterview.mockResolvedValue(null);
+    const out = await svc.getActive({ interviewId: 'i1' });
+    expect(out).toBeNull();
+  });
+});
+
+describe('liveInterviewService.updateQuestions', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  test('rejects if session not found', async () => {
+    repo.findById.mockResolvedValue(null);
+    await expect(svc.updateQuestions({ sessionId: 's1', interviewerId: 'iv1', updates: [] }))
+      .rejects.toMatchObject({ statusCode: 404 });
+  });
+
+  test('rejects if interviewer does not own session', async () => {
+    repo.findById.mockResolvedValue({ id: 's1', interviewer: 'other' });
+    await expect(svc.updateQuestions({ sessionId: 's1', interviewerId: 'iv1', updates: [] }))
+      .rejects.toMatchObject({ statusCode: 403 });
+  });
+
+  test('rejects if session already ended', async () => {
+    repo.findById.mockResolvedValue({ id: 's1', interviewer: 'iv1', endedAt: new Date() });
+    await expect(svc.updateQuestions({ sessionId: 's1', interviewerId: 'iv1', updates: [] }))
+      .rejects.toMatchObject({ statusCode: 409 });
+  });
+
+  test('applies updates when owner and active', async () => {
+    repo.findById.mockResolvedValue({ id: 's1', interviewer: 'iv1', endedAt: null });
+    repo.applyQuestionUpdates.mockResolvedValue({ id: 's1', toObject: () => ({ id: 's1', applied: true }) });
+    const out = await svc.updateQuestions({
+      sessionId: 's1', interviewerId: 'iv1',
+      updates: [{ index: 0, rating: 4, note: 'good' }],
+    });
+    expect(repo.applyQuestionUpdates).toHaveBeenCalledWith('s1', [{ index: 0, rating: 4, note: 'good' }]);
+    expect(out.applied).toBe(true);
+  });
+});
+
+describe('liveInterviewService.end', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  test('rejects if not found', async () => {
+    repo.findById.mockResolvedValue(null);
+    await expect(svc.end({ sessionId: 's1', interviewerId: 'iv1' }))
+      .rejects.toMatchObject({ statusCode: 404 });
+  });
+
+  test('returns existing draft when already ended (idempotent)', async () => {
+    repo.findById.mockResolvedValue({
+      id: 's1', interviewer: 'iv1', endedAt: new Date(),
+      draftReview: { knowledge: 4, comments: 'x' },
+      toObject() { return { id: 's1', endedAt: this.endedAt, draftReview: this.draftReview }; },
+    });
+    const out = await svc.end({ sessionId: 's1', interviewerId: 'iv1' });
+    expect(out.draftReview.knowledge).toBe(4);
+    expect(ai.generateDraftReview).not.toHaveBeenCalled();
+  });
+
+  test('generates draft, persists endedAt, returns session', async () => {
+    repo.findById.mockResolvedValue({
+      id: 's1', interviewer: 'iv1', endedAt: null,
+      questions: [{ text: 'Q', difficulty: 'easy', askedAt: new Date(), note: 'ok', rating: 4 }],
+    });
+    ai.generateDraftReview.mockResolvedValue({
+      draft: { knowledge: 4, communication: 4, confidence: 4, comments: 'ok', recommendation: 'hire' },
+      provider: 'gemini', model: 'g',
+    });
+    repo.updateById.mockImplementation((id, patch) => ({
+      id, ...patch, toObject() { return { id, ...patch }; },
+    }));
+
+    const out = await svc.end({ sessionId: 's1', interviewerId: 'iv1' });
+    expect(repo.updateById).toHaveBeenCalledWith('s1', expect.objectContaining({
+      endedAt: expect.any(Date),
+      draftReview: expect.objectContaining({
+        knowledge: 4, recommendation: 'hire', generatedBy: 'gemini:g',
+      }),
+    }));
+    expect(out.draftReview.knowledge).toBe(4);
+  });
+});
