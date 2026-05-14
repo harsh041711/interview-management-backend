@@ -95,9 +95,18 @@ const getByToken = async (token) => {
     });
   }
   const p = submission.promptProblem;
+  // Fetch the candidate's display name for the test header; failure must not
+  // break the candidate's view, so swallow errors silently.
+  let candidateName = '';
+  try {
+    const candidate = await candidateRepository.findById(submission.candidate);
+    candidateName = candidate?.name || '';
+  } catch (_err) { /* non-fatal */ }
   return {
     submissionId: submission.id || submission._id,
     title: p.title, description: p.description, sampleInput: p.sampleInput,
+    difficulty: p.difficulty,
+    tags: p.tags || [],
     durationMinutes: p.durationMinutes,
     expiresAt: submission.expiresAt,
     previewRunsUsed: submission.previewRunsUsed,
@@ -105,6 +114,7 @@ const getByToken = async (token) => {
     lastPreviewOutput: submission.lastPreviewOutput,
     submitted: !!submission.submittedAt,
     candidatePrompt: submission.candidatePrompt || '',
+    candidateName,
   };
 };
 
