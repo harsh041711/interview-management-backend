@@ -114,16 +114,28 @@ export default function CodingTaskPage() {
         </section>
 
         <section className="coding-task__editor">
-          <Editor
-            height="60vh"
-            language={MONACO_LANG[task.problem.language] || 'javascript'}
-            value={code}
-            onChange={(v) => setCode(v ?? '')}
-            options={{ minimap: { enabled: false }, fontSize: 14 }}
-          />
-          <div className="coding-task__actions">
-            <Button onClick={onRun} loading={running} variant="secondary">Run</Button>
-            <Button onClick={onSubmit} loading={submitting}>Submit</Button>
+          <div className="coding-task__editor-shell">
+            <div className="coding-task__editor-bar">
+              <span className="coding-task__editor-file">solution.{task.problem.language === 'python' ? 'py' : task.problem.language === 'php' ? 'php' : 'js'}</span>
+              <span className="coding-task__editor-lang">{LANG_LABEL[task.problem.language] || task.problem.language}</span>
+            </div>
+            <Editor
+              height="58vh"
+              language={MONACO_LANG[task.problem.language] || 'javascript'}
+              value={code}
+              onChange={(v) => setCode(v ?? '')}
+              options={{
+                minimap: { enabled: false },
+                fontSize: 14,
+                scrollBeyondLastLine: false,
+                automaticLayout: true,
+                wordWrap: 'on',
+              }}
+            />
+            <div className="coding-task__editor-actions">
+              <Button onClick={onRun} loading={running} variant="secondary">Run</Button>
+              <Button onClick={onSubmit} loading={submitting}>Submit</Button>
+            </div>
           </div>
           {runResults && (
             <div className="coding-task__output">

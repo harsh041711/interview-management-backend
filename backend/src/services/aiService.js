@@ -40,7 +40,7 @@ const isFatalStatus = (status) => status === 401 || status === 403 || status ===
 const isRetryableStatus = (status) =>
   status === 429 || status === 408 || (status >= 500 && status < 600) || status === 404;
 
-const callGeminiOnce = async (model, prompt) => {
+const callGeminiOnce = async (model, prompt, { json = true } = {}) => {
   const apiKey = env.ai.gemini.apiKey;
   if (!apiKey) throw new Error('Gemini not configured');
 
@@ -51,7 +51,7 @@ const callGeminiOnce = async (model, prompt) => {
       temperature: 0.4,
       topP: 0.95,
       maxOutputTokens: 4096,
-      responseMimeType: 'application/json',
+      ...(json ? { responseMimeType: 'application/json' } : {}),
     },
   };
 
@@ -80,7 +80,7 @@ const callGeminiOnce = async (model, prompt) => {
   return text;
 };
 
-const callGroqOnce = async (model, prompt) => {
+const callGroqOnce = async (model, prompt, { json = true } = {}) => {
   if (!env.ai.groq.apiKey) throw new Error('Groq not configured');
 
   const res = await fetchWithTimeout(
@@ -95,7 +95,7 @@ const callGroqOnce = async (model, prompt) => {
         model,
         messages: [{ role: 'user', content: prompt }],
         temperature: 0.4,
-        response_format: { type: 'json_object' },
+        ...(json ? { response_format: { type: 'json_object' } } : {}),
       }),
     },
     env.ai.requestTimeoutMs,
@@ -115,11 +115,11 @@ const callGroqOnce = async (model, prompt) => {
   return text;
 };
 
-const tryChain = async (provider, models, prompt, callOnce) => {
+const tryChain = async (provider, models, prompt, callOnce, options) => {
   const errors = [];
   for (const model of models) {
     try {
-      const text = await callOnce(model, prompt);
+      const text = await callOnce(model, prompt, options);
       return { text, provider, model };
     } catch (err) {
       errors.push({ provider, model, message: err.message, status: err.status });
@@ -134,17 +134,20 @@ const tryChain = async (provider, models, prompt, callOnce) => {
   return { text: null, errors };
 };
 
-const askWithFallback = async (prompt) => {
+// options.json: when true (default), Gemini/Groq are told to return strict JSON.
+// Pass { json: false } for prompts that ask for plain text (e.g. starter code),
+// otherwise the providers will wrap the output in JSON.
+const askWithFallback = async (prompt, options = {}) => {
   const allErrors = [];
 
   if (env.ai.gemini.apiKey) {
-    const r = await tryChain(AI_PROVIDERS.GEMINI, GEMINI_MODEL_CHAIN, prompt, callGeminiOnce);
+    const r = await tryChain(AI_PROVIDERS.GEMINI, GEMINI_MODEL_CHAIN, prompt, callGeminiOnce, options);
     if (r.text) return { text: r.text, provider: r.provider, model: r.model };
     allErrors.push(...r.errors);
   }
 
   if (env.ai.groq.apiKey) {
-    const r = await tryChain(AI_PROVIDERS.GROQ, GROQ_MODEL_CHAIN, prompt, callGroqOnce);
+    const r = await tryChain(AI_PROVIDERS.GROQ, GROQ_MODEL_CHAIN, prompt, callGroqOnce, options);
     if (r.text) return { text: r.text, provider: r.provider, model: r.model };
     allErrors.push(...r.errors);
   }

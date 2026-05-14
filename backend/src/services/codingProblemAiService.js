@@ -40,14 +40,32 @@ Output ONLY valid JSON in this exact shape (no markdown fences, no commentary):
 
 Include 3-5 test cases, with the first 1-2 visible (isHidden: false) as samples.`;
 
+// Defense-in-depth: if a provider still wraps code in JSON despite { json: false },
+// detect and unwrap. We try a few common shapes: { code: "..." }, { language, code },
+// or a single string value. Anything else, we return the raw text unchanged.
+const tryUnwrapJsonCode = (text) => {
+  const t = text.trim();
+  if (!t.startsWith('{') && !t.startsWith('[')) return text;
+  try {
+    const parsed = JSON.parse(t);
+    if (typeof parsed === 'string') return parsed;
+    if (parsed && typeof parsed.code === 'string') return parsed.code;
+    if (Array.isArray(parsed) && typeof parsed[0] === 'string') return parsed[0];
+  } catch {
+    // not JSON — fall through
+  }
+  return text;
+};
+
 const generateStarterCode = async ({ description, language }) => {
   const prompt = buildStarterCodePrompt({ description, language });
-  const { text, provider, model } = await aiService.askWithFallback(prompt);
+  const { text, provider, model } = await aiService.askWithFallback(prompt, { json: false });
   if (!text) {
     logger.warn('AI starter-code generation failed (no text)');
     return null;
   }
-  const stripped = text.replace(/^```[a-zA-Z]*\n?/m, '').replace(/```\s*$/m, '').trim();
+  const unwrapped = tryUnwrapJsonCode(text);
+  const stripped = unwrapped.replace(/^```[a-zA-Z]*\n?/m, '').replace(/```\s*$/m, '').trim();
   logger.info('AI starter-code generated', { provider, model, language });
   return stripped;
 };
