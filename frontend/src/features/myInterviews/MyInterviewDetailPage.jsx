@@ -150,7 +150,7 @@ export default function MyInterviewDetailPage() {
             )}
             {aiDraft && (
               <div className="my-interview__draft-banner">
-                AI has drafted a review from your co-pilot notes. Review and submit when ready.
+                Your co-pilot notes are below — set the star ratings and edit the comments before submitting.
               </div>
             )}
             <ReviewForm
@@ -160,9 +160,7 @@ export default function MyInterviewDetailPage() {
                 setSearchParams({}, { replace: true });
               }}
               busy={busy}
-              submitLabel={aiDraft
-                ? 'Submit AI-drafted review'
-                : (isCompleted ? 'Submit review' : 'Submit review & mark complete')}
+              submitLabel={isCompleted ? 'Submit review' : 'Submit review & mark complete'}
             />
           </>
         )}

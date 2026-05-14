@@ -133,26 +133,52 @@ describe('liveInterviewService.end', () => {
     expect(ai.generateDraftReview).not.toHaveBeenCalled();
   });
 
-  test('generates draft, persists endedAt, returns session', async () => {
+  test('compiles notes into comments, leaves ratings null, does NOT call AI', async () => {
     repo.findById.mockResolvedValue({
       id: 's1', interviewer: 'iv1', endedAt: null,
-      questions: [{ text: 'Q', difficulty: 'easy', askedAt: new Date(), note: 'ok', rating: 4 }],
-    });
-    ai.generateDraftReview.mockResolvedValue({
-      draft: { knowledge: 4, communication: 4, confidence: 4, comments: 'ok', recommendation: 'hire' },
-      provider: 'gemini', model: 'g',
+      questions: [
+        { text: 'Explain async', difficulty: 'easy', askedAt: new Date(), note: 'confident, clear', rating: 4 },
+        { text: 'Design pattern', difficulty: 'hard', askedAt: new Date(), note: 'hesitant', rating: 2 },
+        { text: 'Not asked',     difficulty: 'medium', askedAt: null,     note: '',         rating: null },
+      ],
     });
     repo.updateById.mockImplementation((id, patch) => ({
       id, ...patch, toObject() { return { id, ...patch }; },
     }));
 
     const out = await svc.end({ sessionId: 's1', interviewerId: 'iv1' });
+
+    // Hiring decision stays human: no AI auto-rating, no auto-recommendation
+    expect(ai.generateDraftReview).not.toHaveBeenCalled();
     expect(repo.updateById).toHaveBeenCalledWith('s1', expect.objectContaining({
       endedAt: expect.any(Date),
       draftReview: expect.objectContaining({
-        knowledge: 4, recommendation: 'hire', generatedBy: 'gemini:g',
+        knowledge: null,
+        communication: null,
+        confidence: null,
+        recommendation: null,
+        generatedBy: '',
       }),
     }));
-    expect(out.draftReview.knowledge).toBe(4);
+
+    // Notes from asked questions are surfaced verbatim; un-asked questions excluded
+    expect(out.draftReview.comments).toContain('Explain async');
+    expect(out.draftReview.comments).toContain('confident, clear');
+    expect(out.draftReview.comments).toContain('4/5');
+    expect(out.draftReview.comments).toContain('hesitant');
+    expect(out.draftReview.comments).not.toContain('Not asked');
+  });
+
+  test('empty comments when no questions were asked', async () => {
+    repo.findById.mockResolvedValue({
+      id: 's1', interviewer: 'iv1', endedAt: null,
+      questions: [{ text: 'Q', difficulty: 'easy', askedAt: null, note: '', rating: null }],
+    });
+    repo.updateById.mockImplementation((id, patch) => ({
+      id, ...patch, toObject() { return { id, ...patch }; },
+    }));
+
+    const out = await svc.end({ sessionId: 's1', interviewerId: 'iv1' });
+    expect(out.draftReview.comments).toBe('');
   });
 });

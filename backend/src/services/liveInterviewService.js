@@ -77,20 +77,29 @@ const updateQuestions = async ({ sessionId, interviewerId, updates }) => {
   return toObj(updated);
 };
 
+// Hiring decisions stay human. On end, we surface the interviewer's own
+// per-question notes verbatim into the comments field as a starter; star
+// ratings are left blank for the interviewer to set manually in the
+// ReviewForm. We deliberately do NOT call AI to auto-rate or auto-judge.
+const buildNotesDraft = (questions = []) => {
+  const asked = questions.filter((q) => q.askedAt);
+  if (asked.length === 0) {
+    return { knowledge: null, communication: null, confidence: null, comments: '', recommendation: null, generatedBy: '' };
+  }
+  const comments = asked.map((q, i) => {
+    const rating = q.rating != null ? `${q.rating}/5` : '—';
+    const note = q.note?.trim() ? q.note.trim() : '—';
+    return `Q${i + 1}: ${q.text}\nNote: ${note}\nRating: ${rating}`;
+  }).join('\n\n').slice(0, 4000);
+  return { knowledge: null, communication: null, confidence: null, comments, recommendation: null, generatedBy: '' };
+};
+
 const end = async ({ sessionId, interviewerId }) => {
   const session = await liveSessionRepository.findById(sessionId);
   ensureOwnerActive(session, interviewerId, { allowEnded: true });
   if (session.endedAt) return toObj(session);
 
-  const { draft, provider, model } = await aiService.generateDraftReview({ questions: session.questions || [] });
-  const draftReview = {
-    knowledge: draft.knowledge,
-    communication: draft.communication,
-    confidence: draft.confidence,
-    comments: draft.comments,
-    recommendation: draft.recommendation,
-    generatedBy: provider && model ? `${provider}:${model}` : '',
-  };
+  const draftReview = buildNotesDraft(session.questions || []);
   const updated = await liveSessionRepository.updateById(sessionId, {
     endedAt: new Date(),
     draftReview,
