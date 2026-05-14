@@ -30,6 +30,7 @@ import SubmittedPage from '@/features/test/SubmittedPage';
 import InterviewViewPage from '@/features/interviewView/InterviewViewPage';
 import CodingTestPage from '@/features/codingTest/CodingTestPage';
 import CodingTestSuccessPage from '@/features/codingTest/CodingTestSuccessPage';
+import CodingTaskPage from '@/features/codingTask/CodingTaskPage';
 
 import InterviewerDashboardPage from '@/features/myInterviews/InterviewerDashboardPage';
 import MyInterviewDetailPage from '@/features/myInterviews/MyInterviewDetailPage';
@@ -52,6 +53,7 @@ export default function AppRoutes() {
         <Route path="/interview/:token" element={<InterviewViewPage />} />
         <Route path="/coding-test/:token" element={<CodingTestPage />} />
         <Route path="/coding-test/:token/submitted" element={<CodingTestSuccessPage />} />
+        <Route path="/coding-task/:token" element={<CodingTaskPage />} />
         <Route path="/prompt-test/:token" element={<PromptTestPage />} />
       </Route>
 
