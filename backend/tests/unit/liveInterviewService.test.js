@@ -36,7 +36,7 @@ describe('liveInterviewService.start', () => {
     interviewRepo.findByIdPopulated.mockResolvedValue(interview);
     candidateRepo.findById.mockResolvedValue({ id: 'c1', name: 'A', techStack: ['Python'], experience: 1, screening: {} });
     jdRepo.findById.mockResolvedValue({ id: 'jd1', text: 'Python role' });
-    reviewRepo.findByCandidate.mockResolvedValue([]);
+    reviewRepo.findAllByCandidate.mockResolvedValue([]);
     ai.generateQuestions.mockResolvedValue({
       questions: [{ text: 'Q1', difficulty: 'easy', topic: 't' }],
       provider: 'gemini', model: 'g',
@@ -56,7 +56,7 @@ describe('liveInterviewService.start', () => {
     interviewRepo.findByIdPopulated.mockResolvedValue(interview);
     candidateRepo.findById.mockResolvedValue({ id: 'c1', techStack: [], experience: 0, screening: {} });
     jdRepo.findById.mockResolvedValue(null);
-    reviewRepo.findByCandidate.mockResolvedValue([]);
+    reviewRepo.findAllByCandidate.mockResolvedValue([]);
     ai.generateQuestions.mockResolvedValue({ questions: [], provider: null, model: null });
     repo.create.mockImplementation((d) => ({ ...d, id: 's3', toObject: () => ({ id: 's3', ...d }) }));
 

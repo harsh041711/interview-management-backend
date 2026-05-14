@@ -22,7 +22,7 @@ const start = async ({ interviewId, interviewerId }) => {
   const candidate = await candidateRepository.findById(candidateId);
   const jdId = (interview.jobDescription && (interview.jobDescription._id || interview.jobDescription)) || null;
   const jd = jdId ? await jdRepository.findById(jdId) : null;
-  const priorReviews = await reviewRepository.findByCandidate(candidateId) || [];
+  const priorReviews = await reviewRepository.findAllByCandidate(candidateId) || [];
 
   const { questions } = await aiService.generateQuestions({
     candidate: candidate || {},

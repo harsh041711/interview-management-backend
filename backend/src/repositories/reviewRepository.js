@@ -6,8 +6,9 @@ const findById = (id) => Review.findById(id).populate('candidate').populate('int
 const findByIdRaw = (id) => Review.findById(id);
 const findByInterview = (interviewId) =>
   Review.findOne({ interview: interviewId }).populate('interviewer');
-const findByCandidate = (candidateId) =>
+const findByCandidate = (candidateId) => Review.findOne({ candidate: candidateId }).populate('interviewer');
+const findAllByCandidate = (candidateId) =>
   Review.find({ candidate: candidateId }).sort({ createdAt: 1 }).lean();
 const updateById = (id, patch) => Review.findByIdAndUpdate(id, patch, { new: true });
 
-module.exports = { create, findById, findByIdRaw, findByInterview, findByCandidate, updateById };
+module.exports = { create, findById, findByIdRaw, findByInterview, findByCandidate, findAllByCandidate, updateById };
