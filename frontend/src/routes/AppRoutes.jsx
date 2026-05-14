@@ -19,6 +19,8 @@ import InterviewListPage from '@/features/interviews/InterviewListPage';
 import InterviewDetailPage from '@/features/interviews/InterviewDetailPage';
 import JobDescriptionListPage from '@/features/jobDescriptions/JobDescriptionListPage';
 import CodingProblemListPage from '@/features/codingProblems/CodingProblemListPage';
+import PromptProblemsPage from '@/features/promptProblems/PromptProblemsPage';
+import PromptTestPage from '@/features/promptTest/PromptTestPage';
 
 import TestEntryPage from '@/features/test/TestEntryPage';
 import PhotoCapturePage from '@/features/test/PhotoCapturePage';
@@ -48,6 +50,7 @@ export default function AppRoutes() {
         <Route path="/interview/:token" element={<InterviewViewPage />} />
         <Route path="/coding-test/:token" element={<CodingTestPage />} />
         <Route path="/coding-test/:token/submitted" element={<CodingTestSuccessPage />} />
+        <Route path="/prompt-test/:token" element={<PromptTestPage />} />
       </Route>
 
       <Route
@@ -69,6 +72,7 @@ export default function AppRoutes() {
         <Route path="/interviews/:id" element={<InterviewDetailPage />} />
         <Route path="/job-descriptions" element={<JobDescriptionListPage />} />
         <Route path="/coding-problems" element={<CodingProblemListPage />} />
+        <Route path="/prompt-problems" element={<PromptProblemsPage />} />
         <Route path="/admin/review-edit-requests" element={<ReviewEditRequestsPage />} />
         <Route path="/admin/settings" element={<SettingsPage />} />
       </Route>
