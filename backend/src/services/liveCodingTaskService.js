@@ -122,4 +122,46 @@ const runPublic = async ({ token, code }) => {
   return { results };
 };
 
-module.exports = { create, getPublic, runPublic };
+const submitPublic = async ({ token, code }) => {
+  const task = await loadByTokenOrThrow(token);
+  if (task.status === LIVE_CODING_TASK_STATUS.SUBMITTED) {
+    throw ApiError.conflict('Task already submitted', { code: 'E_ALREADY_SUBMITTED' });
+  }
+  const results = await execService.runAllTestCases({
+    language: task.problem.language,
+    code,
+    testCases: task.problem.testCases || [],
+  });
+  const passed = results.filter((r) => r.passed).length;
+  const summary = { passed, total: results.length };
+  const now = new Date();
+  await taskRepo.updateById(task._id || task.id, {
+    status: LIVE_CODING_TASK_STATUS.SUBMITTED,
+    submittedAt: now,
+    submission: { code, submittedAt: now, results, summary },
+  });
+  return { summary };
+};
+
+const listForInterview = async ({ interviewId }) => {
+  const tasks = await taskRepo.listByInterview(interviewId);
+  return tasks.map(toObj);
+};
+
+const cancel = async ({ taskId, interviewerId }) => {
+  const task = await taskRepo.findById(taskId);
+  if (!task) throw ApiError.notFound('Coding task not found');
+  if (String(task.interviewer) !== String(interviewerId)) {
+    throw ApiError.forbidden('Not your task', { code: 'E_FORBIDDEN' });
+  }
+  if (
+    task.status === LIVE_CODING_TASK_STATUS.SUBMITTED
+    || task.status === LIVE_CODING_TASK_STATUS.CANCELLED
+  ) {
+    throw ApiError.conflict(`Cannot cancel a task that is ${task.status}`, { code: 'E_BAD_STATUS' });
+  }
+  const updated = await taskRepo.updateById(taskId, { status: LIVE_CODING_TASK_STATUS.CANCELLED });
+  return toObj(updated);
+};
+
+module.exports = { create, getPublic, runPublic, submitPublic, listForInterview, cancel };

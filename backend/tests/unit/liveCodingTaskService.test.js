@@ -210,3 +210,72 @@ describe('liveCodingTaskService.runPublic', () => {
     expect(out.results[0].passed).toBe(true);
   });
 });
+
+describe('liveCodingTaskService.submitPublic', () => {
+  test('rejects if already submitted', async () => {
+    taskRepo.findByToken = jest.fn().mockResolvedValue(baseStoredTask({ status: 'submitted' }));
+    await expect(svc.submitPublic({ token: 'tok-123', code: 'x' })).rejects.toMatchObject({ statusCode: 409 });
+  });
+
+  test('runs ALL test cases, persists submission, flips status to submitted', async () => {
+    const stored = baseStoredTask({ status: 'opened' });
+    taskRepo.findByToken = jest.fn().mockResolvedValue(stored);
+    taskRepo.updateById = jest.fn().mockImplementation((id, patch) => Promise.resolve({
+      ...stored, ...patch, toObject() { return { ...this }; },
+    }));
+    execService.runAllTestCases.mockResolvedValue([
+      { stdin: '1 2', expectedStdout: '3', actualStdout: '3', passed: true,  stderr: '', runtimeMs: 1, error: null },
+      { stdin: '4 5', expectedStdout: '9', actualStdout: '8', passed: false, stderr: '', runtimeMs: 1, error: null },
+    ]);
+    const out = await svc.submitPublic({ token: 'tok-123', code: 'foo' });
+    expect(execService.runAllTestCases).toHaveBeenCalledWith({
+      language: 'js',
+      code: 'foo',
+      testCases: stored.problem.testCases,
+    });
+    const patch = taskRepo.updateById.mock.calls[0][1];
+    expect(patch.status).toBe('submitted');
+    expect(patch.submission.code).toBe('foo');
+    expect(patch.submission.summary).toEqual({ passed: 1, total: 2 });
+    expect(out.summary).toEqual({ passed: 1, total: 2 });
+  });
+});
+
+describe('liveCodingTaskService.listForInterview', () => {
+  test('returns all tasks for the interview, newest first', async () => {
+    taskRepo.listByInterview = jest.fn().mockResolvedValue([
+      { _id: 't2', id: 't2', toObject() { return { ...this }; } },
+      { _id: 't1', id: 't1', toObject() { return { ...this }; } },
+    ]);
+    const out = await svc.listForInterview({ interviewId: INTERVIEW_ID, interviewerId: INTERVIEWER });
+    expect(taskRepo.listByInterview).toHaveBeenCalledWith(INTERVIEW_ID);
+    expect(out).toHaveLength(2);
+    expect(out[0].id).toBe('t2');
+  });
+});
+
+describe('liveCodingTaskService.cancel', () => {
+  test('cancels a pending task', async () => {
+    const stored = baseStoredTask({ status: 'pending', interviewer: INTERVIEWER });
+    taskRepo.findById = jest.fn().mockResolvedValue(stored);
+    taskRepo.updateById = jest.fn().mockImplementation((id, patch) => Promise.resolve({ ...stored, ...patch, toObject() { return { ...this }; } }));
+    const out = await svc.cancel({ taskId: 't1', interviewerId: INTERVIEWER });
+    expect(taskRepo.updateById).toHaveBeenCalledWith('t1', { status: 'cancelled' });
+    expect(out.status).toBe('cancelled');
+  });
+
+  test('rejects if not the owning interviewer', async () => {
+    taskRepo.findById = jest.fn().mockResolvedValue(baseStoredTask({ status: 'pending', interviewer: 'someone-else' }));
+    await expect(svc.cancel({ taskId: 't1', interviewerId: INTERVIEWER })).rejects.toMatchObject({ statusCode: 403 });
+  });
+
+  test('rejects if task is already submitted', async () => {
+    taskRepo.findById = jest.fn().mockResolvedValue(baseStoredTask({ status: 'submitted', interviewer: INTERVIEWER }));
+    await expect(svc.cancel({ taskId: 't1', interviewerId: INTERVIEWER })).rejects.toMatchObject({ statusCode: 409 });
+  });
+
+  test('rejects if task not found', async () => {
+    taskRepo.findById = jest.fn().mockResolvedValue(null);
+    await expect(svc.cancel({ taskId: 't1', interviewerId: INTERVIEWER })).rejects.toMatchObject({ statusCode: 404 });
+  });
+});
