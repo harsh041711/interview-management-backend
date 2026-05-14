@@ -17,6 +17,7 @@ import codingTestReducer from '@/features/codingTest/codingTestSlice';
 import settingsReducer from '@/features/settings/settingsSlice';
 import promptProblemsReducer from '@/features/promptProblems/promptProblemSlice';
 import promptTestReducer from '@/features/promptTest/promptTestSlice';
+import liveInterviewReducer from '@/features/liveInterview/liveInterviewSlice';
 
 export const store = configureStore({
   reducer: {
@@ -38,6 +39,7 @@ export const store = configureStore({
     settings: settingsReducer,
     promptProblems: promptProblemsReducer,
     promptTest: promptTestReducer,
+    liveInterview: liveInterviewReducer,
   },
   middleware: (getDefault) =>
     getDefault({
