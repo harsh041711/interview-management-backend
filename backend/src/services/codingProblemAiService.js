@@ -54,14 +54,26 @@ const generateStarterCode = async ({ description, language }) => {
 
 const generateFullProblem = async ({ topic, difficulty, languages }) => {
   const prompt = buildFullProblemPrompt({ topic, difficulty, languages });
-  const { text, provider, model } = await aiService.askWithFallback(prompt);
+  const { text, provider, model, errors } = await aiService.askWithFallback(prompt);
   if (!text) {
-    logger.warn('AI full-problem generation failed (no text)');
+    logger.warn('AI full-problem generation failed (no text)', {
+      providerErrors: (errors || []).map((e) => `${e.provider}/${e.model} ${e.status || ''}: ${e.message}`),
+    });
     return null;
   }
   const parsed = aiService.extractJson(text);
   if (!parsed || !parsed.title || !parsed.description || !Array.isArray(parsed.testCases) || parsed.testCases.length === 0) {
-    logger.warn('AI full-problem JSON invalid or incomplete');
+    logger.warn('AI full-problem JSON invalid or incomplete', {
+      provider, model,
+      missingFields: {
+        parsed: !!parsed,
+        title: !!parsed?.title,
+        description: !!parsed?.description,
+        testCasesIsArray: Array.isArray(parsed?.testCases),
+        testCasesLength: parsed?.testCases?.length || 0,
+      },
+      rawSnippet: text.slice(0, 600),
+    });
     return null;
   }
   const starterCode = { js: '', python: '', php: '' };
