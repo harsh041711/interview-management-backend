@@ -32,11 +32,18 @@ const detail = asyncHandler(async (req, res) => {
   const review = await reviewRepository.findByInterview(interview._id || interview.id);
   const pending = review ? await editRequestRepository.findPendingForReview(review._id) : null;
   const approved = review ? await editRequestRepository.findApprovedNotConsumed(review._id) : null;
+  const candidateId = interview.candidate && (interview.candidate._id || interview.candidate.id);
+  const allReviews = candidateId ? await reviewRepository.findAllByCandidate(candidateId) : [];
+  const currentInterviewId = String(interview._id || interview.id);
+  const reviewHistory = allReviews
+    .filter((r) => String(r.interview) !== currentInterviewId)
+    .map((r) => ({ ratings: r.ratings, comments: r.comments, submittedAt: r.submittedAt }));
   return ok(res, {
     interview,
     review: review || null,
     pendingEditRequest: pending || null,
     canEdit: !!approved,
+    reviewHistory,
   }, 'OK');
 });
 
