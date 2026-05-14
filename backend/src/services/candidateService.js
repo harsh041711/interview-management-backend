@@ -72,6 +72,18 @@ const presentCandidate = (candidate) => ({
         codingTestUrl: candidate.codingTest.token ? buildCodingTestUrl(candidate.codingTest.token) : null,
       }
     : null,
+  promptTest: candidate.promptTest?.sentAt
+    ? {
+        sentAt: candidate.promptTest.sentAt,
+        firstOpenedAt: candidate.promptTest.firstOpenedAt || null,
+        submittedAt: candidate.promptTest.submittedAt || null,
+        reviewedAt: candidate.promptTest.reviewedAt || null,
+        outcome: candidate.promptTest.outcome || null,
+        durationMinutes: candidate.promptTest.durationMinutes,
+        expiresAt: candidate.promptTest.expiresAt,
+        problemId: candidate.promptTest.problemId || null,
+      }
+    : null,
   testToken: candidate.testToken,
   testUrl: buildTestUrl(candidate.testToken),
   tokenExpiresAt: candidate.tokenExpiresAt,

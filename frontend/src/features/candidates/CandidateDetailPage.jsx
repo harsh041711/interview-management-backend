@@ -21,7 +21,6 @@ import ScreeningPanel from './ScreeningPanel';
 import SendCodingTestModal from './SendCodingTestModal';
 import ReviewPanel from '@/features/reviews/ReviewPanel';
 import AssignPromptTestModal from '@/features/promptTest/AssignPromptTestModal';
-import PromptTestReviewPanel from '@/features/promptTest/PromptTestReviewPanel';
 import './CandidateDetailPage.scss';
 
 export default function CandidateDetailPage() {
@@ -260,7 +259,30 @@ export default function CandidateDetailPage() {
         </div>
       )}
 
-      {c.promptTest?.sentAt && <PromptTestReviewPanel candidateId={c.id} />}
+      {c.promptTest?.sentAt && (
+        <div className="candidate-detail__coding-summary">
+          <div className="candidate-detail__coding-summary-head">
+            <div>
+              <div className="candidate-detail__coding-summary-title">Prompt Test</div>
+              <div className="candidate-detail__coding-summary-meta">
+                Sent {formatDate(c.promptTest.sentAt)}
+                {c.promptTest.submittedAt
+                  ? ` · Submitted ${formatDate(c.promptTest.submittedAt)}`
+                  : ' · Awaiting candidate'}
+                {' · '}{c.promptTest.durationMinutes} min
+              </div>
+            </div>
+            <span className={`candidate-detail__coding-summary-pill candidate-detail__coding-summary-pill--${c.promptTest.outcome || (c.promptTest.submittedAt ? 'pending_review' : 'awaiting')}`}>
+              {c.promptTest.outcome === 'shortlisted' && 'Shortlisted'}
+              {c.promptTest.outcome === 'rejected' && 'Rejected'}
+              {!c.promptTest.outcome && (c.promptTest.submittedAt ? 'Submitted' : 'Awaiting candidate')}
+            </span>
+          </div>
+          <Link to={`/candidates/${c.id}/prompt-test`} className="candidate-detail__coding-summary-btn">
+            View prompt test submission →
+          </Link>
+        </div>
+      )}
 
       {['awaiting_decision', 'selected_for_culture', 'final_rejected'].includes(c.status) && (
         <ReviewPanel candidateId={c.id} />
