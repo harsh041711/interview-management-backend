@@ -125,10 +125,17 @@ export default function LiveInterviewPage() {
         <section className="live__queue">
           <CoverageBar questions={session.questions || []} />
           {(session.questions || []).length === 0 && (
-            <EmptyState
-              title="No questions generated"
-              description="The AI didn't return any questions. You can still capture notes by ending the interview and writing the review manually."
-            />
+            <>
+              <EmptyState
+                title="No questions generated"
+                description="The AI didn't return any questions. Try regenerating, or end the interview and write the review manually."
+              />
+              <div style={{ display: 'flex', justifyContent: 'center', marginTop: 12 }}>
+                <Button variant="secondary" onClick={() => dispatch(startLiveSession(id))}>
+                  Regenerate questions
+                </Button>
+              </div>
+            </>
           )}
           {(session.questions || []).map((q, i) => (
             <QuestionCard key={i} question={q} index={i} onChange={onFieldChange} />
