@@ -15,6 +15,8 @@ import jdsReducer from '@/features/jobDescriptions/jobDescriptionsSlice';
 import codingProblemsReducer from '@/features/codingProblems/codingProblemsSlice';
 import codingTestReducer from '@/features/codingTest/codingTestSlice';
 import settingsReducer from '@/features/settings/settingsSlice';
+import promptProblemsReducer from '@/features/promptProblems/promptProblemSlice';
+import promptTestReducer from '@/features/promptTest/promptTestSlice';
 
 export const store = configureStore({
   reducer: {
@@ -34,6 +36,8 @@ export const store = configureStore({
     codingProblems: codingProblemsReducer,
     codingTest: codingTestReducer,
     settings: settingsReducer,
+    promptProblems: promptProblemsReducer,
+    promptTest: promptTestReducer,
   },
   middleware: (getDefault) =>
     getDefault({
