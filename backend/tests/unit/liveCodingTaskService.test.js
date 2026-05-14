@@ -1,0 +1,113 @@
+'use strict';
+
+process.env.MONGODB_URI = 'mongodb://localhost/test';
+process.env.JWT_SECRET = 'test-jwt-secret-1234567890';
+
+jest.mock('../../src/repositories/liveCodingTaskRepository');
+jest.mock('../../src/repositories/interviewRepository');
+jest.mock('../../src/repositories/candidateRepository');
+jest.mock('../../src/repositories/liveSessionRepository');
+jest.mock('../../src/services/codingProblemAiService', () => ({
+  generateFullProblem: jest.fn(),
+}));
+jest.mock('../../src/services/codingExecutionService', () => ({
+  runAllTestCases: jest.fn(),
+}));
+
+const taskRepo = require('../../src/repositories/liveCodingTaskRepository');
+const interviewRepo = require('../../src/repositories/interviewRepository');
+const candidateRepo = require('../../src/repositories/candidateRepository');
+const liveSessionRepo = require('../../src/repositories/liveSessionRepository');
+const aiService = require('../../src/services/codingProblemAiService');
+const execService = require('../../src/services/codingExecutionService');
+const svc = require('../../src/services/liveCodingTaskService');
+
+const INTERVIEWER = 'i1';
+const INTERVIEW_ID = 'iv1';
+const CANDIDATE_ID = 'c1';
+
+const baseInterview = (overrides = {}) => ({
+  _id: INTERVIEW_ID, id: INTERVIEW_ID,
+  candidate: { _id: CANDIDATE_ID, id: CANDIDATE_ID },
+  interviewer: INTERVIEWER,
+  status: 'scheduled',
+  role: 'Backend Engineer',
+  ...overrides,
+});
+
+const baseAiProblem = () => ({
+  title: 'Sum two numbers',
+  description: 'Read two ints from stdin, print their sum.',
+  difficulty: 'easy',
+  supportedLanguages: ['js'],
+  starterCode: { js: '// starter', python: '', php: '' },
+  testCases: [
+    { stdin: '1 2', expectedStdout: '3', isHidden: false },
+    { stdin: '4 5', expectedStdout: '9', isHidden: true },
+  ],
+});
+
+beforeEach(() => {
+  jest.clearAllMocks();
+  interviewRepo.findByIdPopulated = jest.fn().mockResolvedValue(baseInterview());
+  candidateRepo.findById = jest.fn().mockResolvedValue({
+    _id: CANDIDATE_ID,
+    screening: { jdSnapshot: { title: 'Backend Eng', jobRole: 'API engineer' } },
+  });
+  liveSessionRepo.findActiveByInterview = jest.fn().mockResolvedValue(null);
+  aiService.generateFullProblem.mockResolvedValue(baseAiProblem());
+  taskRepo.create = jest.fn().mockImplementation((doc) => Promise.resolve({
+    ...doc, _id: 't1', id: 't1', toObject() { return { ...this }; },
+  }));
+});
+
+describe('liveCodingTaskService.create', () => {
+  test('generates problem via AI and persists task with token + starter code', async () => {
+    const task = await svc.create({
+      interviewId: INTERVIEW_ID, interviewerId: INTERVIEWER,
+      difficulty: 'easy', language: 'js',
+    });
+
+    expect(aiService.generateFullProblem).toHaveBeenCalledWith({
+      topic: 'API engineer', difficulty: 'easy', languages: ['js'],
+    });
+    expect(taskRepo.create).toHaveBeenCalled();
+    const created = taskRepo.create.mock.calls[0][0];
+    expect(created.interview).toBe(INTERVIEW_ID);
+    expect(created.interviewer).toBe(INTERVIEWER);
+    expect(created.candidate).toBe(CANDIDATE_ID);
+    expect(typeof created.token).toBe('string');
+    expect(created.token.length).toBeGreaterThanOrEqual(32);
+    expect(created.problem.language).toBe('js');
+    expect(created.problem.starterCode).toBe('// starter');
+    expect(created.problem.testCases).toHaveLength(2);
+    expect(task.id).toBe('t1');
+  });
+
+  test('links liveSession when one is active for the interview', async () => {
+    liveSessionRepo.findActiveByInterview = jest.fn().mockResolvedValue({ _id: 's1', id: 's1' });
+    await svc.create({ interviewId: INTERVIEW_ID, interviewerId: INTERVIEWER, difficulty: 'easy', language: 'js' });
+    expect(taskRepo.create.mock.calls[0][0].liveSession).toBe('s1');
+  });
+
+  test('rejects if interview status is not scheduled', async () => {
+    interviewRepo.findByIdPopulated = jest.fn().mockResolvedValue(baseInterview({ status: 'cancelled' }));
+    await expect(svc.create({
+      interviewId: INTERVIEW_ID, interviewerId: INTERVIEWER, difficulty: 'easy', language: 'js',
+    })).rejects.toMatchObject({ statusCode: 409 });
+  });
+
+  test('rejects if AI returns null', async () => {
+    aiService.generateFullProblem.mockResolvedValue(null);
+    await expect(svc.create({
+      interviewId: INTERVIEW_ID, interviewerId: INTERVIEWER, difficulty: 'easy', language: 'js',
+    })).rejects.toMatchObject({ statusCode: 503 });
+  });
+
+  test('rejects if interview is not found', async () => {
+    interviewRepo.findByIdPopulated = jest.fn().mockResolvedValue(null);
+    await expect(svc.create({
+      interviewId: INTERVIEW_ID, interviewerId: INTERVIEWER, difficulty: 'easy', language: 'js',
+    })).rejects.toMatchObject({ statusCode: 404 });
+  });
+});
