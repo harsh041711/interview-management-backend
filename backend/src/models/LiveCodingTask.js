@@ -56,10 +56,10 @@ const taskSchema = new mongoose.Schema(
   {
     interview:    { type: mongoose.Schema.Types.ObjectId, ref: 'Interview', required: true, index: true },
     candidate:    { type: mongoose.Schema.Types.ObjectId, ref: 'Candidate', required: true },
-    interviewer:  { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    interviewer:  { type: mongoose.Schema.Types.ObjectId, ref: 'Interviewer', required: true },
     liveSession:  { type: mongoose.Schema.Types.ObjectId, ref: 'LiveSession', default: null },
 
-    token:        { type: String, required: true, unique: true, index: true },
+    token:        { type: String, required: true, unique: true },
 
     problem:      { type: problemSchema, required: true },
     submission:   { type: submissionSchema, default: null },
