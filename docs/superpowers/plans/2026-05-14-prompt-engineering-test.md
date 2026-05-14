@@ -349,9 +349,14 @@ git commit -m "feat(prompt-test): add PromptSubmission model and repository"
 Create `backend/tests/unit/promptProblemAiService.test.js`:
 
 ```js
-const aiService = require('../../src/services/aiService');
-jest.mock('../../src/services/aiService');
+// Partial mock: keep real extractJson (and any other helpers), stub only the
+// network call so tests can assert real JSON parsing behavior.
+jest.mock('../../src/services/aiService', () => {
+  const actual = jest.requireActual('../../src/services/aiService');
+  return { ...actual, askWithFallback: jest.fn() };
+});
 
+const aiService = require('../../src/services/aiService');
 const svc = require('../../src/services/promptProblemAiService');
 
 describe('promptProblemAiService.generatePersonalizedPromptProblem', () => {
@@ -466,9 +471,6 @@ const buildPrompt = ({ candidate, topicOverride, difficultyOverride }) => {
   return lines.join('\n');
 };
 
-const stripFences = (s) =>
-  String(s || '').replace(/^```[a-zA-Z]*\n?/m, '').replace(/```\s*$/m, '').trim();
-
 const generatePersonalizedPromptProblem = async ({ candidate, topicOverride, difficultyOverride } = {}) => {
   const prompt = buildPrompt({ candidate, topicOverride, difficultyOverride });
   const { text, provider, model } = await aiService.askWithFallback(prompt);
@@ -476,11 +478,11 @@ const generatePersonalizedPromptProblem = async ({ candidate, topicOverride, dif
     logger.warn('AI prompt-problem generation returned nothing');
     return null;
   }
-  let parsed;
-  try {
-    parsed = JSON.parse(stripFences(text));
-  } catch (err) {
-    logger.warn('AI prompt-problem generation: JSON parse failed', { err: err.message });
+  // Reuse the existing robust JSON extractor from aiService — handles fenced
+  // and bare output across both providers (mirrors codingProblemAiService).
+  const parsed = aiService.extractJson(text);
+  if (!parsed) {
+    logger.warn('AI prompt-problem generation: JSON extraction failed');
     return null;
   }
   if (!parsed.title || !parsed.description || !parsed.sampleInput || !Array.isArray(parsed.expectedOutputCriteria)) {

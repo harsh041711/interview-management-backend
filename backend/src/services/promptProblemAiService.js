@@ -43,9 +43,6 @@ const buildPrompt = ({ candidate, topicOverride, difficultyOverride }) => {
   return lines.join('\n');
 };
 
-const stripFences = (s) =>
-  String(s || '').replace(/^```[a-zA-Z]*\n?/m, '').replace(/```\s*$/m, '').trim();
-
 const generatePersonalizedPromptProblem = async ({ candidate, topicOverride, difficultyOverride } = {}) => {
   const prompt = buildPrompt({ candidate, topicOverride, difficultyOverride });
   const { text, provider, model } = await aiService.askWithFallback(prompt);
@@ -53,11 +50,9 @@ const generatePersonalizedPromptProblem = async ({ candidate, topicOverride, dif
     logger.warn('AI prompt-problem generation returned nothing');
     return null;
   }
-  let parsed;
-  try {
-    parsed = JSON.parse(stripFences(text));
-  } catch (err) {
-    logger.warn('AI prompt-problem generation: JSON parse failed', { err: err.message });
+  const parsed = aiService.extractJson(text);
+  if (!parsed) {
+    logger.warn('AI prompt-problem generation: JSON extraction failed');
     return null;
   }
   if (!parsed.title || !parsed.description || !parsed.sampleInput || !Array.isArray(parsed.expectedOutputCriteria)) {

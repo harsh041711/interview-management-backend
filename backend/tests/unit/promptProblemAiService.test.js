@@ -1,6 +1,9 @@
-const aiService = require('../../src/services/aiService');
-jest.mock('../../src/services/aiService');
+jest.mock('../../src/services/aiService', () => {
+  const actual = jest.requireActual('../../src/services/aiService');
+  return { ...actual, askWithFallback: jest.fn() };
+});
 
+const aiService = require('../../src/services/aiService');
 const svc = require('../../src/services/promptProblemAiService');
 
 describe('promptProblemAiService.generatePersonalizedPromptProblem', () => {
