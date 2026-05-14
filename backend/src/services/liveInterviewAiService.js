@@ -66,4 +66,65 @@ const generateQuestions = async ({ candidate, jdText, durationMinutes, priorRevi
   return { questions, provider, model };
 };
 
-module.exports = { generateQuestions, buildQuestionsPrompt };
+const VALID_RECS = new Set(['hire', 'no_hire', 'next_round']);
+
+const clampRating = (n) => {
+  if (typeof n !== 'number' || !Number.isFinite(n)) return null;
+  if (n < 1) return 1;
+  if (n > 5) return 5;
+  return Math.round(n);
+};
+
+const buildDraftPrompt = ({ asked }) => {
+  const items = asked.map((q, i) =>
+    `${i + 1}. [${q.difficulty}] ${q.text}\n   Note: ${q.note || '(none)'}\n   Rating: ${q.rating != null ? q.rating : '(none)'}`,
+  ).join('\n');
+  return [
+    'You are an interview reviewer. Below are the questions asked, the interviewer\'s notes, and per-question ratings.',
+    '',
+    items,
+    '',
+    'Produce a balanced, concise review:',
+    '- knowledge: integer 1-5 (weight hard questions 1.5x in your judgement)',
+    '- communication: integer 1-5 (infer from how notes describe clarity of expression)',
+    '- confidence: integer 1-5 (infer from notes — hesitation, certainty)',
+    '- comments: 2-4 sentences. First: strengths. Second: weaknesses. Third: hiring rationale.',
+    '- recommendation: one of "hire", "no_hire", "next_round"',
+    '',
+    'Return ONLY a JSON object with those 5 fields. No prose, no markdown fences.',
+  ].join('\n');
+};
+
+const fallbackDraft = (asked) => ({
+  knowledge: null, communication: null, confidence: null,
+  comments: asked.map((q) => `${q.text}\n  Note: ${q.note || '—'} (rating ${q.rating ?? '—'})`).join('\n\n'),
+  recommendation: null,
+});
+
+const generateDraftReview = async ({ questions }) => {
+  const asked = (questions || []).filter((q) => q.askedAt);
+  if (asked.length === 0) {
+    return { draft: { knowledge: null, communication: null, confidence: null, comments: '', recommendation: null }, provider: null, model: null };
+  }
+  const prompt = buildDraftPrompt({ asked });
+  const { text, provider, model } = await aiService.askWithFallback(prompt);
+  if (!text) {
+    logger.warn('live-interview AI returned nothing for draft review');
+    return { draft: fallbackDraft(asked), provider: null, model: null };
+  }
+  const parsed = aiService.extractJson(text);
+  if (!parsed || typeof parsed !== 'object') {
+    logger.warn('live-interview AI: draft JSON invalid');
+    return { draft: fallbackDraft(asked), provider, model };
+  }
+  const draft = {
+    knowledge:      clampRating(parsed.knowledge),
+    communication:  clampRating(parsed.communication),
+    confidence:     clampRating(parsed.confidence),
+    comments:       (typeof parsed.comments === 'string' ? parsed.comments : '').slice(0, 4000),
+    recommendation: VALID_RECS.has(parsed.recommendation) ? parsed.recommendation : null,
+  };
+  return { draft, provider, model };
+};
+
+module.exports = { generateQuestions, generateDraftReview, buildQuestionsPrompt };

@@ -85,3 +85,63 @@ describe('liveInterviewAiService.generateQuestions', () => {
     expect(promptArg).toContain('45-minute');
   });
 });
+
+describe('liveInterviewAiService.generateDraftReview', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  const askedQuestions = [
+    { text: 'Q1', difficulty: 'easy',   topic: 'A', askedAt: new Date(), note: 'confident', rating: 4 },
+    { text: 'Q2', difficulty: 'medium', topic: 'B', askedAt: new Date(), note: 'hesitant',  rating: 3 },
+    { text: 'Q3', difficulty: 'hard',   topic: 'C', askedAt: null,       note: '',          rating: null },
+  ];
+
+  test('returns parsed draft when AI succeeds', async () => {
+    aiService.askWithFallback.mockResolvedValue({
+      text: JSON.stringify({
+        knowledge: 4, communication: 3, confidence: 4,
+        comments: 'Strong on basics, hesitant on hard. Recommend next round.',
+        recommendation: 'next_round',
+      }),
+      provider: 'gemini', model: 'gemini-2.5-flash',
+    });
+    const out = await svc.generateDraftReview({ questions: askedQuestions });
+    expect(out.draft.knowledge).toBe(4);
+    expect(out.draft.recommendation).toBe('next_round');
+    expect(out.provider).toBe('gemini');
+  });
+
+  test('returns fallback draft when AI fails', async () => {
+    aiService.askWithFallback.mockResolvedValue({ text: null });
+    const out = await svc.generateDraftReview({ questions: askedQuestions });
+    expect(out.draft.knowledge).toBeNull();
+    expect(out.draft.communication).toBeNull();
+    expect(out.draft.confidence).toBeNull();
+    expect(out.draft.comments).toContain('confident');
+    expect(out.draft.comments).toContain('hesitant');
+    expect(out.draft.recommendation).toBeNull();
+  });
+
+  test('clamps ratings to 1-5 and rejects invalid recommendation', async () => {
+    aiService.askWithFallback.mockResolvedValue({
+      text: JSON.stringify({
+        knowledge: 7, communication: 0, confidence: 3,
+        comments: 'ok', recommendation: 'maybe',
+      }),
+      provider: 'gemini', model: 'g',
+    });
+    const out = await svc.generateDraftReview({ questions: askedQuestions });
+    expect(out.draft.knowledge).toBe(5);
+    expect(out.draft.communication).toBe(1);
+    expect(out.draft.confidence).toBe(3);
+    expect(out.draft.recommendation).toBeNull();
+  });
+
+  test('only sends asked questions to the AI', async () => {
+    aiService.askWithFallback.mockResolvedValue({ text: null });
+    await svc.generateDraftReview({ questions: askedQuestions });
+    const promptArg = aiService.askWithFallback.mock.calls[0][0];
+    expect(promptArg).toContain('Q1');
+    expect(promptArg).toContain('Q2');
+    expect(promptArg).not.toContain('Q3');
+  });
+});
