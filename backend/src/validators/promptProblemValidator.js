@@ -25,6 +25,7 @@ const listSchema = {
     limit: Joi.number().integer().min(1).max(100).default(20),
     difficulty: Joi.string().valid('easy', 'medium', 'hard'),
     q: Joi.string().max(200),
+    scope: Joi.string().valid('all', 'library', 'personalized').default('all'),
   }),
 };
 const idParamSchema = { params: Joi.object({ id: Joi.string().hex().length(24).required() }) };

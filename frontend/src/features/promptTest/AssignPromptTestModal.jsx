@@ -23,7 +23,9 @@ export default function AssignPromptTestModal({ open, onClose, candidateId, onAs
   const [editing, setEditing] = useState(null);
   const [busy, setBusy] = useState(false);
 
-  useEffect(() => { if (open) dispatch(fetchProblems({ page: 1, limit: 100 })); }, [open, dispatch]);
+  // Only reusable library problems make sense here — picking an AI-generated
+  // problem that was personalized for a different candidate would be wrong.
+  useEffect(() => { if (open) dispatch(fetchProblems({ page: 1, limit: 100, scope: 'library' })); }, [open, dispatch]);
   useEffect(() => { if (draft) setEditing(draft); }, [draft]);
   useEffect(() => { if (!open) { dispatch(clearDraft()); setEditing(null); } }, [open, dispatch]);
 
