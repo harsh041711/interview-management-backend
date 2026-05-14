@@ -42,6 +42,7 @@ export default function LiveInterviewPage() {
   // a rapid sequence on the same field collapses to the latest value.
   const pendingRef = useRef(new Map());
   const timerRef = useRef(null);
+  const endingRef = useRef(false);
 
   // On mount: load interview details (for context panel) + start/resume session.
   useEffect(() => {
@@ -53,7 +54,10 @@ export default function LiveInterviewPage() {
         await dispatch(startLiveSession(id));
       }
     })();
-    return () => { dispatch(clearSession()); };
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+      dispatch(clearSession());
+    };
   }, [id, dispatch]);
 
   const flushPending = async () => {
@@ -80,7 +84,8 @@ export default function LiveInterviewPage() {
   };
 
   const onEnd = async () => {
-    if (!session) return;
+    if (!session || endingRef.current) return;
+    endingRef.current = true;
     if (timerRef.current) clearTimeout(timerRef.current);
     await flushPending();
     const a = await dispatch(endLiveSession(session.id || session._id));
@@ -90,6 +95,7 @@ export default function LiveInterviewPage() {
       push({ type: 'success', message: 'Interview ended. Review draft ready.' });
       navigate(`/interviewer/interviews/${id}${qp}`);
     } else {
+      endingRef.current = false; // allow retry on failure
       push({ type: 'error', message: a.payload?.message || 'Could not end the interview' });
     }
   };
