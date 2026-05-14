@@ -45,7 +45,13 @@ const promptPreviewLimiter = buildLimiter({
   message: 'Too many preview attempts. Wait a minute.',
 });
 
+const aiLimiter = buildLimiter({
+  windowMs: 60_000,
+  max: 10,
+  message: 'Too many AI requests. Wait a minute before trying again.',
+});
+
 module.exports = {
   globalLimiter, loginLimiter, testStartLimiter, rescheduleLimiter,
-  codingRunLimiter, promptPreviewLimiter, buildLimiter,
+  codingRunLimiter, promptPreviewLimiter, aiLimiter, buildLimiter,
 };
