@@ -87,6 +87,11 @@ export default function CodingTaskPage() {
 
   return (
     <div className="coding-task">
+      <div className="coding-task__topstrip">
+        <span className="coding-task__brand">Interview coding task</span>
+        <span className="coding-task__hint">Write your solution and click Submit when ready.</span>
+      </div>
+
       <header className="coding-task__head">
         <h1>{task.problem.title}</h1>
         <div className="coding-task__pills">
@@ -120,7 +125,7 @@ export default function CodingTaskPage() {
               <span className="coding-task__editor-lang">{LANG_LABEL[task.problem.language] || task.problem.language}</span>
             </div>
             <Editor
-              height="58vh"
+              height="62vh"
               language={MONACO_LANG[task.problem.language] || 'javascript'}
               value={code}
               onChange={(v) => setCode(v ?? '')}
@@ -129,7 +134,8 @@ export default function CodingTaskPage() {
                 fontSize: 14,
                 scrollBeyondLastLine: false,
                 automaticLayout: true,
-                wordWrap: 'on',
+                tabSize: 2,
+                padding: { top: 12, bottom: 12 },
               }}
             />
             <div className="coding-task__editor-actions">
