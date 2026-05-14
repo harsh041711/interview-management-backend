@@ -18,27 +18,27 @@ Generate ONLY the starter code for ${LANG_LABEL[language]} as a self-contained p
 
 Output ONLY the code with no commentary, no markdown fences, no explanation.`;
 
-const buildFullProblemPrompt = ({ topic, difficulty, languages }) => `Generate a coding interview problem.
+// NOTE: starterCode is intentionally NOT in this JSON. Multi-line code embedded
+// inside a JSON string is a frequent source of escape-related parse failures.
+// We generate starter code via a separate plain-text call (see generateStarterCode).
+const buildFullProblemPrompt = ({ topic, difficulty }) => `Generate a coding interview problem.
 
 Requirements:
 - topic: ${topic}
 - difficulty: ${difficulty}
-- supported languages: ${languages.join(', ')}
+- The problem must be solvable by reading stdin and printing to stdout.
 
 Output ONLY valid JSON in this exact shape (no markdown fences, no commentary):
 {
-  "title": "<short problem name>",
-  "description": "<markdown problem statement, includes sample input/output>",
-  "starterCode": {
-${languages.map((l) => `    "${l}": "<self-contained starter code for ${LANG_LABEL[l]} that reads stdin, parses input, and prints output>"`).join(',\n')}
-  },
+  "title": "<short problem name, no quotes>",
+  "description": "<plain-text problem statement explaining the task, input format, and output format. Keep it under 600 words. Do NOT include code blocks or triple backticks.>",
   "testCases": [
     { "stdin": "<input>", "expectedStdout": "<expected output>", "isHidden": false },
     { "stdin": "<input>", "expectedStdout": "<expected output>", "isHidden": true }
   ]
 }
 
-Include 3-5 test cases, with the first 1-2 visible (isHidden: false) as samples for the candidate.`;
+Include 3-5 test cases, with the first 1-2 visible (isHidden: false) as samples.`;
 
 const generateStarterCode = async ({ description, language }) => {
   const prompt = buildStarterCodePrompt({ description, language });
@@ -53,7 +53,7 @@ const generateStarterCode = async ({ description, language }) => {
 };
 
 const generateFullProblem = async ({ topic, difficulty, languages }) => {
-  const prompt = buildFullProblemPrompt({ topic, difficulty, languages });
+  const prompt = buildFullProblemPrompt({ topic, difficulty });
   const { text, provider, model, errors } = await aiService.askWithFallback(prompt);
   if (!text) {
     logger.warn('AI full-problem generation failed (no text)', {
@@ -76,20 +76,28 @@ const generateFullProblem = async ({ topic, difficulty, languages }) => {
     });
     return null;
   }
-  const starterCode = { js: '', python: '', php: '' };
-  for (const lang of languages) {
-    if (parsed.starterCode?.[lang]) starterCode[lang] = String(parsed.starterCode[lang]);
-  }
+  const description = String(parsed.description).slice(0, 10000);
   const testCases = parsed.testCases.slice(0, 10).map((tc, idx) => ({
     stdin: String(tc.stdin || ''),
     expectedStdout: String(tc.expectedStdout || ''),
     // Force the first test case to be visible so candidates always see at least one sample.
     isHidden: idx === 0 ? false : tc.isHidden !== false,
   }));
+
+  // Generate starter code per language in a SEPARATE plain-text call. Embedding
+  // multi-line code inside the problem-JSON above is a frequent cause of parse
+  // failures. If a language fails, fall back to empty starter code rather than
+  // failing the whole request.
+  const starterCode = { js: '', python: '', php: '' };
+  await Promise.all(languages.map(async (lang) => {
+    const code = await generateStarterCode({ description, language: lang });
+    if (code) starterCode[lang] = code;
+  }));
+
   logger.info('AI full-problem generated', { provider, model, topic, difficulty });
   return {
     title: String(parsed.title).slice(0, 200),
-    description: String(parsed.description).slice(0, 10000),
+    description,
     difficulty,
     supportedLanguages: languages,
     starterCode,
