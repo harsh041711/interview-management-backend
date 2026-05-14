@@ -9,26 +9,21 @@ const aiService = require('./codingProblemAiService');
 const execService = require('./codingExecutionService');
 const ApiError = require('../utils/ApiError');
 const logger = require('../config/logger');
-const { LIVE_CODING_TASK_STATUS } = require('../utils/constants');
+const { LIVE_CODING_TASK_STATUS, INTERVIEW_STATUS } = require('../utils/constants');
 
 const toObj = (doc) => (doc && typeof doc.toObject === 'function' ? doc.toObject() : doc);
 
 const generateToken = () => crypto.randomBytes(24).toString('hex');
 
-const buildTopic = (candidate, interview) => {
+const buildTopic = (candidate) => {
   const snap = candidate?.screening?.jdSnapshot;
-  return (
-    snap?.jobRole
-    || snap?.title
-    || interview?.role
-    || 'general programming'
-  );
+  return snap?.jobRole || snap?.title || 'general programming';
 };
 
 const create = async ({ interviewId, interviewerId, difficulty, language }) => {
   const interview = await interviewRepo.findByIdPopulated(interviewId);
   if (!interview) throw ApiError.notFound('Interview not found');
-  if (interview.status !== 'scheduled') {
+  if (interview.status !== INTERVIEW_STATUS.SCHEDULED) {
     throw ApiError.conflict(`Cannot send a coding task while the interview is ${interview.status}`, { code: 'E_BAD_STATUS' });
   }
 
@@ -36,7 +31,7 @@ const create = async ({ interviewId, interviewerId, difficulty, language }) => {
   if (!candidateId) throw ApiError.badRequest('Interview has no candidate');
 
   const candidate = await candidateRepo.findById(candidateId);
-  const topic = buildTopic(candidate, interview);
+  const topic = buildTopic(candidate);
 
   const aiProblem = await aiService.generateFullProblem({ topic, difficulty, languages: [language] });
   if (!aiProblem) {
