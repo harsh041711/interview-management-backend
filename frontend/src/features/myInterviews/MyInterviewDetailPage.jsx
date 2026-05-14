@@ -15,6 +15,17 @@ import {
 import ReviewForm from './ReviewForm';
 import './MyInterviewDetailPage.scss';
 
+const COPILOT_WINDOW_MIN = 15;
+
+function canOpenCopilot(interview) {
+  if (!interview) return false;
+  if (interview.status === 'cancelled' || interview.status === 'completed') return false;
+  if (interview.status === 'reschedule_requested') return false;
+  const scheduledAt = interview.scheduledAt ? new Date(interview.scheduledAt).getTime() : 0;
+  const now = Date.now();
+  return scheduledAt > 0 && (scheduledAt - now) <= COPILOT_WINDOW_MIN * 60 * 1000;
+}
+
 export default function MyInterviewDetailPage() {
   const { id } = useParams();
   const dispatch = useDispatch();
@@ -90,9 +101,16 @@ export default function MyInterviewDetailPage() {
         )}
       </section>
 
-      {interview.meetingUrl && (interview.status === 'scheduled' || interview.status === 'reschedule_requested') && (
-        <a href={interview.meetingUrl} target="_blank" rel="noopener noreferrer" className="my-interview__join">Join meeting</a>
-      )}
+      <div className="my-interview__actions-row">
+        {interview.meetingUrl && (interview.status === 'scheduled' || interview.status === 'reschedule_requested') && (
+          <a href={interview.meetingUrl} target="_blank" rel="noopener noreferrer" className="my-interview__join">Join meeting</a>
+        )}
+        {canOpenCopilot(interview) && (
+          <Link to={`/interviewer/interviews/${id}/live`} className="my-interview__join my-interview__join--secondary">
+            Open co-pilot
+          </Link>
+        )}
+      </div>
 
       <section className="my-interview__review-block">
         <h2>Review</h2>

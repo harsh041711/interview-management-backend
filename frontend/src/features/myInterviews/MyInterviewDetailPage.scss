@@ -107,3 +107,16 @@
   &__error { color: $color-danger; font-size: 13px; }
   &__actions { display: flex; justify-content: flex-end; }
 }
+
+.my-interview__actions-row {
+  display: flex;
+  gap: $space-3;
+  flex-wrap: wrap;
+  margin: $space-3 0;
+}
+.my-interview__join--secondary {
+  background: #fff;
+  color: $color-primary;
+  border: 1px solid #dbeafe;
+  &:hover { background: #eff6ff; }
+}

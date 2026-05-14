@@ -33,6 +33,7 @@ import CodingTestSuccessPage from '@/features/codingTest/CodingTestSuccessPage';
 
 import InterviewerDashboardPage from '@/features/myInterviews/InterviewerDashboardPage';
 import MyInterviewDetailPage from '@/features/myInterviews/MyInterviewDetailPage';
+import LiveInterviewPage from '@/features/liveInterview/LiveInterviewPage';
 import ReviewEditRequestsPage from '@/features/reviewEditRequests/ReviewEditRequestsPage';
 import SettingsPage from '@/features/settings/SettingsPage';
 
@@ -88,6 +89,7 @@ export default function AppRoutes() {
       >
         <Route path="/interviewer/dashboard" element={<InterviewerDashboardPage />} />
         <Route path="/interviewer/interviews/:id" element={<MyInterviewDetailPage />} />
+        <Route path="/interviewer/interviews/:id/live" element={<LiveInterviewPage />} />
       </Route>
 
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
