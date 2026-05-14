@@ -13,6 +13,8 @@ import {
 import ContextPanel from './ContextPanel';
 import QuestionCard from './QuestionCard';
 import CoverageBar from './CoverageBar';
+import SendCodingTaskModal from './SendCodingTaskModal';
+import CodingTasksPanel from './CodingTasksPanel';
 import './LiveInterviewPage.scss';
 
 const DEBOUNCE_MS = 1200;
@@ -43,6 +45,8 @@ export default function LiveInterviewPage() {
   const pendingRef = useRef(new Map());
   const timerRef = useRef(null);
   const endingRef = useRef(false);
+
+  const [codingTaskOpen, setCodingTaskOpen] = useState(false);
 
   // On mount: load interview details (for context panel) + start/resume session.
   useEffect(() => {
@@ -119,6 +123,9 @@ export default function LiveInterviewPage() {
           <span>{interview?.role || jd?.title || ''}</span>
         </div>
         <Timer startedAt={session.startedAt} />
+        <Button variant="secondary" onClick={() => setCodingTaskOpen(true)}>
+          Send coding task
+        </Button>
         <Button onClick={onEnd} loading={status === 'ending'}>End interview</Button>
       </header>
 
@@ -142,8 +149,15 @@ export default function LiveInterviewPage() {
           {(session.questions || []).map((q, i) => (
             <QuestionCard key={i} question={q} index={i} onChange={onFieldChange} />
           ))}
+          <CodingTasksPanel interviewId={id} />
         </section>
       </div>
+
+      <SendCodingTaskModal
+        open={codingTaskOpen}
+        onClose={() => setCodingTaskOpen(false)}
+        interviewId={id}
+      />
     </div>
   );
 }
