@@ -1,0 +1,16 @@
+.prompt-test {
+  max-width: 880px; margin: 32px auto; padding: 16px;
+  &__head { display: flex; justify-content: space-between; align-items: center; }
+  &__duration { color: #6b7280; }
+  &__card { background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+  &__desc { white-space: pre-wrap; }
+  &__sample, &__output {
+    background: #f9fafb; padding: 12px; border-radius: 6px; white-space: pre-wrap; word-break: break-word;
+  }
+  &__textarea {
+    width: 100%; padding: 12px; font-family: ui-monospace, monospace; font-size: 14px;
+    border: 1px solid #d1d5db; border-radius: 6px; resize: vertical;
+  }
+  &__actions { display: flex; gap: 12px; margin-top: 12px; justify-content: flex-end; }
+  &--done { text-align: center; padding: 64px; }
+}
