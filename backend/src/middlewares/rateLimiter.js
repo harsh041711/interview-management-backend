@@ -39,4 +39,13 @@ const codingRunLimiter = buildLimiter({
   message: 'Too many run attempts. Wait a minute before trying again.',
 });
 
-module.exports = { globalLimiter, loginLimiter, testStartLimiter, rescheduleLimiter, codingRunLimiter, buildLimiter };
+const promptPreviewLimiter = buildLimiter({
+  windowMs: 60_000,
+  max: 10,
+  message: 'Too many preview attempts. Wait a minute.',
+});
+
+module.exports = {
+  globalLimiter, loginLimiter, testStartLimiter, rescheduleLimiter,
+  codingRunLimiter, promptPreviewLimiter, buildLimiter,
+};
