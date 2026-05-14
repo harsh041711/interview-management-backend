@@ -77,21 +77,18 @@ const updateQuestions = async ({ sessionId, interviewerId, updates }) => {
   return toObj(updated);
 };
 
-// Hiring decisions stay human. On end, we surface the interviewer's own
-// per-question notes verbatim into the comments field as a starter; star
-// ratings are left blank for the interviewer to set manually in the
-// ReviewForm. We deliberately do NOT call AI to auto-rate or auto-judge.
-const buildNotesDraft = (questions = []) => {
-  const asked = questions.filter((q) => q.askedAt);
-  if (asked.length === 0) {
-    return { knowledge: null, communication: null, confidence: null, comments: '', recommendation: null, generatedBy: '' };
-  }
-  const comments = asked.map((q, i) => {
-    const rating = q.rating != null ? `${q.rating}/5` : '—';
-    const note = q.note?.trim() ? q.note.trim() : '—';
-    return `Q${i + 1}: ${q.text}\nNote: ${note}\nRating: ${rating}`;
-  }).join('\n\n').slice(0, 4000);
-  return { knowledge: null, communication: null, confidence: null, comments, recommendation: null, generatedBy: '' };
+// Hiring decisions stay human. On end, we ONLY mark the session as ended —
+// no AI judgment, no notes copied into the review form. The raw per-question
+// notes + ratings stay accessible through the session (the post-interview UI
+// surfaces them via a "View interview notes" modal, separate from the review
+// form's comments field).
+const EMPTY_DRAFT_REVIEW = {
+  knowledge: null,
+  communication: null,
+  confidence: null,
+  comments: '',
+  recommendation: null,
+  generatedBy: '',
 };
 
 const end = async ({ sessionId, interviewerId }) => {
@@ -99,12 +96,18 @@ const end = async ({ sessionId, interviewerId }) => {
   ensureOwnerActive(session, interviewerId, { allowEnded: true });
   if (session.endedAt) return toObj(session);
 
-  const draftReview = buildNotesDraft(session.questions || []);
   const updated = await liveSessionRepository.updateById(sessionId, {
     endedAt: new Date(),
-    draftReview,
+    draftReview: EMPTY_DRAFT_REVIEW,
   });
   return toObj(updated);
 };
 
-module.exports = { start, getActive, updateQuestions, end };
+// Returns the latest live session for an interview, regardless of ended state.
+// Powers the "View interview notes" modal on the post-interview detail page.
+const getLatestForInterview = async ({ interviewId }) => {
+  const s = await liveSessionRepository.findLatestByInterview(interviewId);
+  return s ? toObj(s) : null;
+};
+
+module.exports = { start, getActive, updateQuestions, end, getLatestForInterview };

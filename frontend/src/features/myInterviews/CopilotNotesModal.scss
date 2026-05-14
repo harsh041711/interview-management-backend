@@ -1,0 +1,105 @@
+.copilot-notes {
+  display: flex;
+  flex-direction: column;
+  gap: $space-3;
+  max-height: 60vh;
+  overflow-y: auto;
+
+  &__empty {
+    color: #6b7280;
+    font-size: 14px;
+    text-align: center;
+    padding: $space-4;
+  }
+
+  &__hint {
+    color: #6b7280;
+    font-size: 13px;
+    margin: 0 0 $space-2;
+  }
+
+  &__list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: $space-3;
+    counter-reset: q;
+  }
+
+  &__item {
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: $radius-md;
+    padding: $space-3 $space-4;
+    counter-increment: q;
+
+    &::before {
+      content: 'Q' counter(q);
+      font-weight: 700;
+      color: $color-primary;
+      font-size: 12px;
+      margin-right: $space-2;
+    }
+  }
+
+  &__head {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 6px;
+  }
+  &__diff {
+    padding: 2px 8px;
+    border-radius: 9999px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    &--easy   { background: #dcfce7; color: #166534; }
+    &--medium { background: #fef3c7; color: #92400e; }
+    &--hard   { background: #fee2e2; color: #991b1b; }
+  }
+  &__topic {
+    background: #f1f5f9;
+    color: #475569;
+    padding: 2px 8px;
+    border-radius: 9999px;
+    font-size: 10px;
+    font-weight: 600;
+  }
+  &__rating {
+    margin-left: auto;
+    color: #f59e0b;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  &__text {
+    font-size: 14px;
+    color: #111827;
+    margin: 4px 0;
+    line-height: 1.5;
+  }
+
+  &__note {
+    margin-top: 8px;
+    padding: 8px 10px;
+    background: #fff;
+    border-left: 3px solid $color-primary;
+    border-radius: 0 $radius-md $radius-md 0;
+    font-size: 13px;
+    color: #374151;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  &__note-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    color: #6b7280;
+  }
+}

@@ -13,6 +13,8 @@ import {
   fetchMyInterview, submitMyReview, editMyReview, requestMyReviewEdit, clearDetail,
 } from './myInterviewsSlice';
 import ReviewForm from './ReviewForm';
+import CopilotNotesModal from './CopilotNotesModal';
+import { liveInterviewApi } from '@/api/liveInterviewApi';
 import './MyInterviewDetailPage.scss';
 
 const COPILOT_WINDOW_MIN = 15;
@@ -36,21 +38,34 @@ export default function MyInterviewDetailPage() {
   const [reason, setReason] = useState('');
 
   const [searchParams, setSearchParams] = useSearchParams();
-  const aiDraft = useMemo(() => {
-    const raw = searchParams.get('draft');
-    if (!raw) return null;
-    try {
-      const d = JSON.parse(decodeURIComponent(raw));
-      return {
-        ratings: {
-          knowledge:     d.knowledge     || 0,
-          communication: d.communication || 0,
-          confidence:    d.confidence    || 0,
-        },
-        comments: d.comments || '',
-      };
-    } catch { return null; }
-  }, [searchParams]);
+  // `?copilot=1` signals the interviewer just came back from the co-pilot.
+  // No data is encoded in the URL — we fetch the session from the server
+  // and open a notes modal on demand. The review form stays empty so the
+  // interviewer writes their own ratings + comments.
+  const cameFromCopilot = useMemo(() => searchParams.get('copilot') === '1', [searchParams]);
+  const [copilotSession, setCopilotSession] = useState(null);
+  const [notesOpen, setNotesOpen] = useState(false);
+  const [notesLoading, setNotesLoading] = useState(false);
+
+  // Fetch the latest LiveSession for this interview so the "View notes"
+  // button knows whether it has data to show. Runs once per interview load.
+  useEffect(() => {
+    let cancelled = false;
+    setNotesLoading(true);
+    liveInterviewApi.getCopilotNotes(id)
+      .then((s) => { if (!cancelled) setCopilotSession(s); })
+      .catch(() => { if (!cancelled) setCopilotSession(null); })
+      .finally(() => { if (!cancelled) setNotesLoading(false); });
+    return () => { cancelled = true; };
+  }, [id]);
+
+  // Auto-open the notes modal the first time the interviewer lands here from
+  // the co-pilot (so they don't have to hunt for the button).
+  useEffect(() => {
+    if (cameFromCopilot && copilotSession && !notesOpen) {
+      setNotesOpen(true);
+    }
+  }, [cameFromCopilot, copilotSession]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     dispatch(fetchMyInterview(id));
@@ -148,16 +163,18 @@ export default function MyInterviewDetailPage() {
                 Submitting your review will mark this interview as completed.
               </p>
             )}
-            {aiDraft && (
+            {copilotSession && (
               <div className="my-interview__draft-banner">
-                Your co-pilot notes are below — set the star ratings and edit the comments before submitting.
+                <span>You ran the co-pilot for this interview. Use your in-call notes as a reference.</span>
+                <Button size="sm" variant="secondary" onClick={() => setNotesOpen(true)}>
+                  View interview notes →
+                </Button>
               </div>
             )}
             <ReviewForm
-              initial={aiDraft || undefined}
               onSubmit={async (payload) => {
                 await onSubmit(payload);
-                setSearchParams({}, { replace: true });
+                if (cameFromCopilot) setSearchParams({}, { replace: true });
               }}
               busy={busy}
               submitLabel={isCompleted ? 'Submit review' : 'Submit review & mark complete'}
@@ -189,6 +206,9 @@ export default function MyInterviewDetailPage() {
               )}
               {!pendingEditRequest && !canEdit && (
                 <Button variant="secondary" onClick={() => setRequestOpen(true)}>Request edit</Button>
+              )}
+              {copilotSession && (
+                <Button variant="ghost" onClick={() => setNotesOpen(true)}>View co-pilot notes</Button>
               )}
             </div>
           </div>
@@ -225,6 +245,12 @@ export default function MyInterviewDetailPage() {
           style={{ width: '100%', resize: 'vertical' }}
         />
       </Modal>
+
+      <CopilotNotesModal
+        open={notesOpen}
+        onClose={() => setNotesOpen(false)}
+        session={copilotSession}
+      />
     </div>
   );
 }

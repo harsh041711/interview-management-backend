@@ -6,6 +6,11 @@ const create = (data) => LiveSession.create(data);
 const findActiveByInterview = (interviewId) =>
   LiveSession.findOne({ interview: interviewId, endedAt: null }).sort({ createdAt: -1 });
 
+// Latest session regardless of ended state — used to surface co-pilot notes
+// AFTER the interview is over (the post-interview "View notes" modal).
+const findLatestByInterview = (interviewId) =>
+  LiveSession.findOne({ interview: interviewId }).sort({ createdAt: -1 });
+
 const findById = (id) => LiveSession.findById(id);
 
 const updateById = (id, patch) =>
@@ -25,4 +30,4 @@ const applyQuestionUpdates = async (id, updates) => {
   return LiveSession.findByIdAndUpdate(id, { $set: setOps }, { new: true });
 };
 
-module.exports = { create, findActiveByInterview, findById, updateById, applyQuestionUpdates };
+module.exports = { create, findActiveByInterview, findLatestByInterview, findById, updateById, applyQuestionUpdates };

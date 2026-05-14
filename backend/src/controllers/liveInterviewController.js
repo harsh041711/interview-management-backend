@@ -27,4 +27,12 @@ const end = asyncHandler(async (req, res) => {
   return ok(res, { session }, 'Ended');
 });
 
-module.exports = { start, getActive, updateQuestions, end };
+// Post-interview: returns the LATEST live session (even if ended) so the
+// detail page can surface the per-question notes in a separate modal —
+// distinct from getActive which only returns sessions with endedAt=null.
+const getLatest = asyncHandler(async (req, res) => {
+  const session = await svc.getLatestForInterview({ interviewId: req.params.id });
+  return ok(res, { session }, 'OK');
+});
+
+module.exports = { start, getActive, updateQuestions, end, getLatest };

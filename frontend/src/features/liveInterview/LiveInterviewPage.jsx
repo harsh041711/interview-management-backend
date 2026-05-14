@@ -90,10 +90,10 @@ export default function LiveInterviewPage() {
     await flushPending();
     const a = await dispatch(endLiveSession(session.id || session._id));
     if (endLiveSession.fulfilled.match(a)) {
-      const draft = a.payload?.draftReview || null;
-      const qp = draft ? `?draft=${encodeURIComponent(JSON.stringify(draft))}` : '';
-      push({ type: 'success', message: 'Interview ended. Review draft ready.' });
-      navigate(`/interviewer/interviews/${id}${qp}`);
+      push({ type: 'success', message: 'Interview ended.' });
+      // Signal the detail page to surface the "View interview notes" button.
+      // No encoded JSON in the URL — the page fetches notes from the server.
+      navigate(`/interviewer/interviews/${id}?copilot=1`);
     } else {
       endingRef.current = false; // allow retry on failure
       push({ type: 'error', message: a.payload?.message || 'Could not end the interview' });

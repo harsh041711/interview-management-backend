@@ -9,4 +9,6 @@ export const liveInterviewApi = {
     apiClient.patch(`/me/live-sessions/${sessionId}`, { questionUpdates }).then((r) => r.data.data.session),
   end: (sessionId) =>
     apiClient.post(`/me/live-sessions/${sessionId}/end`).then((r) => r.data.data.session),
+  getCopilotNotes: (interviewId) =>
+    apiClient.get(`/me/interviews/${interviewId}/copilot-notes`).then((r) => r.data.data.session),
 };

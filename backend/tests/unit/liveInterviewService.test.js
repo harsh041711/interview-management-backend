@@ -133,13 +133,12 @@ describe('liveInterviewService.end', () => {
     expect(ai.generateDraftReview).not.toHaveBeenCalled();
   });
 
-  test('compiles notes into comments, leaves ratings null, does NOT call AI', async () => {
+  test('marks session ended with an empty draft review — no AI, no notes pre-fill', async () => {
     repo.findById.mockResolvedValue({
       id: 's1', interviewer: 'iv1', endedAt: null,
       questions: [
         { text: 'Explain async', difficulty: 'easy', askedAt: new Date(), note: 'confident, clear', rating: 4 },
         { text: 'Design pattern', difficulty: 'hard', askedAt: new Date(), note: 'hesitant', rating: 2 },
-        { text: 'Not asked',     difficulty: 'medium', askedAt: null,     note: '',         rating: null },
       ],
     });
     repo.updateById.mockImplementation((id, patch) => ({
@@ -148,37 +147,34 @@ describe('liveInterviewService.end', () => {
 
     const out = await svc.end({ sessionId: 's1', interviewerId: 'iv1' });
 
-    // Hiring decision stays human: no AI auto-rating, no auto-recommendation
+    // Hiring decision stays human — review form is filled manually
     expect(ai.generateDraftReview).not.toHaveBeenCalled();
     expect(repo.updateById).toHaveBeenCalledWith('s1', expect.objectContaining({
       endedAt: expect.any(Date),
-      draftReview: expect.objectContaining({
-        knowledge: null,
-        communication: null,
-        confidence: null,
-        recommendation: null,
-        generatedBy: '',
-      }),
+      draftReview: {
+        knowledge: null, communication: null, confidence: null,
+        comments: '', recommendation: null, generatedBy: '',
+      },
     }));
+    expect(out.draftReview.comments).toBe('');
+  });
+});
 
-    // Notes from asked questions are surfaced verbatim; un-asked questions excluded
-    expect(out.draftReview.comments).toContain('Explain async');
-    expect(out.draftReview.comments).toContain('confident, clear');
-    expect(out.draftReview.comments).toContain('4/5');
-    expect(out.draftReview.comments).toContain('hesitant');
-    expect(out.draftReview.comments).not.toContain('Not asked');
+describe('liveInterviewService.getLatestForInterview', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  test('returns latest session even if ended', async () => {
+    repo.findLatestByInterview = jest.fn().mockResolvedValue({
+      id: 's9', endedAt: new Date(),
+      toObject() { return { id: 's9', endedAt: this.endedAt }; },
+    });
+    const out = await svc.getLatestForInterview({ interviewId: 'i1' });
+    expect(out.id).toBe('s9');
   });
 
-  test('empty comments when no questions were asked', async () => {
-    repo.findById.mockResolvedValue({
-      id: 's1', interviewer: 'iv1', endedAt: null,
-      questions: [{ text: 'Q', difficulty: 'easy', askedAt: null, note: '', rating: null }],
-    });
-    repo.updateById.mockImplementation((id, patch) => ({
-      id, ...patch, toObject() { return { id, ...patch }; },
-    }));
-
-    const out = await svc.end({ sessionId: 's1', interviewerId: 'iv1' });
-    expect(out.draftReview.comments).toBe('');
+  test('returns null when no session exists', async () => {
+    repo.findLatestByInterview = jest.fn().mockResolvedValue(null);
+    const out = await svc.getLatestForInterview({ interviewId: 'i1' });
+    expect(out).toBeNull();
   });
 });

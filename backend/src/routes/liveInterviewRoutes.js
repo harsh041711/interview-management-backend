@@ -13,6 +13,7 @@ router.use(requireAuth, requireRole('interviewer'));
 // Scoped under /me — interview-side endpoints use requireMyInterview for ownership.
 router.post('/interviews/:id/live/start', aiLimiter, validate(v.interviewIdParam), requireMyInterview, ctrl.start);
 router.get( '/interviews/:id/live',       validate(v.interviewIdParam), requireMyInterview, ctrl.getActive);
+router.get( '/interviews/:id/copilot-notes', validate(v.interviewIdParam), requireMyInterview, ctrl.getLatest);
 
 // Session-side endpoints — ownership enforced inside the service (interviewer field on session).
 router.patch('/live-sessions/:id',     validate(v.updateBody),     ctrl.updateQuestions);
