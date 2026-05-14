@@ -1,0 +1,11 @@
+.prompt-review {
+  background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px;
+  &__head { display: flex; justify-content: space-between; align-items: center; }
+  &__total { font-weight: 700; color: #2563eb; }
+  &__meta { color: #6b7280; margin-bottom: 12px; font-size: 14px; }
+  &__pre { background: #f9fafb; padding: 12px; border-radius: 6px; white-space: pre-wrap; font-family: ui-monospace, monospace; font-size: 13px; }
+  &__list { padding-left: 18px; li { margin-bottom: 6px; } }
+  &__actions { margin-top: 12px; display: flex; justify-content: flex-end; }
+  &__pending { padding: 12px; background: #fef3c7; border-radius: 6px; }
+  &__err { padding: 12px; background: #fee2e2; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+}
