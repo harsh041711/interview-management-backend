@@ -18,6 +18,9 @@ const codingProblemRoutes = require('./codingProblemRoutes');
 const codingTestPublicRoutes = require('./codingTestPublicRoutes');
 const codingSubmissionRoutes = require('./codingSubmissionRoutes');
 const integrationsRoutes = require('./integrationsRoutes');
+const promptProblemRoutes = require('./promptProblemRoutes');
+const promptTestAdminRoutes = require('./promptTestAdminRoutes');
+const promptTestPublicRoutes = require('./promptTestPublicRoutes');
 
 const router = express.Router();
 
@@ -40,5 +43,8 @@ router.use('/coding-problems', codingProblemRoutes);
 router.use('/coding-test', codingTestPublicRoutes);
 router.use('/coding-submissions', codingSubmissionRoutes);
 router.use('/integrations', integrationsRoutes);
+router.use('/prompt-problems', promptProblemRoutes);
+router.use('/candidates/:id/prompt-test', promptTestAdminRoutes);
+router.use('/prompt-test', promptTestPublicRoutes);
 
 module.exports = router;
