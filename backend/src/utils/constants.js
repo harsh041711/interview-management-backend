@@ -134,6 +134,14 @@ const PROMPT_PROBLEM_SOURCE = Object.freeze({
 });
 const PROMPT_PROBLEM_SOURCE_LIST = Object.values(PROMPT_PROBLEM_SOURCE);
 
+const LIVE_CODING_TASK_STATUS = Object.freeze({
+  PENDING:   'pending',
+  OPENED:    'opened',
+  SUBMITTED: 'submitted',
+  CANCELLED: 'cancelled',
+});
+const LIVE_CODING_TASK_STATUS_LIST = Object.values(LIVE_CODING_TASK_STATUS);
+
 module.exports = {
   QUESTION_TYPES,
   QUESTION_TYPE_LIST,
@@ -165,4 +173,6 @@ module.exports = {
   PROMPT_SUBMISSION_STATUS_LIST,
   PROMPT_PROBLEM_SOURCE,
   PROMPT_PROBLEM_SOURCE_LIST,
+  LIVE_CODING_TASK_STATUS,
+  LIVE_CODING_TASK_STATUS_LIST,
 };
