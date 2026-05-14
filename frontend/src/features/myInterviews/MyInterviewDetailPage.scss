@@ -120,3 +120,13 @@
   border: 1px solid #dbeafe;
   &:hover { background: #eff6ff; }
 }
+
+.my-interview__draft-banner {
+  background: #eff6ff;
+  border: 1px solid #dbeafe;
+  color: #1e40af;
+  padding: $space-3 $space-4;
+  border-radius: $radius-md;
+  font-size: 13px;
+  margin-bottom: $space-3;
+}

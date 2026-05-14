@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useSearchParams } from 'react-router-dom';
 import Button from '@/components/common/Button';
 import Loader from '@/components/common/Loader';
 import EmptyState from '@/components/common/EmptyState';
@@ -34,6 +34,23 @@ export default function MyInterviewDetailPage() {
   const [editing, setEditing] = useState(false);
   const [requestOpen, setRequestOpen] = useState(false);
   const [reason, setReason] = useState('');
+
+  const [searchParams, setSearchParams] = useSearchParams();
+  const aiDraft = useMemo(() => {
+    const raw = searchParams.get('draft');
+    if (!raw) return null;
+    try {
+      const d = JSON.parse(decodeURIComponent(raw));
+      return {
+        ratings: {
+          knowledge:     d.knowledge     || 0,
+          communication: d.communication || 0,
+          confidence:    d.confidence    || 0,
+        },
+        comments: d.comments || '',
+      };
+    } catch { return null; }
+  }, [searchParams]);
 
   useEffect(() => {
     dispatch(fetchMyInterview(id));
@@ -131,10 +148,21 @@ export default function MyInterviewDetailPage() {
                 Submitting your review will mark this interview as completed.
               </p>
             )}
+            {aiDraft && (
+              <div className="my-interview__draft-banner">
+                AI has drafted a review from your co-pilot notes. Review and submit when ready.
+              </div>
+            )}
             <ReviewForm
-              onSubmit={onSubmit}
+              initial={aiDraft || undefined}
+              onSubmit={async (payload) => {
+                await onSubmit(payload);
+                setSearchParams({}, { replace: true });
+              }}
               busy={busy}
-              submitLabel={isCompleted ? 'Submit review' : 'Submit review & mark complete'}
+              submitLabel={aiDraft
+                ? 'Submit AI-drafted review'
+                : (isCompleted ? 'Submit review' : 'Submit review & mark complete')}
             />
           </>
         )}
