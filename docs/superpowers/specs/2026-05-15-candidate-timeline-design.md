@@ -49,7 +49,7 @@ Two coupled features:
 
 | Layer | Change |
 |---|---|
-| `backend/src/services/candidateService.js` | Extend `detail(id)` to also fetch `interviews[]` (via `interviewRepository.list({ candidateId, limit: 100 })`) and `reviews[]` (via `reviewRepository.findAllByCandidate(candidateId)`). Sort `interviews` by `round` ascending (stable). Return them in the response. |
+| `backend/src/services/candidateService.js` | Extend `detail(id)` to also fetch `interviews[]` (via `interviewRepository.list({ candidateId, limit: 100 })`) and `reviews[]` (via `reviewRepository.findAllByCandidate(candidateId)`), plus the latest `LiveSession.questions[]` per interview (via `liveSessionRepository.findLatestByInterview`). Sort `interviews` by `round` ascending (stable). Each interview gets a `copilotQuestions: [...]` field (empty array if no session). |
 | `backend/src/presenters/candidatePresenter.js` (or new `interviewPresenter` slice) | Add a small `presentInterviewLite` helper that strips heavy fields (`candidate` populated object, internal flags) and exposes only: `{ _id, round, roundType, status, scheduledAt, completedAt, durationMinutes, interviewer: { _id, name }, notes }`. |
 | Reviews | Pass `reviews` through as-is — `findAllByCandidate` already returns lean docs. Each review carries its `interview` ObjectId, so the frontend can join. |
 
@@ -143,9 +143,9 @@ If conditions 1–4 are met but the review is missing, render a disabled-looking
 
 ### "View co-pilot notes" link
 
-- Opens the existing `CopilotNotesModal` for the interview's ID.
-- The modal already loads `liveSession` from the backend by interview ID; if no session exists (older interviews pre-co-pilot), the modal shows its own empty state. **No new code needed.**
-- Show the link only when `interview.status === 'completed'`.
+- Opens the existing `CopilotNotesModal` with a synthesized `session` prop: `{ questions: interview.copilotQuestions }`. The modal renders its own empty state if `questions` is empty (older interviews pre-co-pilot).
+- Show the link only when `interview.status === 'completed' && (interview.copilotQuestions?.length > 0)`.
+- No new backend route needed — the data rides on the candidate-detail response.
 
 ### Empty state
 
