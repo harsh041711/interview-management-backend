@@ -22,4 +22,6 @@ export const liveCodingTaskApi = {
     apiClient.post(`/coding-tasks/${token}/run`, { code }).then((r) => r.data.data),
   submit: (token, code) =>
     apiClient.post(`/coding-tasks/${token}/submit`, { code }).then((r) => r.data.data),
+  reportMonitoring: (token, { tabSwitches }) =>
+    apiClient.patch(`/coding-tasks/${token}/monitoring`, { tabSwitches }).then((r) => r.data.data),
 };
