@@ -145,3 +145,64 @@ describe('liveInterviewAiService.generateDraftReview', () => {
     expect(promptArg).not.toContain('Q3');
   });
 });
+
+describe('liveInterviewAiService.suggestFollowUps', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  test('returns up to 3 suggestions on AI success', async () => {
+    aiService.askWithFallback.mockResolvedValue({
+      text: JSON.stringify({
+        suggestions: ['Q1?', 'Q2?', 'Q3?', 'Q4?'],
+      }),
+      provider: 'gemini', model: 'gemini-2.5-flash',
+    });
+    const out = await svc.suggestFollowUps({
+      questionText: 'Tell me about Redux.',
+      note: 'they use it mostly for forms',
+      topic: 'React',
+      difficulty: 'medium',
+    });
+    expect(out.suggestions).toEqual(['Q1?', 'Q2?', 'Q3?']);
+    expect(out.provider).toBe('gemini');
+  });
+
+  test('drops empty / whitespace suggestions', async () => {
+    aiService.askWithFallback.mockResolvedValue({
+      text: JSON.stringify({ suggestions: ['Q1?', '   ', '', 'Q2?'] }),
+      provider: 'gemini', model: 'gemini-2.5-flash',
+    });
+    const out = await svc.suggestFollowUps({
+      questionText: 'Q', note: 'n',
+    });
+    expect(out.suggestions).toEqual(['Q1?', 'Q2?']);
+  });
+
+  test('throws 503 E_AI_FAILED when AI returns no text', async () => {
+    aiService.askWithFallback.mockResolvedValue({
+      text: null, provider: null, model: null,
+    });
+    await expect(svc.suggestFollowUps({
+      questionText: 'Q', note: 'n',
+    })).rejects.toMatchObject({ statusCode: 503, code: 'E_AI_FAILED' });
+  });
+
+  test('throws 503 E_AI_PARSE when JSON is invalid shape (no suggestions array)', async () => {
+    aiService.askWithFallback.mockResolvedValue({
+      text: JSON.stringify({ unexpected: 'shape' }),
+      provider: 'gemini', model: 'gemini-2.5-flash',
+    });
+    await expect(svc.suggestFollowUps({
+      questionText: 'Q', note: 'n',
+    })).rejects.toMatchObject({ statusCode: 503, code: 'E_AI_PARSE' });
+  });
+
+  test('throws 503 E_AI_PARSE when AI returns unparseable text', async () => {
+    aiService.askWithFallback.mockResolvedValue({
+      text: 'not json at all',
+      provider: 'gemini', model: 'gemini-2.5-flash',
+    });
+    await expect(svc.suggestFollowUps({
+      questionText: 'Q', note: 'n',
+    })).rejects.toMatchObject({ statusCode: 503, code: 'E_AI_PARSE' });
+  });
+});

@@ -1,6 +1,7 @@
 'use strict';
 const aiService = require('./aiService');
 const logger = require('../config/logger');
+const ApiError = require('../utils/ApiError');
 
 const RESUME_EXCERPT_LIMIT = 1500;
 
@@ -127,4 +128,41 @@ const generateDraftReview = async ({ questions }) => {
   return { draft, provider, model };
 };
 
-module.exports = { generateQuestions, generateDraftReview, buildQuestionsPrompt };
+const buildFollowUpPrompt = ({ questionText, note, topic, difficulty }) => `You are helping an interviewer ask better follow-up questions during a live technical interview.
+
+Question that was asked:
+"""${questionText}"""
+
+${topic ? `Topic: ${topic}\n` : ''}${difficulty ? `Difficulty: ${difficulty}\n` : ''}
+Interviewer's note about the candidate's answer (transcribed or paraphrased — may be incomplete):
+"""${note}"""
+
+Generate 2-3 follow-up questions that probe deeper into the candidate's answer.
+- Stay on the same topic.
+- Prefer concrete, specific questions over generic ones.
+- Test depth of understanding, not memorization.
+- Each follow-up should be one sentence.
+
+Output ONLY valid JSON in this shape (no markdown, no commentary):
+{ "suggestions": ["...", "...", "..."] }`;
+
+const suggestFollowUps = async ({ questionText, note, topic, difficulty }) => {
+  const prompt = buildFollowUpPrompt({ questionText, note, topic, difficulty });
+  const { text, provider, model } = await aiService.askWithFallback(prompt);
+  if (!text) {
+    logger.warn('live-interview AI returned nothing for follow-up suggestions');
+    throw ApiError.serviceUnavailable('AI could not generate suggestions', { code: 'E_AI_FAILED' });
+  }
+  const parsed = aiService.extractJson(text);
+  if (!parsed || !Array.isArray(parsed.suggestions)) {
+    logger.warn('live-interview AI: follow-up JSON invalid', { rawSnippet: text.slice(0, 300) });
+    throw ApiError.serviceUnavailable('AI returned invalid suggestions', { code: 'E_AI_PARSE' });
+  }
+  const suggestions = parsed.suggestions
+    .map((s) => (typeof s === 'string' ? s.trim() : ''))
+    .filter((s) => s.length > 0)
+    .slice(0, 3);
+  return { suggestions, provider, model };
+};
+
+module.exports = { generateQuestions, generateDraftReview, suggestFollowUps, buildQuestionsPrompt };
