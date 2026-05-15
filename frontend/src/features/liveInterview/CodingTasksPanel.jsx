@@ -48,6 +48,15 @@ function TaskRow({ task, interviewId }) {
       <div className="coding-tasks__meta">
         <span className="coding-tasks__pill">{task.problem?.difficulty}</span>
         <span className="coding-tasks__pill coding-tasks__pill--lang">{task.problem?.language}</span>
+        {(task.monitoring?.tabSwitches || 0) > 0 && (
+          <span className={`coding-tasks__pill coding-tasks__pill--monitor ${
+            task.monitoring.tabSwitches >= 5 ? 'coding-tasks__pill--danger'
+            : task.monitoring.tabSwitches >= 3 ? 'coding-tasks__pill--warn'
+            : ''
+          }`}>
+            👁 Tab switches: {task.monitoring.tabSwitches}
+          </span>
+        )}
         {task.submittedAt && (
           <span className="coding-tasks__time">
             Submitted {new Date(task.submittedAt).toLocaleTimeString()}
