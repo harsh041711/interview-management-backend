@@ -19,4 +19,11 @@ router.get( '/interviews/:id/copilot-notes', validate(v.interviewIdParam), requi
 router.patch('/live-sessions/:id',     validate(v.updateBody),     ctrl.updateQuestions);
 router.post( '/live-sessions/:id/end', aiLimiter, validate(v.sessionIdParam), ctrl.end);
 
+router.post(
+  '/ai/suggest-follow-ups',
+  aiLimiter,
+  validate(v.suggestFollowUpsBody),
+  ctrl.suggestFollowUps,
+);
+
 module.exports = router;

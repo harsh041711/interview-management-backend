@@ -2,6 +2,7 @@
 const asyncHandler = require('../utils/asyncHandler');
 const { ok, created } = require('../utils/ApiResponse');
 const svc = require('../services/liveInterviewService');
+const aiSvc = require('../services/liveInterviewAiService');
 
 const start = asyncHandler(async (req, res) => {
   const session = await svc.start({ interviewId: req.params.id, interviewerId: req.user.id });
@@ -35,4 +36,14 @@ const getLatest = asyncHandler(async (req, res) => {
   return ok(res, { session }, 'OK');
 });
 
-module.exports = { start, getActive, updateQuestions, end, getLatest };
+const suggestFollowUps = asyncHandler(async (req, res) => {
+  const out = await aiSvc.suggestFollowUps({
+    questionText: req.body.questionText,
+    note: req.body.note,
+    topic: req.body.topic,
+    difficulty: req.body.difficulty,
+  });
+  return ok(res, out, 'OK');
+});
+
+module.exports = { start, getActive, updateQuestions, end, getLatest, suggestFollowUps };
