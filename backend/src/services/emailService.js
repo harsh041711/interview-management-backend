@@ -128,7 +128,7 @@ const sendRound1Result = async ({ candidate, submission, outcome }) => {
   let text;
 
   if (outcome === ROUND1_OUTCOMES.SHORTLISTED) {
-    subject = `You're shortlisted — ${appName} interview`;
+    subject = `You've cleared the MCQ — coding test coming next · ${appName}`;
     html = buildShortlistedHtml({ candidate, appName });
     text = buildShortlistedText({ candidate, appName });
   } else if (outcome === ROUND1_OUTCOMES.REJECTED) {
