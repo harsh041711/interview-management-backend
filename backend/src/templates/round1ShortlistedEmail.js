@@ -15,17 +15,21 @@ const buildShortlistedHtml = ({ candidate, appName }) => `<!doctype html>
       <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background:white;border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,0.06);overflow:hidden">
         <tr><td style="padding:28px 32px;background:#14532d;color:white">
           <div style="font-size:13px;opacity:.85;letter-spacing:.06em;text-transform:uppercase">${escapeHtml(appName)}</div>
-          <div style="font-size:22px;margin-top:6px;font-weight:600">Congratulations — You've Been Shortlisted!</div>
+          <div style="font-size:22px;margin-top:6px;font-weight:600">You've Cleared the MCQ Assessment</div>
         </td></tr>
         <tr><td style="padding:28px 32px;line-height:1.7">
           <p style="margin:0 0 14px">Hi <strong>${escapeHtml(candidate.name)}</strong>,</p>
           <p style="margin:0 0 14px">
-            Congratulations! You've been shortlisted for the next round of the
+            Great news — you've successfully cleared the MCQ assessment for the
             <strong>${escapeHtml(appName)}</strong> interview process.
           </p>
           <p style="margin:0 0 14px">
-            Our HR team will be in touch shortly with details about Round 2. Please keep an eye
-            on your inbox and ensure your contact information is up to date.
+            The next step is a <strong>coding challenge</strong>. Our team is preparing it now;
+            you'll receive a separate invitation email with your test link shortly.
+          </p>
+          <p style="margin:0 0 14px">
+            Please keep an eye on your inbox over the next 24–48 hours and make sure
+            your contact information is up to date.
           </p>
           <p style="margin:24px 0 0;color:#64748b;font-size:13px">
             If you believe you received this email by mistake, please disregard it.
@@ -42,9 +46,11 @@ const buildShortlistedHtml = ({ candidate, appName }) => `<!doctype html>
 const buildShortlistedText = ({ candidate, appName }) =>
   `Hi ${candidate.name},
 
-Congratulations! You've been shortlisted for the next round of the ${appName} interview process.
+Great news — you've successfully cleared the MCQ assessment for the ${appName} interview process.
 
-Our HR team will be in touch shortly with details about Round 2. Please keep an eye on your inbox and ensure your contact information is up to date.
+The next step is a coding challenge. Our team is preparing it now; you'll receive a separate invitation email with your test link shortly.
+
+Please keep an eye on your inbox over the next 24-48 hours and make sure your contact information is up to date.
 
 Best regards,
 ${appName} Team
