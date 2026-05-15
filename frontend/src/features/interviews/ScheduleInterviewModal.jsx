@@ -42,7 +42,7 @@ const initialForm = () => ({
   roundType: 'technical',
 });
 
-export default function ScheduleInterviewModal({ open, onClose, initial }) {
+export default function ScheduleInterviewModal({ open, onClose, initial, prefill }) {
   const dispatch = useDispatch();
   const { push } = useToast();
   const googleStatus = useSelector((s) => s.settings.google);
@@ -76,6 +76,12 @@ export default function ScheduleInterviewModal({ open, onClose, initial }) {
         roundType: initial.roundType || 'technical',
       });
       setMode('manual'); // editing existing — always show the URL field
+    } else if (prefill) {
+      setForm({
+        ...initialForm(),
+        candidateId: prefill.candidateId || '',
+        roundType: prefill.roundType || 'technical',
+      });
     } else {
       setForm(initialForm());
     }
@@ -90,6 +96,12 @@ export default function ScheduleInterviewModal({ open, onClose, initial }) {
           interviewerApi.list({ isActive: true, limit: 100 }),
         ]);
         const eligible = (cData.items || []).filter((c) => SCHEDULEABLE_STATUSES.has(c.status));
+        // If prefilled with a candidate that isn't in the eligible list (e.g., status
+        // transitioned), still show them so the dropdown displays their name.
+        if (prefill?.candidateId && !eligible.find((c) => c.id === prefill.candidateId)) {
+          const pinned = (cData.items || []).find((c) => c.id === prefill.candidateId);
+          if (pinned) eligible.unshift(pinned);
+        }
         setCandidates(eligible);
         setInterviewers(iData.items || []);
       } catch {
@@ -99,7 +111,7 @@ export default function ScheduleInterviewModal({ open, onClose, initial }) {
       }
     };
     load();
-  }, [open, isEdit, initial, dispatch]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [open, isEdit, initial, prefill, dispatch]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Default mode based on Google status when modal opens fresh (not edit).
   useEffect(() => {
@@ -241,7 +253,7 @@ export default function ScheduleInterviewModal({ open, onClose, initial }) {
             className="field__input"
             value={form.candidateId}
             onChange={set('candidateId')}
-            disabled={isEdit || loadingData}
+            disabled={isEdit || !!prefill || loadingData}
             required
           >
             <option value="">— Select candidate —</option>
