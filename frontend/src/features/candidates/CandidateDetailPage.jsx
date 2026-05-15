@@ -19,7 +19,9 @@ import {
 } from './candidateSlice';
 import ScreeningPanel from './ScreeningPanel';
 import SendCodingTestModal from './SendCodingTestModal';
-import ReviewPanel from '@/features/reviews/ReviewPanel';
+import CandidateTimeline from './CandidateTimeline';
+import CopilotNotesModal from '@/features/myInterviews/CopilotNotesModal';
+import ScheduleInterviewModal from '@/features/interviews/ScheduleInterviewModal';
 import AssignPromptTestModal from '@/features/promptTest/AssignPromptTestModal';
 import './CandidateDetailPage.scss';
 
@@ -28,11 +30,13 @@ export default function CandidateDetailPage() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { push } = useToast();
-  const { current, currentStatus, error } = useSelector((s) => s.candidates);
+  const { current, currentStatus, selectedInterviews, selectedReviews, error } = useSelector((s) => s.candidates);
   const [actBusy, setActBusy] = useState(null); // 'approve' | 'decline' | 'rescreen' | 'sendTest' | 'resend' | 'regenerate' | 'select' | 'reject' | 'delete'
   const [confirmOverride, setConfirmOverride] = useState(null); // 'approve' | 'decline' | null
   const [codingTestOpen, setCodingTestOpen] = useState(false);
   const [promptTestOpen, setPromptTestOpen] = useState(false);
+  const [scheduleModalState, setScheduleModalState] = useState(null); // null | { roundType }
+  const [notesQuestions, setNotesQuestions] = useState(null); // null | copilotQuestions[]
 
   useEffect(() => {
     dispatch(fetchCandidate(id));
@@ -284,9 +288,13 @@ export default function CandidateDetailPage() {
         </div>
       )}
 
-      {['awaiting_decision', 'selected_for_culture', 'final_rejected'].includes(c.status) && (
-        <ReviewPanel candidateId={c.id} />
-      )}
+      <CandidateTimeline
+        candidate={c}
+        interviews={selectedInterviews}
+        reviews={selectedReviews}
+        onScheduleNext={({ roundType }) => setScheduleModalState({ roundType })}
+        onShowNotes={(questions) => setNotesQuestions(questions)}
+      />
 
       {c.testUrl && !['resume_pending', 'resume_approved', 'resume_declined'].includes(c.status) && (
         <div className="candidate-detail__token">
@@ -312,6 +320,18 @@ export default function CandidateDetailPage() {
         candidateId={c.id}
         onClose={() => setPromptTestOpen(false)}
         onAssigned={refresh}
+      />
+
+      <ScheduleInterviewModal
+        open={!!scheduleModalState}
+        onClose={() => { setScheduleModalState(null); refresh(); }}
+        prefill={scheduleModalState ? { candidateId: c.id, roundType: scheduleModalState.roundType } : undefined}
+      />
+
+      <CopilotNotesModal
+        open={!!notesQuestions}
+        onClose={() => setNotesQuestions(null)}
+        session={notesQuestions ? { questions: notesQuestions } : null}
       />
 
       <Modal
