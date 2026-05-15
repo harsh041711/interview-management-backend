@@ -58,9 +58,14 @@ covered in detail later in the doc.
         ↓
 10. HR shortlists the candidate → schedules a Round 2 interview
         ↓
-11. Interviewer conducts the meeting and submits a structured review
+11. Interviewer joins on the co-pilot page during the live meeting — AI
+    questions, live notes (typed OR voice-transcribed), AI follow-up
+    suggestions, optional in-interview coding task
         ↓
-12. HR reads the review and makes the final hire / culture-round decision
+12. Interviewer submits a structured review (or HR schedules Round 3 — Practical
+    or HR-Culture — and the same flow repeats with prior rounds' context)
+        ↓
+13. HR reads the review and makes the final hire / culture-round decision
 ```
 
 ---
@@ -250,9 +255,19 @@ Total score 0–100. HR sees the full breakdown: the candidate's prompt verbatim
 
 **Rate limiting:** Preview is capped at 5 runs per test (enforced server-side) plus 10/min/IP HTTP-layer cap to control AI cost.
 
-### 4.8  Interviews (Round 2)
+### 4.8  Interviews (multi-round live meetings)
 
-After Round 1 (MCQ + optional coding), HR schedules a live interview with a specific interviewer.
+After Round 1 (MCQ + optional coding + optional prompt test), HR schedules a live interview with a specific interviewer. The same scheduling, reminders, and reschedule machinery support **up to three rounds** in sequence:
+
+| Round | Type | Typical focus |
+|---|---|---|
+| 1 | **Technical** | Deep technical depth — system design, debugging, framework specifics. |
+| 2 | **Practical** | Hands-on problem-solving — pair coding, live debugging, design review. |
+| 3 | **HR-Culture** | Soft skills, motivation, team fit, compensation alignment. |
+
+- HR can pick a different interviewer per round (e.g., senior engineer for Technical, hiring manager for HR-Culture).
+- The round number auto-increments. A duplicate round-type for the same candidate is blocked at the API level (you can't schedule two "Technical" rounds in a row).
+- After each round, HR sees the prior round's review on the candidate detail page before scheduling the next.
 
 **Interviewer management:**
 - HR adds interviewers with name, email, and **expertise areas** (e.g., `react`, `node`, `system design`).
@@ -302,7 +317,83 @@ After Round 1 (MCQ + optional coding), HR schedules a live interview with a spec
 ![Interview detail page](./screenshots/11-interview-detail.png)
 *`11-interview-detail.png` — an interview detail page showing schedule, links, action bar, and the interviewer review section.*
 
-### 4.9  Interviewer Portal
+### 4.9  Live Interview Co-pilot
+
+A real-time companion the interviewer opens during the live Meet/Zoom call. It replaces the old "review form only at the end" flow with an AI-assisted question queue, live note-taking, and an optional in-interview coding task — all in one screen.
+
+**Opening the co-pilot:**
+- From the interviewer's interview-detail page, click **Open co-pilot**. A new session is created server-side on first open and resumed on subsequent loads.
+- On session start, the AI generates **12 JD-aware questions** seeded from the candidate's resume screening JD snapshot, tech stack, and round type. Questions are returned as a fixed queue — interviewer can change the order by just asking them in the order they prefer.
+
+**The question queue (per card):**
+- **Topic chip** (e.g., `React`, `System Design`) + **difficulty pill** (easy / medium / hard, color-coded).
+- **Question text** in plain English — phrased as something the interviewer can read aloud.
+- **Mark asked** toggle — when ON, the card highlights green and the timer captures the moment the question was asked.
+- **Note textarea** — free-form notes about the candidate's answer; debounced and persisted every 1.2s.
+- **1–5 star rating** for that specific question.
+
+**Coverage bar** at the top of the queue shows asked / total — a quick visual cue of how far through the queue the interviewer is.
+
+**End interview** flushes any pending updates, ends the session, and routes the interviewer back to the interview detail page. HR can then click **View interview notes** on the candidate detail page to see the full per-question note + rating breakdown in a modal.
+
+#### 4.9.1  Auto voice transcription (zero-typing notes)
+
+To free the interviewer from typing during a conversation, the co-pilot can auto-transcribe notes via the browser's Web Speech API:
+
+- When the interviewer toggles **Mark asked** on a card, the mic auto-starts. A 🔴 **Listening — click to stop** pill appears above the textarea.
+- As the interviewer paraphrases the candidate's answer aloud (5–10 words is usually enough), the transcript streams into the note in real time, with proper spacing between sentences and graceful handling of speech pauses.
+- The mic auto-stops on the next **Mark asked**, on **Suggest follow-ups**, on **End interview**, on tab-switch / page-hidden, and on toggling the question off.
+
+**Browser support:**
+
+| Browser | Behavior |
+|---|---|
+| Chrome / Edge / Brave (most Chromium) | Full voice flow works. |
+| Safari (some versions) | Works partially; treated as supported, falls back on error. |
+| Firefox / others | Voice unavailable — a one-time toast tells the interviewer to type manually. |
+
+**Privacy & limitation:** Audio never leaves the browser — only the final text we already display reaches our backend. The Web Speech API listens to the **system microphone only**; it does NOT capture the candidate's voice coming out of the speakers (Meet/Zoom audio). The interviewer paraphrases aloud to feed the mic. The mic is OFF until the interviewer marks a question, and no audio is ever stored anywhere.
+
+#### 4.9.2  AI follow-up suggestions
+
+After taking notes on an answer, the interviewer can click **💡 Suggest follow-ups** on the question card. The AI returns **2-3 follow-up questions tailored to what's already in the note** — designed to probe deeper into the candidate's answer rather than ask generic textbook questions.
+
+- The 💡 button is disabled when the note is empty (no signal to work from).
+- Suggestions render as a read-only bulleted list below the note, in a soft purple-bordered card.
+- **↻ Regenerate** asks the AI for a fresh set.
+- Suggestions are **not persisted** — they're a coaching aid in the moment, not part of the official record. Each call is stateless and rate-limited.
+- Mic auto-stops when the button is clicked so the AI doesn't keep listening while it's working.
+
+#### 4.9.3  In-interview coding task
+
+When the interviewer wants the candidate to write live code during the call, they click **Send coding task** in the co-pilot header:
+
+- A modal asks for: **difficulty** (easy/medium/hard) and **language** (JS / Python / PHP).
+- AI **generates a fresh problem on demand** — title, description, starter code, and test cases (one visible sample + a few hidden).
+- Backend creates a tokenized link the candidate can open without logging in.
+- A **CodingTasksPanel** appears in the co-pilot's right column, showing the new task with status `Sent · waiting`. Interviewer clicks **Copy link** and pastes it into the Meet chat.
+
+**Candidate side** (`/coding-task/:token`):
+- IDE-style split-pane like the standalone coding test: problem on the left, Monaco editor on the right.
+- Starter code pre-loaded. **▶ Run** dry-runs against visible examples (live pass/fail). **Submit** runs all cases (including hidden) and locks the task.
+- Status flips to `Candidate viewing` when the page loads, and `Submitted` once the candidate clicks Submit.
+
+**Interviewer's CodingTasksPanel** (polls every 5s):
+- Shows each task with: title, status pill, difficulty pill, language pill, **live tab-switch count badge** (yellow ≥3, red ≥5).
+- Once submitted: a **View submission** toggle expands to show the candidate's code, the test-case pass/fail breakdown (Input / Expected / Got / runtime), and the overall passed count.
+- **Cancel** is available while the task is pending or opened (turns it to `Cancelled` — candidate sees a clear "Your interviewer cancelled this task" page).
+
+#### 4.9.4  Candidate-side monitoring (in-interview coding task)
+
+The same anti-cheat protections the standalone coding test has are baked into the in-interview coding task page:
+
+- **Paste / copy / right-click blocked** at the page level (including `Ctrl/Cmd+V` and `Ctrl/Cmd+C` keyboard shortcuts). Monaco's own context menu is also disabled.
+- **Tab-switch counter** — bumps on every `visibilitychange` to hidden. Visible in the candidate page header as `👁 Tab switches: N` (gray → yellow at 3 → red at 5).
+- **Live mirror to the interviewer** — every increment PATCHes the server, and the same badge with the same threshold colors appears next to the task in the CodingTasksPanel. The interviewer can intervene in real time if a candidate is tabbing out repeatedly.
+- **Refresh-safe** — count persists across page reloads (localStorage on candidate side, server-side authoritative count for the interviewer).
+- Transparent to the candidate: the editor hint reads **"Pasting disabled · Tab switches tracked · Your interviewer will review your submission."** — no surprise enforcement.
+
+### 4.10  Interviewer Portal
 
 A separate dashboard so external interviewers only see their assigned interviews and nothing else.
 
@@ -319,20 +410,20 @@ A separate dashboard so external interviewers only see their assigned interviews
 ![Interviewer review form](./screenshots/12-interviewer-review.png)
 *`12-interviewer-review.png` — the interviewer-side review form with three star ratings and comments.*
 
-### 4.10  Reviews & Edit Requests (HR oversight)
+### 4.11  Reviews & Edit Requests (HR oversight)
 
 - All interviewer reviews appear on both the **candidate detail page** and the **interview detail page** with: interviewer name, average rating, per-axis stars, comments, submitted-at, edit count.
 - **Edit-request center** at `/admin/review-edit-requests` — a queue of pending requests across all interviews. HR can approve or reject each with a note.
 - Full **edit history** is shown on the review panel — every previous request, decision, reason, and HR's decision note.
 
-### 4.11  Submissions module
+### 4.12  Submissions module
 
 A dedicated browsing view of all MCQ submissions across candidates.
 
 - Filterable, paginated list with score, outcome, cheat status.
 - Click into a submission to see: each question, the candidate's answer, the correct answer, per-question evaluation, and the photo captured at the start of the test.
 
-### 4.12  Settings — Integrations
+### 4.13  Settings — Integrations
 
 A new admin Settings page (sidebar **⚙ Settings**) holds workspace-level integrations.
 
@@ -373,6 +464,13 @@ Things that happen without HR doing anything:
 | Interview rescheduled (manual mode) | Re-fired notifications to both parties; reminder flag reset. |
 | Reschedule approved/rejected | Notification to interviewer with HR's decision note. |
 | Interview cancelled (auto mode) | Google Calendar event deleted; attendees get cancellation notification + our cancellation email. |
+| Interviewer opens co-pilot | AI generates 12 JD-aware questions for that session (cached for resume). |
+| Interviewer toggles "Mark asked" | Mic auto-starts (Web Speech API); transcript streams into the question's note. |
+| Interviewer clicks 💡 Suggest follow-ups | Mic stops; AI returns 2-3 tailored follow-up questions based on the current note. |
+| Interviewer ends interview | All pending notes/ratings flushed; session marked ended; mic released. |
+| Interviewer sends in-interview coding task | AI generates a problem on demand; tokenized link surfaces in CodingTasksPanel. |
+| Candidate switches tab during in-interview coding task | Count PATCHed to server; interviewer's panel badge updates within 5s. |
+| Candidate submits in-interview coding task | All test cases run via Piston; results visible inline in CodingTasksPanel. |
 | Interviewer submits review | Interview auto-completed. |
 | HR shortlists for culture / rejects | Final-stage email to candidate. |
 
@@ -398,6 +496,11 @@ Both the MCQ test and the coding test have layered protections:
 - **Auto-submit on timer expiry**.
 - **Test cases run server-side only** — candidate code never executes in the browser.
 - **Hidden test cases** that the candidate never sees, so the answers can't be hard-coded.
+
+**In-interview coding task** (same protections, plus real-time visibility for the interviewer):
+- All four candidate-side blockers above (paste, copy/cut, context menu, tab-switch counter persisting through refresh).
+- **Live count mirrored to the interviewer** — every tab-switch PATCHes the server and the count appears next to the task in the co-pilot's CodingTasksPanel (gray → yellow at 3 → red at 5), so the interviewer can intervene during the call.
+- **Hidden test cases** still enforced; same Piston-backed execution pipeline.
 
 ---
 
@@ -427,6 +530,13 @@ Both the MCQ test and the coding test have layered protections:
 | Add an interviewer | Interviewers → **+ New interviewer** |
 | Schedule an interview | Candidate detail (after shortlisted) → **Schedule interview** |
 | Approve a reschedule request | Interview detail → Pending reschedule banner |
+| Run the live co-pilot during a meeting | Interviewer Portal → interview detail → **Open co-pilot** |
+| Send a coding task during the interview | Co-pilot → **Send coding task** (top bar) → copy link into chat |
+| See AI follow-up suggestions for a question | Co-pilot → question card → **💡 Suggest follow-ups** |
+| Use voice instead of typing notes | Co-pilot → toggle **Mark asked** — mic auto-starts; paraphrase aloud |
+| See the candidate's tab-switch count on the in-interview coding task | Co-pilot → **CodingTasksPanel** (right column) — live badge per task |
+| Read all questions/notes/ratings after a session | Candidate detail → **View interview notes** |
+| Schedule Round 2 (Practical) or Round 3 (HR-Culture) | Candidate detail (after prior round completed) → **Schedule next round** |
 | See an interviewer's review | Candidate detail OR Interview detail |
 | Approve a review edit request | Admin → **Edit requests** |
 | Export everything | Candidates / Interviews → **↓ Export CSV** |

@@ -124,7 +124,8 @@
     text-align: center;
   }
 </style></head>
-<body><h1>Interview Management System — Feature Guide</h1>
+<body>
+<h1>Interview Management System — Feature Guide</h1>
 <p>A complete overview of what the system does, who uses each part, and how
 a candidate moves from &quot;new application&quot; to &quot;hired or rejected.&quot;</p>
 <blockquote>
@@ -189,9 +190,14 @@ covered in detail later in the doc.</p>
         ↓
 10. HR shortlists the candidate → schedules a Round 2 interview
         ↓
-11. Interviewer conducts the meeting and submits a structured review
+11. Interviewer joins on the co-pilot page during the live meeting — AI
+    questions, live notes (typed OR voice-transcribed), AI follow-up
+    suggestions, optional in-interview coding task
         ↓
-12. HR reads the review and makes the final hire / culture-round decision
+12. Interviewer submits a structured review (or HR schedules Round 3 — Practical
+    or HR-Culture — and the same flow repeats with prior rounds&#39; context)
+        ↓
+13. HR reads the review and makes the final hire / culture-round decision
 </code></pre>
 <hr>
 <h2>4. Module-by-module breakdown</h2>
@@ -363,8 +369,58 @@ problems, runnable in three languages.</p>
 </ul>
 <p><img src="./screenshots/09-coding-test-review.png" alt="HR coding test review">
 <em><code>09-coding-test-review.png</code> — the HR review page showing test case results, candidate code, star rating, and shortlist/reject.</em></p>
-<h3>4.7  Interviews (Round 2)</h3>
-<p>After Round 1 (MCQ + optional coding), HR schedules a live interview with a specific interviewer.</p>
+<h3>4.7  Prompt Engineering Test (optional, AI-evaluated)</h3>
+<p>A third Round-1 test type — independent of MCQ and Coding — designed to evaluate <strong>prompt-engineering skill</strong>. With AI tools now embedded in every developer workflow, the ability to write a clear, well-scoped prompt is a real hiring signal.</p>
+<p><strong>Flow:</strong></p>
+<ul>
+<li>HR opens a candidate and clicks <strong>Assign prompt test</strong>. Two paths:<ul>
+<li><strong>Pick from library</strong> — choose a manually-authored scenario from the Prompt Problems library.</li>
+<li><strong>Generate with AI</strong> — the system reads the candidate&#39;s resume + AI-screening summary + tech stack + experience level and asks the LLM to draft a scenario tailored to <em>that specific candidate</em>. HR previews and can edit any field before saving.</li>
+</ul>
+</li>
+<li>The candidate gets an email with a link. They open <code>/prompt-test/&lt;token&gt;</code>, see the scenario + a sample input, write a prompt, and can optionally click <strong>▶ Try it</strong> up to 5 times to preview the LLM&#39;s output against the sample. Then they submit.</li>
+</ul>
+<p><strong>3-step AI evaluation (runs in the background after submit):</strong></p>
+<ol>
+<li><strong>Rubric score (0–50)</strong> — AI grades the prompt itself against a default 5-item rubric (clarity, role/context, output format, examples/constraints, edge-case handling), plus any scenario-specific custom criteria the admin added.</li>
+<li><strong>Execute</strong> — the candidate&#39;s prompt is run against the sample input via the same Gemini → Groq fallback chain used for resume screening.</li>
+<li><strong>Output score (0–50)</strong> — AI checks the produced output against the expected criteria (pass/fail per criterion).</li>
+</ol>
+<p>Total score 0–100. HR sees the full breakdown: the candidate&#39;s prompt verbatim, the executed LLM output, rubric scores with per-criterion notes, output criteria pass/fail. HR can re-run evaluation if it fails.</p>
+<p><strong>Coexistence with MCQ + Coding:</strong> Independent — HR sends any combination. If any of (coding, prompt) is pending review, the MCQ auto-shortlist is suppressed so HR makes the final call.</p>
+<p><strong>Prompt Problems library</strong> (admin sidebar) is for manually-authored, reusable scenarios. AI-generated problems are stored per-candidate (with <code>createdFor: candidateId</code>) and are NOT shown in the library list — they&#39;re one-off and personalized.</p>
+<p><strong>Rate limiting:</strong> Preview is capped at 5 runs per test (enforced server-side) plus 10/min/IP HTTP-layer cap to control AI cost.</p>
+<h3>4.8  Interviews (multi-round live meetings)</h3>
+<p>After Round 1 (MCQ + optional coding + optional prompt test), HR schedules a live interview with a specific interviewer. The same scheduling, reminders, and reschedule machinery support <strong>up to three rounds</strong> in sequence:</p>
+<table>
+<thead>
+<tr>
+<th>Round</th>
+<th>Type</th>
+<th>Typical focus</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td><strong>Technical</strong></td>
+<td>Deep technical depth — system design, debugging, framework specifics.</td>
+</tr>
+<tr>
+<td>2</td>
+<td><strong>Practical</strong></td>
+<td>Hands-on problem-solving — pair coding, live debugging, design review.</td>
+</tr>
+<tr>
+<td>3</td>
+<td><strong>HR-Culture</strong></td>
+<td>Soft skills, motivation, team fit, compensation alignment.</td>
+</tr>
+</tbody></table>
+<ul>
+<li>HR can pick a different interviewer per round (e.g., senior engineer for Technical, hiring manager for HR-Culture).</li>
+<li>The round number auto-increments. A duplicate round-type for the same candidate is blocked at the API level (you can&#39;t schedule two &quot;Technical&quot; rounds in a row).</li>
+<li>After each round, HR sees the prior round&#39;s review on the candidate detail page before scheduling the next.</li>
+</ul>
 <p><strong>Interviewer management:</strong></p>
 <ul>
 <li>HR adds interviewers with name, email, and <strong>expertise areas</strong> (e.g., <code>react</code>, <code>node</code>, <code>system design</code>).</li>
@@ -422,7 +478,91 @@ problems, runnable in three languages.</p>
 <em><code>10-interviews-list.png</code> — the Interviews list with date filters and Export CSV.</em></p>
 <p><img src="./screenshots/11-interview-detail.png" alt="Interview detail page">
 <em><code>11-interview-detail.png</code> — an interview detail page showing schedule, links, action bar, and the interviewer review section.</em></p>
-<h3>4.8  Interviewer Portal</h3>
+<h3>4.9  Live Interview Co-pilot</h3>
+<p>A real-time companion the interviewer opens during the live Meet/Zoom call. It replaces the old &quot;review form only at the end&quot; flow with an AI-assisted question queue, live note-taking, and an optional in-interview coding task — all in one screen.</p>
+<p><strong>Opening the co-pilot:</strong></p>
+<ul>
+<li>From the interviewer&#39;s interview-detail page, click <strong>Open co-pilot</strong>. A new session is created server-side on first open and resumed on subsequent loads.</li>
+<li>On session start, the AI generates <strong>12 JD-aware questions</strong> seeded from the candidate&#39;s resume screening JD snapshot, tech stack, and round type. Questions are returned as a fixed queue — interviewer can change the order by just asking them in the order they prefer.</li>
+</ul>
+<p><strong>The question queue (per card):</strong></p>
+<ul>
+<li><strong>Topic chip</strong> (e.g., <code>React</code>, <code>System Design</code>) + <strong>difficulty pill</strong> (easy / medium / hard, color-coded).</li>
+<li><strong>Question text</strong> in plain English — phrased as something the interviewer can read aloud.</li>
+<li><strong>Mark asked</strong> toggle — when ON, the card highlights green and the timer captures the moment the question was asked.</li>
+<li><strong>Note textarea</strong> — free-form notes about the candidate&#39;s answer; debounced and persisted every 1.2s.</li>
+<li><strong>1–5 star rating</strong> for that specific question.</li>
+</ul>
+<p><strong>Coverage bar</strong> at the top of the queue shows asked / total — a quick visual cue of how far through the queue the interviewer is.</p>
+<p><strong>End interview</strong> flushes any pending updates, ends the session, and routes the interviewer back to the interview detail page. HR can then click <strong>View interview notes</strong> on the candidate detail page to see the full per-question note + rating breakdown in a modal.</p>
+<h4>4.9.1  Auto voice transcription (zero-typing notes)</h4>
+<p>To free the interviewer from typing during a conversation, the co-pilot can auto-transcribe notes via the browser&#39;s Web Speech API:</p>
+<ul>
+<li>When the interviewer toggles <strong>Mark asked</strong> on a card, the mic auto-starts. A 🔴 <strong>Listening — click to stop</strong> pill appears above the textarea.</li>
+<li>As the interviewer paraphrases the candidate&#39;s answer aloud (5–10 words is usually enough), the transcript streams into the note in real time, with proper spacing between sentences and graceful handling of speech pauses.</li>
+<li>The mic auto-stops on the next <strong>Mark asked</strong>, on <strong>Suggest follow-ups</strong>, on <strong>End interview</strong>, on tab-switch / page-hidden, and on toggling the question off.</li>
+</ul>
+<p><strong>Browser support:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Browser</th>
+<th>Behavior</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Chrome / Edge / Brave (most Chromium)</td>
+<td>Full voice flow works.</td>
+</tr>
+<tr>
+<td>Safari (some versions)</td>
+<td>Works partially; treated as supported, falls back on error.</td>
+</tr>
+<tr>
+<td>Firefox / others</td>
+<td>Voice unavailable — a one-time toast tells the interviewer to type manually.</td>
+</tr>
+</tbody></table>
+<p><strong>Privacy &amp; limitation:</strong> Audio never leaves the browser — only the final text we already display reaches our backend. The Web Speech API listens to the <strong>system microphone only</strong>; it does NOT capture the candidate&#39;s voice coming out of the speakers (Meet/Zoom audio). The interviewer paraphrases aloud to feed the mic. The mic is OFF until the interviewer marks a question, and no audio is ever stored anywhere.</p>
+<h4>4.9.2  AI follow-up suggestions</h4>
+<p>After taking notes on an answer, the interviewer can click <strong>💡 Suggest follow-ups</strong> on the question card. The AI returns <strong>2-3 follow-up questions tailored to what&#39;s already in the note</strong> — designed to probe deeper into the candidate&#39;s answer rather than ask generic textbook questions.</p>
+<ul>
+<li>The 💡 button is disabled when the note is empty (no signal to work from).</li>
+<li>Suggestions render as a read-only bulleted list below the note, in a soft purple-bordered card.</li>
+<li><strong>↻ Regenerate</strong> asks the AI for a fresh set.</li>
+<li>Suggestions are <strong>not persisted</strong> — they&#39;re a coaching aid in the moment, not part of the official record. Each call is stateless and rate-limited.</li>
+<li>Mic auto-stops when the button is clicked so the AI doesn&#39;t keep listening while it&#39;s working.</li>
+</ul>
+<h4>4.9.3  In-interview coding task</h4>
+<p>When the interviewer wants the candidate to write live code during the call, they click <strong>Send coding task</strong> in the co-pilot header:</p>
+<ul>
+<li>A modal asks for: <strong>difficulty</strong> (easy/medium/hard) and <strong>language</strong> (JS / Python / PHP).</li>
+<li>AI <strong>generates a fresh problem on demand</strong> — title, description, starter code, and test cases (one visible sample + a few hidden).</li>
+<li>Backend creates a tokenized link the candidate can open without logging in.</li>
+<li>A <strong>CodingTasksPanel</strong> appears in the co-pilot&#39;s right column, showing the new task with status <code>Sent · waiting</code>. Interviewer clicks <strong>Copy link</strong> and pastes it into the Meet chat.</li>
+</ul>
+<p><strong>Candidate side</strong> (<code>/coding-task/:token</code>):</p>
+<ul>
+<li>IDE-style split-pane like the standalone coding test: problem on the left, Monaco editor on the right.</li>
+<li>Starter code pre-loaded. <strong>▶ Run</strong> dry-runs against visible examples (live pass/fail). <strong>Submit</strong> runs all cases (including hidden) and locks the task.</li>
+<li>Status flips to <code>Candidate viewing</code> when the page loads, and <code>Submitted</code> once the candidate clicks Submit.</li>
+</ul>
+<p><strong>Interviewer&#39;s CodingTasksPanel</strong> (polls every 5s):</p>
+<ul>
+<li>Shows each task with: title, status pill, difficulty pill, language pill, <strong>live tab-switch count badge</strong> (yellow ≥3, red ≥5).</li>
+<li>Once submitted: a <strong>View submission</strong> toggle expands to show the candidate&#39;s code, the test-case pass/fail breakdown (Input / Expected / Got / runtime), and the overall passed count.</li>
+<li><strong>Cancel</strong> is available while the task is pending or opened (turns it to <code>Cancelled</code> — candidate sees a clear &quot;Your interviewer cancelled this task&quot; page).</li>
+</ul>
+<h4>4.9.4  Candidate-side monitoring (in-interview coding task)</h4>
+<p>The same anti-cheat protections the standalone coding test has are baked into the in-interview coding task page:</p>
+<ul>
+<li><strong>Paste / copy / right-click blocked</strong> at the page level (including <code>Ctrl/Cmd+V</code> and <code>Ctrl/Cmd+C</code> keyboard shortcuts). Monaco&#39;s own context menu is also disabled.</li>
+<li><strong>Tab-switch counter</strong> — bumps on every <code>visibilitychange</code> to hidden. Visible in the candidate page header as <code>👁 Tab switches: N</code> (gray → yellow at 3 → red at 5).</li>
+<li><strong>Live mirror to the interviewer</strong> — every increment PATCHes the server, and the same badge with the same threshold colors appears next to the task in the CodingTasksPanel. The interviewer can intervene in real time if a candidate is tabbing out repeatedly.</li>
+<li><strong>Refresh-safe</strong> — count persists across page reloads (localStorage on candidate side, server-side authoritative count for the interviewer).</li>
+<li>Transparent to the candidate: the editor hint reads <strong>&quot;Pasting disabled · Tab switches tracked · Your interviewer will review your submission.&quot;</strong> — no surprise enforcement.</li>
+</ul>
+<h3>4.10  Interviewer Portal</h3>
 <p>A separate dashboard so external interviewers only see their assigned interviews and nothing else.</p>
 <ul>
 <li><strong>My interviews list</strong> — upcoming + past, with status.</li>
@@ -439,19 +579,19 @@ problems, runnable in three languages.</p>
 </ul>
 <p><img src="./screenshots/12-interviewer-review.png" alt="Interviewer review form">
 <em><code>12-interviewer-review.png</code> — the interviewer-side review form with three star ratings and comments.</em></p>
-<h3>4.9  Reviews &amp; Edit Requests (HR oversight)</h3>
+<h3>4.11  Reviews &amp; Edit Requests (HR oversight)</h3>
 <ul>
 <li>All interviewer reviews appear on both the <strong>candidate detail page</strong> and the <strong>interview detail page</strong> with: interviewer name, average rating, per-axis stars, comments, submitted-at, edit count.</li>
 <li><strong>Edit-request center</strong> at <code>/admin/review-edit-requests</code> — a queue of pending requests across all interviews. HR can approve or reject each with a note.</li>
 <li>Full <strong>edit history</strong> is shown on the review panel — every previous request, decision, reason, and HR&#39;s decision note.</li>
 </ul>
-<h3>4.10  Submissions module</h3>
+<h3>4.12  Submissions module</h3>
 <p>A dedicated browsing view of all MCQ submissions across candidates.</p>
 <ul>
 <li>Filterable, paginated list with score, outcome, cheat status.</li>
 <li>Click into a submission to see: each question, the candidate&#39;s answer, the correct answer, per-question evaluation, and the photo captured at the start of the test.</li>
 </ul>
-<h3>4.11  Settings — Integrations</h3>
+<h3>4.13  Settings — Integrations</h3>
 <p>A new admin Settings page (sidebar <strong>⚙ Settings</strong>) holds workspace-level integrations.</p>
 <p><strong>Google Calendar integration:</strong></p>
 <ul>
@@ -550,6 +690,34 @@ problems, runnable in three languages.</p>
 <td>Google Calendar event deleted; attendees get cancellation notification + our cancellation email.</td>
 </tr>
 <tr>
+<td>Interviewer opens co-pilot</td>
+<td>AI generates 12 JD-aware questions for that session (cached for resume).</td>
+</tr>
+<tr>
+<td>Interviewer toggles &quot;Mark asked&quot;</td>
+<td>Mic auto-starts (Web Speech API); transcript streams into the question&#39;s note.</td>
+</tr>
+<tr>
+<td>Interviewer clicks 💡 Suggest follow-ups</td>
+<td>Mic stops; AI returns 2-3 tailored follow-up questions based on the current note.</td>
+</tr>
+<tr>
+<td>Interviewer ends interview</td>
+<td>All pending notes/ratings flushed; session marked ended; mic released.</td>
+</tr>
+<tr>
+<td>Interviewer sends in-interview coding task</td>
+<td>AI generates a problem on demand; tokenized link surfaces in CodingTasksPanel.</td>
+</tr>
+<tr>
+<td>Candidate switches tab during in-interview coding task</td>
+<td>Count PATCHed to server; interviewer&#39;s panel badge updates within 5s.</td>
+</tr>
+<tr>
+<td>Candidate submits in-interview coding task</td>
+<td>All test cases run via Piston; results visible inline in CodingTasksPanel.</td>
+</tr>
+<tr>
 <td>Interviewer submits review</td>
 <td>Interview auto-completed.</td>
 </tr>
@@ -579,6 +747,12 @@ problems, runnable in three languages.</p>
 <li><strong>Auto-submit on timer expiry</strong>.</li>
 <li><strong>Test cases run server-side only</strong> — candidate code never executes in the browser.</li>
 <li><strong>Hidden test cases</strong> that the candidate never sees, so the answers can&#39;t be hard-coded.</li>
+</ul>
+<p><strong>In-interview coding task</strong> (same protections, plus real-time visibility for the interviewer):</p>
+<ul>
+<li>All four candidate-side blockers above (paste, copy/cut, context menu, tab-switch counter persisting through refresh).</li>
+<li><strong>Live count mirrored to the interviewer</strong> — every tab-switch PATCHes the server and the count appears next to the task in the co-pilot&#39;s CodingTasksPanel (gray → yellow at 3 → red at 5), so the interviewer can intervene during the call.</li>
+<li><strong>Hidden test cases</strong> still enforced; same Piston-backed execution pipeline.</li>
 </ul>
 <hr>
 <h2>7. Reporting &amp; data export</h2>
@@ -650,6 +824,34 @@ problems, runnable in three languages.</p>
 <td>Interview detail → Pending reschedule banner</td>
 </tr>
 <tr>
+<td>Run the live co-pilot during a meeting</td>
+<td>Interviewer Portal → interview detail → <strong>Open co-pilot</strong></td>
+</tr>
+<tr>
+<td>Send a coding task during the interview</td>
+<td>Co-pilot → <strong>Send coding task</strong> (top bar) → copy link into chat</td>
+</tr>
+<tr>
+<td>See AI follow-up suggestions for a question</td>
+<td>Co-pilot → question card → <strong>💡 Suggest follow-ups</strong></td>
+</tr>
+<tr>
+<td>Use voice instead of typing notes</td>
+<td>Co-pilot → toggle <strong>Mark asked</strong> — mic auto-starts; paraphrase aloud</td>
+</tr>
+<tr>
+<td>See the candidate&#39;s tab-switch count on the in-interview coding task</td>
+<td>Co-pilot → <strong>CodingTasksPanel</strong> (right column) — live badge per task</td>
+</tr>
+<tr>
+<td>Read all questions/notes/ratings after a session</td>
+<td>Candidate detail → <strong>View interview notes</strong></td>
+</tr>
+<tr>
+<td>Schedule Round 2 (Practical) or Round 3 (HR-Culture)</td>
+<td>Candidate detail (after prior round completed) → <strong>Schedule next round</strong></td>
+</tr>
+<tr>
 <td>See an interviewer&#39;s review</td>
 <td>Candidate detail OR Interview detail</td>
 </tr>
@@ -678,4 +880,5 @@ problems, runnable in three languages.</p>
 <li><strong>File storage</strong>: Cloudinary (resumes, photos).</li>
 <li><strong>Auth</strong>: JWT with role claims (admin / interviewer), token-based public links for candidates.</li>
 </ul>
+
 </body></html>
