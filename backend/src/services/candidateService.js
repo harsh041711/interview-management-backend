@@ -6,6 +6,7 @@ const submissionRepository = require('../repositories/submissionRepository');
 const interviewRepository = require('../repositories/interviewRepository');
 const rescheduleRequestRepository = require('../repositories/rescheduleRequestRepository');
 const reviewRepository = require('../repositories/reviewRepository');
+const liveSessionRepository = require('../repositories/liveSessionRepository');
 const codingProblemService = require('./codingProblemService');
 const { generateTestToken } = require('../utils/tokenGenerator');
 const { destroyAsset, uploadBufferToCloudinary } = require('./uploadService');
@@ -173,11 +174,60 @@ const list = async (query) => {
   };
 };
 
+const presentInterviewLite = (iv) => ({
+  id: iv._id?.toString?.() || iv.id,
+  _id: iv._id?.toString?.() || iv.id,
+  round: iv.round,
+  roundType: iv.roundType,
+  status: iv.status,
+  scheduledAt: iv.scheduledAt,
+  completedAt: iv.completedAt,
+  durationMinutes: iv.durationMinutes,
+  notes: iv.notes,
+  interviewer: iv.interviewer
+    ? { id: iv.interviewer._id?.toString?.() || iv.interviewer.id, name: iv.interviewer.name }
+    : null,
+});
+
+const presentCopilotQuestion = (q) => ({
+  text: q.text,
+  topic: q.topic,
+  difficulty: q.difficulty,
+  askedAt: q.askedAt,
+  rating: q.rating,
+  note: q.note,
+});
+
 const detail = async (id) => {
   const candidate = await candidateRepository.findById(id);
   if (!candidate) throw ApiError.notFound('Candidate not found');
   const submission = await submissionRepository.findByCandidate(id);
-  return { candidate: presentCandidate(candidate), submission };
+
+  const interviewsRaw = (await interviewRepository.list({ candidateId: id, limit: 100 })).items || [];
+  const interviewsSorted = [...interviewsRaw].sort((a, b) => (a.round || 0) - (b.round || 0));
+
+  // Fetch copilot session per interview in parallel; missing sessions yield [].
+  const sessionsByInterview = await Promise.all(
+    interviewsSorted.map((iv) => liveSessionRepository.findLatestByInterview(iv._id || iv.id)),
+  );
+
+  const interviews = interviewsSorted.map((iv, idx) => {
+    const session = sessionsByInterview[idx];
+    const askedQuestions = (session?.questions || []).filter((q) => q.askedAt);
+    return {
+      ...presentInterviewLite(iv),
+      copilotQuestions: askedQuestions.map(presentCopilotQuestion),
+    };
+  });
+
+  const reviews = await reviewRepository.findAllByCandidate(id);
+
+  return {
+    candidate: presentCandidate(candidate),
+    submission,
+    interviews,
+    reviews,
+  };
 };
 
 const remove = async (id) => {
