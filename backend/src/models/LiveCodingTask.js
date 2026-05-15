@@ -72,6 +72,10 @@ const taskSchema = new mongoose.Schema(
     },
     openedAt:    { type: Date, default: null },
     submittedAt: { type: Date, default: null },
+
+    monitoring: {
+      tabSwitches: { type: Number, default: 0, min: 0, max: 999 },
+    },
   },
   {
     timestamps: true,
