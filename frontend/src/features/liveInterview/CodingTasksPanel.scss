@@ -72,7 +72,10 @@
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.04em;
-    &--lang { background: #e0e7ff; color: #3730a3; }
+    &--lang    { background: #e0e7ff; color: #3730a3; }
+    &--monitor { display: inline-flex; align-items: center; gap: 4px; }
+    &--warn    { background: #fef3c7; color: #92400e; }
+    &--danger  { background: #fee2e2; color: #991b1b; }
   }
   &__time { color: $color-text-muted; font-size: 12px; }
 
@@ -116,23 +119,5 @@
     color: $color-text;
     span { display: block; font-weight: 600; color: $color-text-muted; }
     pre { margin: 0; background: #f9fafb; padding: 6px 8px; border-radius: $radius-md; }
-  }
-
-  &__pill {
-    &--monitor {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      background: #f1f5f9;
-      color: #475569;
-    }
-    &--warn {
-      background: #fef3c7;
-      color: #92400e;
-    }
-    &--danger {
-      background: #fee2e2;
-      color: #991b1b;
-    }
   }
 }
