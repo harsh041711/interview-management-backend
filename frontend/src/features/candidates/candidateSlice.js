@@ -8,6 +8,8 @@ const initialState = {
   filters: { search: '', status: '', techStack: '' },
   selected: null,
   selectedSubmission: null,
+  selectedInterviews: [],
+  selectedReviews: [],
   current: null,
   currentStatus: 'idle',
   stats: {},
@@ -114,6 +116,8 @@ const candidateSlice = createSlice({
     clearSelected(state) {
       state.selected = null;
       state.selectedSubmission = null;
+      state.selectedInterviews = [];
+      state.selectedReviews = [];
     },
   },
   extraReducers: (builder) => {
@@ -140,6 +144,8 @@ const candidateSlice = createSlice({
         state.current = action.payload.candidate;
         state.selected = action.payload.candidate;
         state.selectedSubmission = action.payload.submission;
+        state.selectedInterviews = action.payload.interviews || [];
+        state.selectedReviews = action.payload.reviews || [];
       })
       .addCase(fetchCandidate.rejected, (state, action) => {
         state.currentStatus = 'failed';
