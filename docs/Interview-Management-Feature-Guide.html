@@ -223,7 +223,7 @@ covered in detail later in the doc.</p>
 <li>Avatar, contact, tech-stack chips, experience level, status badge.</li>
 <li><strong>Screening panel</strong> — the AI&#39;s match %, green flags, red flags, JD title, and AI recommendation. (See §4.3.)</li>
 <li><strong>Coding Test summary</strong> card with a button that opens a dedicated review page.</li>
-<li><strong>Interviewer review</strong> (after Round 2 completes).</li>
+<li><strong>Interview timeline</strong> — a horizontal stepper of every interview round (R1 Technical → R2 Practical → R3 HR-Culture). Each node is color-coded by status (green = completed, blue = scheduled, amber = reschedule pending, hollow gray = cancelled). Click a completed node to expand the interviewer&#39;s ratings, comments, and a <strong>View co-pilot notes</strong> link that opens the per-question notes from that round&#39;s co-pilot session. A trailing dashed <strong>+ Schedule next round</strong> node appears once the previous round is completed and its review submitted — clicking it opens the schedule modal with the candidate pinned and the next round type pre-selected. The timeline replaces the old single-review block on this page (and is the source of truth for round-by-round history).</li>
 <li><strong>Action bar</strong> that adapts to the candidate&#39;s stage: Approve, Decline, Send test, Send coding test, Select for culture, Reject, Delete.</li>
 </ul>
 </li>
@@ -845,11 +845,15 @@ problems, runnable in three languages.</p>
 </tr>
 <tr>
 <td>Read all questions/notes/ratings after a session</td>
-<td>Candidate detail → <strong>View interview notes</strong></td>
+<td>Candidate detail → expand the round in the <strong>Interview timeline</strong> → <strong>View co-pilot notes</strong></td>
+</tr>
+<tr>
+<td>See a candidate&#39;s round-by-round interview history</td>
+<td>Candidate detail → <strong>Interview timeline</strong> (stepper near the bottom)</td>
 </tr>
 <tr>
 <td>Schedule Round 2 (Practical) or Round 3 (HR-Culture)</td>
-<td>Candidate detail (after prior round completed) → <strong>Schedule next round</strong></td>
+<td>Candidate detail → <strong>Interview timeline</strong> → <strong>+ Schedule next round</strong> (visible only when the prior round is completed and reviewed)</td>
 </tr>
 <tr>
 <td>See an interviewer&#39;s review</td>

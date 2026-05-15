@@ -91,7 +91,7 @@ The home base for every applicant.
   - Avatar, contact, tech-stack chips, experience level, status badge.
   - **Screening panel** — the AI's match %, green flags, red flags, JD title, and AI recommendation. (See §4.3.)
   - **Coding Test summary** card with a button that opens a dedicated review page.
-  - **Interviewer review** (after Round 2 completes).
+  - **Interview timeline** — a horizontal stepper of every interview round (R1 Technical → R2 Practical → R3 HR-Culture). Each node is color-coded by status (green = completed, blue = scheduled, amber = reschedule pending, hollow gray = cancelled). Click a completed node to expand the interviewer's ratings, comments, and a **View co-pilot notes** link that opens the per-question notes from that round's co-pilot session. A trailing dashed **+ Schedule next round** node appears once the previous round is completed and its review submitted — clicking it opens the schedule modal with the candidate pinned and the next round type pre-selected. The timeline replaces the old single-review block on this page (and is the source of truth for round-by-round history).
   - **Action bar** that adapts to the candidate's stage: Approve, Decline, Send test, Send coding test, Select for culture, Reject, Delete.
 
 ![Candidate detail page](./screenshots/03-candidate-detail.png)
@@ -535,8 +535,9 @@ Both the MCQ test and the coding test have layered protections:
 | See AI follow-up suggestions for a question | Co-pilot → question card → **💡 Suggest follow-ups** |
 | Use voice instead of typing notes | Co-pilot → toggle **Mark asked** — mic auto-starts; paraphrase aloud |
 | See the candidate's tab-switch count on the in-interview coding task | Co-pilot → **CodingTasksPanel** (right column) — live badge per task |
-| Read all questions/notes/ratings after a session | Candidate detail → **View interview notes** |
-| Schedule Round 2 (Practical) or Round 3 (HR-Culture) | Candidate detail (after prior round completed) → **Schedule next round** |
+| Read all questions/notes/ratings after a session | Candidate detail → expand the round in the **Interview timeline** → **View co-pilot notes** |
+| See a candidate's round-by-round interview history | Candidate detail → **Interview timeline** (stepper near the bottom) |
+| Schedule Round 2 (Practical) or Round 3 (HR-Culture) | Candidate detail → **Interview timeline** → **+ Schedule next round** (visible only when the prior round is completed and reviewed) |
 | See an interviewer's review | Candidate detail OR Interview detail |
 | Approve a review edit request | Admin → **Edit requests** |
 | Export everything | Candidates / Interviews → **↓ Export CSV** |
