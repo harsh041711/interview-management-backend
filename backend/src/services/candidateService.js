@@ -516,6 +516,9 @@ const sendTest = async (id) => {
 const sendCodingTest = async (id, { problemCount = 1, durationMinutes = 30, difficulty = 'medium', problemIds }, adminId) => {
   const candidate = await candidateRepository.findById(id);
   if (!candidate) throw ApiError.notFound('Candidate not found');
+  if (!['shortlisted', 'awaiting_decision', 'selected_for_culture'].includes(candidate.status)) {
+    throw ApiError.conflict('Candidate must clear the MCQ test first', { code: 'E_MCQ_NOT_CLEARED' });
+  }
   if (candidate.codingTest?.sentAt && !candidate.codingTest?.submittedAt) {
     const expired = candidate.codingTest.expiresAt && candidate.codingTest.expiresAt.getTime() < Date.now();
     if (!expired) {

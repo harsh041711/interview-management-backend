@@ -157,3 +157,80 @@ describe('candidateService.detail — multi-round timeline payload', () => {
     expect(out.submission).toEqual({ score: 80, outcome: 'shortlisted' });
   });
 });
+
+describe('candidateService.sendCodingTest — MCQ-cleared gate', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    candidateRepository.findById = jest.fn();
+  });
+
+  const baseCandidate = (status, overrides = {}) => ({
+    id: 'c1',
+    _id: 'c1',
+    status,
+    techStack: ['react'],
+    codingTest: undefined,
+    save: jest.fn().mockResolvedValue(undefined),
+    ...overrides,
+  });
+
+  test('rejects with E_MCQ_NOT_CLEARED when status is resume_approved', async () => {
+    candidateRepository.findById.mockResolvedValue(baseCandidate('resume_approved'));
+    await expect(svc.sendCodingTest('c1', {}, 'admin1'))
+      .rejects.toMatchObject({ statusCode: 409, code: 'E_MCQ_NOT_CLEARED' });
+  });
+
+  test('rejects with E_MCQ_NOT_CLEARED when status is in_progress', async () => {
+    candidateRepository.findById.mockResolvedValue(baseCandidate('in_progress'));
+    await expect(svc.sendCodingTest('c1', {}, 'admin1'))
+      .rejects.toMatchObject({ statusCode: 409, code: 'E_MCQ_NOT_CLEARED' });
+  });
+
+  test('rejects with E_MCQ_NOT_CLEARED when status is completed (MCQ submitted but not graded)', async () => {
+    candidateRepository.findById.mockResolvedValue(baseCandidate('completed'));
+    await expect(svc.sendCodingTest('c1', {}, 'admin1'))
+      .rejects.toMatchObject({ statusCode: 409, code: 'E_MCQ_NOT_CLEARED' });
+  });
+
+  test('rejects with E_MCQ_NOT_CLEARED when status is rejected', async () => {
+    candidateRepository.findById.mockResolvedValue(baseCandidate('rejected'));
+    await expect(svc.sendCodingTest('c1', {}, 'admin1'))
+      .rejects.toMatchObject({ statusCode: 409, code: 'E_MCQ_NOT_CLEARED' });
+  });
+
+  test('rejects with E_MCQ_NOT_CLEARED when status is cheated', async () => {
+    candidateRepository.findById.mockResolvedValue(baseCandidate('cheated'));
+    await expect(svc.sendCodingTest('c1', {}, 'admin1'))
+      .rejects.toMatchObject({ statusCode: 409, code: 'E_MCQ_NOT_CLEARED' });
+  });
+
+  test('allows when status is shortlisted', async () => {
+    const codingProblemService = require('../../src/services/codingProblemService');
+    codingProblemService.sampleForCandidate.mockResolvedValue([
+      { id: 'p1', title: 'Problem 1', difficulty: 'medium', supportedLanguages: ['js'] },
+    ]);
+    candidateRepository.findById.mockResolvedValue(baseCandidate('shortlisted'));
+    const out = await svc.sendCodingTest('c1', { problemCount: 1, difficulty: 'medium' }, 'admin1');
+    expect(out).toBeDefined();
+  });
+
+  test('allows when status is awaiting_decision (re-send after later progression)', async () => {
+    const codingProblemService = require('../../src/services/codingProblemService');
+    codingProblemService.sampleForCandidate.mockResolvedValue([
+      { id: 'p1', title: 'Problem 1', difficulty: 'medium', supportedLanguages: ['js'] },
+    ]);
+    candidateRepository.findById.mockResolvedValue(baseCandidate('awaiting_decision'));
+    const out = await svc.sendCodingTest('c1', { problemCount: 1, difficulty: 'medium' }, 'admin1');
+    expect(out).toBeDefined();
+  });
+
+  test('allows when status is selected_for_culture', async () => {
+    const codingProblemService = require('../../src/services/codingProblemService');
+    codingProblemService.sampleForCandidate.mockResolvedValue([
+      { id: 'p1', title: 'Problem 1', difficulty: 'medium', supportedLanguages: ['js'] },
+    ]);
+    candidateRepository.findById.mockResolvedValue(baseCandidate('selected_for_culture'));
+    const out = await svc.sendCodingTest('c1', { problemCount: 1, difficulty: 'medium' }, 'admin1');
+    expect(out).toBeDefined();
+  });
+});
