@@ -1,4 +1,4 @@
-# AI Follow-up Suggestions — Design Spec
+# AI Follow-up Suggestions + Auto Voice Notes — Design Spec
 
 **Status:** Approved
 **Date:** 2026-05-15
@@ -8,53 +8,52 @@
 
 ## Goal
 
-On the interview co-pilot page, give each `QuestionCard` a "Suggest follow-ups" button. When the interviewer clicks it (after writing a note about the candidate's answer), AI returns 2-3 follow-up questions tailored to what was said. Suggestions render below the note as a read-only list. Interviewer reads them and asks aloud — they are not stored, not turned into new question cards, and disappear on page reload.
+On the interview co-pilot page, eliminate the typing-during-interview problem AND give the interviewer AI-tailored follow-ups, with **zero extra clicks beyond what they already do**.
+
+Two coupled features:
+
+1. **Voice auto-transcription** — when the interviewer clicks "Mark asked" on a question (which they already do), the browser starts listening via the Web Speech API. The candidate's answer (and/or interviewer's paraphrase) streams into the note textarea in real time. Mic auto-stops on the next "Mark asked", on "Suggest follow-ups", or on End interview.
+2. **AI follow-up suggestions** — each question card has a 💡 button. Clicking it sends `{ questionText, note, topic, difficulty }` to a new stateless backend endpoint; AI returns 2-3 follow-up questions tailored to what's in the note. They render under the note as a read-only list. Not persisted.
+
+---
+
+## End-to-end Flow
+
+```
+1. Interviewer clicks "Mark asked" on Q1            ← existing click
+       ↓ mic auto-starts (Web Speech API)
+       Card shows: 🔴 Listening — click to stop
+       ↓
+2. Candidate answers; transcript streams into Q1's note textarea live
+       ↓ interviewer can correct typos in real time
+3. Interviewer clicks 💡 "Suggest follow-ups"  OR  moves to Q2
+       ↓ mic auto-stops
+       AI suggestions render below the note (2-3 items, read-only)
+       ↓
+4. Click "Mark asked" on Q2  → Q1 mic stops, Q2 mic starts
+```
+
+**Auto-stop triggers (all automatic):**
+- Clicking "Mark asked" on a different question → swaps listening to that one
+- Clicking 💡 "Suggest follow-ups" on the current question
+- Toggling "Mark asked" off (un-asking the question)
+- Clicking "End interview"
+- Tab switch / page hidden (browsers do this anyway; we ensure clean stop)
 
 ---
 
 ## Architecture
 
-One new stateless backend endpoint. One new AI service method. Frontend extends the existing `QuestionCard` with local-only state.
+### Backend (stateless, no schema changes)
 
-```
-[interviewer writes a note for question N]
-  ↓ clicks 💡 "Suggest follow-ups"
-  ↓
-POST /me/ai/suggest-follow-ups
-  body: { questionText, note, topic, difficulty }
-  ↓
-liveInterviewAiService.suggestFollowUps()
-  → aiService.askWithFallback(prompt, { json: true })
-  ↓
-returns { suggestions: ["...", "...", "..."] }
-  ↓
-[QuestionCard renders the list under the note with a ↻ Regenerate link]
-```
-
-**Why stateless:** The candidate note is debounced (1.2s) before flushing to the LiveSession. Having the client send `{ questionText, note }` in the request body avoids the race and keeps the endpoint simple — no DB lookup, no question-index ownership check needed.
-
----
-
-## Backend
-
-### New file
-
-| File | Responsibility |
+| Layer | New / Modified |
 |---|---|
-| (none) — extends existing `liveInterviewAiService.js` and `liveInterviewController.js` |  |
+| `backend/src/services/liveInterviewAiService.js` | Add `suggestFollowUps({ questionText, note, topic, difficulty })` |
+| `backend/src/controllers/liveInterviewController.js` | Add `suggestFollowUps` handler |
+| `backend/src/validators/liveInterviewValidator.js` | Add `suggestFollowUpsBody` Joi schema |
+| `backend/src/routes/liveInterviewRoutes.js` | Add `POST /ai/suggest-follow-ups` (interviewer auth + `aiLimiter`) |
 
-### Modified files
-
-| File | Change |
-|---|---|
-| `backend/src/services/liveInterviewAiService.js` | Add `suggestFollowUps({ questionText, note, topic, difficulty })`. Builds a focused prompt, calls `aiService.askWithFallback(prompt)` (default JSON mode), parses, validates, returns `{ suggestions: string[] }`. |
-| `backend/src/controllers/liveInterviewController.js` | Add `suggestFollowUps` handler — thin wrapper. |
-| `backend/src/validators/liveInterviewValidator.js` | Add `suggestFollowUpsBody` Joi schema: `questionText` (string, 1-2000), `note` (string, 1-2000), `topic` (string, optional, ≤200), `difficulty` (enum optional). |
-| `backend/src/routes/liveInterviewRoutes.js` | Add `POST /ai/suggest-follow-ups` under the existing `requireAuth + requireRole('interviewer')` block. Apply `aiLimiter` middleware (same rate limiter used by `start`). |
-
-### Service Implementation Detail
-
-**`suggestFollowUps({ questionText, note, topic, difficulty })`:**
+**Service `suggestFollowUps` prompt:**
 
 ```js
 const buildFollowUpPrompt = ({ questionText, note, topic, difficulty }) => `You are helping an interviewer ask better follow-up questions during a live technical interview.
@@ -63,13 +62,13 @@ Question that was asked:
 """${questionText}"""
 
 ${topic ? `Topic: ${topic}\n` : ''}${difficulty ? `Difficulty: ${difficulty}\n` : ''}
-Interviewer's note about the candidate's answer (paraphrased — may be incomplete):
+Interviewer's note about the candidate's answer (transcribed or paraphrased — may be incomplete):
 """${note}"""
 
 Generate 2-3 follow-up questions that probe deeper into the candidate's answer.
 - Stay on the same topic.
 - Prefer concrete, specific questions over generic ones.
-- Aim for questions that test depth of understanding, not memorization.
+- Test depth of understanding, not memorization.
 - Each follow-up should be one sentence.
 
 Output ONLY valid JSON in this shape (no markdown, no commentary):
@@ -78,12 +77,14 @@ Output ONLY valid JSON in this shape (no markdown, no commentary):
 
 - Call `aiService.askWithFallback(prompt)` (default `{ json: true }` is correct).
 - Parse with `aiService.extractJson`.
-- Validate: must be `{ suggestions: string[] }` with length 1-5. Trim each, drop empty, cap to 3.
-- If AI returns no text → throw `ApiError.serviceUnavailable('AI could not generate suggestions', { code: 'E_AI_FAILED' })`.
-- If AI returns invalid shape → throw `ApiError.serviceUnavailable('AI returned invalid suggestions', { code: 'E_AI_PARSE' })`.
-- Otherwise return `{ suggestions, provider, model }`.
+- Validate: must be `{ suggestions: string[] }` with length 1-5. Trim, drop empty, cap to 3.
+- If AI returns no text → `ApiError.serviceUnavailable('AI could not generate suggestions', { code: 'E_AI_FAILED' })`.
+- If AI returns invalid shape → `ApiError.serviceUnavailable('AI returned invalid suggestions', { code: 'E_AI_PARSE' })`.
+- Return `{ suggestions, provider, model }`.
 
-### Route
+**Why stateless:** the note may not be flushed to the LiveSession yet (1.2s debounce). Client sends `{ questionText, note }` in the body — no DB read, no race, no per-question ownership check needed.
+
+**Route:**
 
 ```js
 router.post(
@@ -94,49 +95,71 @@ router.post(
 );
 ```
 
-### Tests (backend)
+### Frontend
 
-Add to `backend/tests/unit/liveInterviewAiService.test.js`:
-
-- Happy path: `askWithFallback` mocked to return valid JSON → service returns `{ suggestions: [...] }` with up to 3 items.
-- AI returns no text → throws 503 with code `E_AI_FAILED`.
-- AI returns invalid JSON shape → throws 503 with code `E_AI_PARSE`.
-- AI returns more than 3 suggestions → service caps to 3.
-- AI returns suggestions with empty/whitespace strings → service drops them.
-
----
-
-## Frontend
-
-### Modified files
-
-| File | Change |
+| Layer | New / Modified |
 |---|---|
-| `frontend/src/api/liveInterviewApi.js` | Add `suggestFollowUps({ questionText, note, topic, difficulty })` → `POST /me/ai/suggest-follow-ups`. |
-| `frontend/src/features/liveInterview/QuestionCard.jsx` | Add local `useState` for `suggestions`, `loading`, `error`. Add 💡 button between the note textarea and the rating row. Render suggestions list when present. |
-| `frontend/src/features/liveInterview/QuestionCard.scss` | Add styles for the button + suggestions list. |
+| `frontend/src/api/liveInterviewApi.js` | Add `suggestFollowUps({ questionText, note, topic, difficulty })` |
+| `frontend/src/features/liveInterview/useLiveTranscript.js` | **NEW** — custom hook that owns the single `SpeechRecognition` instance. Exposes `start(index, onText)`, `stop()`, `isListening`, `currentIndex`, `supported`, `error`. |
+| `frontend/src/features/liveInterview/LiveInterviewPage.jsx` | Orchestrates the transcript hook. Passes a wrapped `onFieldChange` so "Mark asked" toggles also start/stop the mic. Auto-stops on End interview. |
+| `frontend/src/features/liveInterview/QuestionCard.jsx` | Receives `isListening`, `onSuggestFollowUps`. Renders 🔴 listening indicator above the textarea when active. Adds 💡 button + suggestions block below the textarea (replaces the older "no-button" layout). |
+| `frontend/src/features/liveInterview/QuestionCard.scss` | Styles for indicator + button + suggestions list. |
 
-### UI layout
+**`useLiveTranscript` interface:**
 
-The button + suggestions block sits **between** the note textarea and the rating row.
+```js
+function useLiveTranscript() {
+  // returns:
+  // {
+  //   supported: boolean,           // Web Speech API available?
+  //   isListening: boolean,
+  //   currentIndex: number | null,  // question index currently being transcribed
+  //   error: string | null,         // 'permission-denied' | 'no-speech' | null
+  //   start: (index, onText) => void,  // start listening for that question; onText(chunk) fires repeatedly
+  //   stop: () => void,
+  // }
+}
+```
+
+- Singleton `SpeechRecognition` per browser tab (the API doesn't allow multiple).
+- `continuous: true`, `interimResults: true`, `lang: 'en-US'` (configurable later).
+- On each `result` event, build the final text since last call and invoke `onText(text)` with the chunk.
+- On `error` event: set `error`, stop listening. Handle `'not-allowed'` (permission denied) and `'no-speech'` separately.
+- On unmount, stop and clean up listeners.
+
+**`LiveInterviewPage` orchestration:**
+
+- Holds the hook instance.
+- Wraps the existing `onFieldChange` so that when `field === 'askedAt'`:
+  - If marking AS asked: call `transcript.start(index, (chunk) => onFieldChange(index, 'note', existingNote + chunk))`
+  - If marking off: call `transcript.stop()`
+- Wraps the End interview handler: call `transcript.stop()` before navigating away.
+- Passes `isListening`, `currentIndex`, `transcript.stop` down to each `QuestionCard`.
+
+**`QuestionCard` changes:**
+
+Layout when listening:
 
 ```
-[EASY] [Topic]            [Mark asked]
+[EASY] [Topic]                            [✓ Asked]
 Question text…
-┌────────────────────────────────────┐
-│ Quick note about the answer…       │  ← existing textarea
-└────────────────────────────────────┘
-[💡 Suggest follow-ups]                ← NEW (disabled if note is empty)
-  ┌── Follow-up suggestions ────┐
-  • Follow-up 1                  │
-  • Follow-up 2                  │
-  • Follow-up 3                  │
-  ↻ Regenerate                   │
-  └───────────────────────────────┘    ← NEW (after click)
+┌──────────────────────────────────────────┐
+│ 🔴 Listening — click to stop             │  ← only visible when this card is the listening one
+└──────────────────────────────────────────┘
+┌──────────────────────────────────────────┐
+│ they use Redux mostly for forms,         │  ← textarea, streaming + editable
+│ haven't tried Zustand…                   │
+└──────────────────────────────────────────┘
+[💡 Suggest follow-ups]                       ← disabled if note empty
+  ┌── Follow-up suggestions ───────────────┐
+  • Follow-up 1                             │
+  • Follow-up 2                             │
+  ↻ Regenerate                              │
+  └──────────────────────────────────────────┘
 Rating: ★ ★ ★ ★ ★
 ```
 
-### Component state
+**Local component state (suggestions are not persisted):**
 
 ```jsx
 const [suggestions, setSuggestions] = useState([]);
@@ -144,66 +167,95 @@ const [loading, setLoading] = useState(false);
 const [error, setError] = useState('');
 ```
 
-State is local to the `QuestionCard`. Not persisted to the LiveSession, not in Redux. Reload = gone. That's intentional — suggestions are a quick assist, not part of the review record.
+**Behavior:**
 
-### Behavior
+- 💡 button disabled if note is empty.
+- Click 💡 → calls `transcript.stop()` (so the mic doesn't keep listening while AI is working), then POSTs to `/me/ai/suggest-follow-ups`, sets `suggestions`.
+- Loading: button shows "Generating…" + spinner.
+- Error: inline red one-liner; ↻ Regenerate retries.
 
-- **Button is disabled** if `!question.note?.trim()` — nothing useful to follow up on yet.
-- **Click** → set `loading=true`, clear `error`, call `liveInterviewApi.suggestFollowUps({...})`. On success, set `suggestions`. On error, set `error` to the API message.
-- **While loading** — button shows a small spinner + "Generating…" label, is disabled.
-- **Regenerate** — same call, clears existing suggestions first.
-- **Error display** — small red one-liner below the button: "Couldn't generate suggestions — try again."
+---
 
-### Visual style
+## Browser Compatibility & Fallback
 
-- Button matches existing `QuestionCard` aesthetic (ghost-style, small).
-- Suggestions block: light gray background, indented bullet list, monospace numbers, soft border-left to indicate "AI" provenance.
+| Browser | Behavior |
+|---|---|
+| Chrome / Edge / Brave (most Chromium) | Full voice flow works. |
+| Safari (some versions) | Partial — `webkitSpeechRecognition` works inconsistently. Treat as supported; on `error`, fall back. |
+| Firefox | Not supported. Hook returns `supported: false`. |
+| Any other | Same fallback. |
+
+**Fallback path (when `supported === false`):**
+
+- No mic auto-start on "Mark asked".
+- No 🔴 listening indicator.
+- Textarea works as today — interviewer types manually.
+- 💡 button still works (just requires manual typing).
+- One-time toast on first card open: "Voice unavailable in this browser — type your note instead. Suggestions still work."
+
+**Permission denied:**
+
+- On first `error: 'not-allowed'`, set hook `error = 'permission-denied'`.
+- LiveInterviewPage shows a toast: "Mic blocked. Allow it in browser settings, or type your note instead."
+- Subsequent "Mark asked" clicks no longer try to start the mic (until page reload).
+
+---
+
+## Privacy
+
+- Audio never leaves the browser. Web Speech API runs locally (Chrome uses Google's server, but no audio is exposed to our backend — we only see the final text the user has reviewed).
+- Mic is OFF until the interviewer clicks "Mark asked".
+- Mic stops on tab switch, page hidden, End interview, "Suggest follow-ups", and toggle-off.
+- No recording — only live transcription. Once a session ends, the audio is gone (not stored anywhere).
+
+---
+
+## Tests
+
+### Backend — Jest
+
+Add to `backend/tests/unit/liveInterviewAiService.test.js`:
+
+- Happy path: `askWithFallback` mocked to return valid JSON → returns `{ suggestions: [...] }` with up to 3 items.
+- AI returns no text → throws 503 with code `E_AI_FAILED`.
+- AI returns invalid JSON shape → throws 503 with code `E_AI_PARSE`.
+- AI returns >3 suggestions → caps to 3.
+- AI returns suggestions with empty / whitespace strings → drops them.
+
+No new route-level integration test needed (the existing auth/validation middleware tests cover it).
+
+### Frontend — Manual
+
+1. Open co-pilot for a scheduled interview in Chrome.
+2. Click "Mark asked" on Q1. Browser asks for mic permission → allow.
+3. Card shows "🔴 Listening — click to stop". Speak a paraphrase aloud — confirm text streams into the textarea within ~1s.
+4. Click "Mark asked" on Q2 → Q1 listening indicator goes away, Q2 starts listening.
+5. On Q2, click 💡 Suggest follow-ups → mic stops, 2-3 suggestions render below the note within ~3-5s.
+6. Click ↻ Regenerate → new suggestions render.
+7. Click End interview → mic stops cleanly (verify by checking browser tab indicator).
+8. Reopen co-pilot → suggestions are gone (confirmed not persisted).
+9. Open in Firefox → no mic indicator, toast "Voice unavailable", textarea works manually, 💡 still works.
+10. Deny mic permission in Chrome → toast "Mic blocked", textarea fallback.
 
 ---
 
 ## Out of Scope (YAGNI)
 
-- Click-to-add as new question card (can revisit if interviewers want it).
-- Coverage gap detection ("you haven't covered X yet").
-- Auto-trigger after note typing (would burn AI credits, distract).
-- Saving suggestions to the LiveSession.
-- Showing AI provider/model attribution in the UI.
-- "Copy suggestion to clipboard" buttons.
+- Click-to-add a suggestion as a new question card.
+- Coverage-gap detection ("you haven't covered X").
+- Saving suggestions or transcripts to the LiveSession.
+- Auto-trigger AI suggestions without a click (would burn credits).
+- Mic-language picker (locked to `en-US`).
+- Server-side speech recognition (Deepgram, Whisper, etc.).
+- Recording / replay of the audio.
+- "Suggest next question to ask" global button (separate Phase 2 item — coverage gaps).
 
 ---
 
-## Error Handling
+## Future Enhancements (not in this plan)
 
-| Scenario | Behavior |
-|---|---|
-| Note is empty | Button disabled — never makes the request. |
-| AI providers both fail | 503 from server with `E_AI_FAILED` → toast / inline error: "Couldn't generate suggestions — try again." |
-| AI returns invalid JSON | 503 with `E_AI_PARSE` → same inline error. |
-| Rate-limited (aiLimiter) | 429 → inline error: "Too many requests — wait a moment." |
-| Network failure | Inline error with retry option (just regenerate button). |
-| Interviewer hits Regenerate while a call is in flight | Second click is a no-op (button disabled while `loading=true`). |
-
----
-
-## Testing
-
-### Backend — Jest
-See "Tests" section under Backend. 5 unit tests on the service. No new route-level test (covered by existing auth/validation middleware tests + manual smoke).
-
-### Frontend — Manual
-1. Open co-pilot for a scheduled interview.
-2. On any question card, confirm 💡 button is **disabled** when the note is empty.
-3. Type a note → button enables. Click it.
-4. Within ~3-5s, 2-3 follow-up questions render under the note.
-5. Click ↻ Regenerate → suggestions clear, new ones render.
-6. Force AI failure (temporarily clear both AI keys, restart backend, retry click) → see inline error.
-7. Refresh the page → suggestions are gone (confirmed not persisted).
-
----
-
-## Future Enhancements (separate work, not in this plan)
-
-- "Coverage check" — periodic AI pass that lists topics not yet covered, given the JD.
-- "Ask this" button to insert a suggestion as a new question card in the queue.
-- Suggestion history per question (track which suggestions were actually asked).
-- Inline highlighting in the suggestion text when it overlaps with another question's topic.
+- Round-context handoff: surface prior round reviews so suggestions account for what's already been asked.
+- "Ask this" button to push a suggestion as a new question card in the queue.
+- Coverage tracking — periodic AI check that lists JD topics not yet covered.
+- Configurable transcription language.
+- Suggestion history per question (track which were actually used).
