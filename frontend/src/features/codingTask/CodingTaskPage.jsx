@@ -28,6 +28,15 @@ const normalizeStarter = (raw) => {
   return raw;
 };
 
+const tabSwKey = (token) => `coding-task:${token}:tabSwitches`;
+
+const readStoredTabSwitches = (token) => {
+  try {
+    const n = parseInt(localStorage.getItem(tabSwKey(token)) || '0', 10);
+    return Number.isFinite(n) && n >= 0 ? n : 0;
+  } catch { return 0; }
+};
+
 export default function CodingTaskPage() {
   const { token } = useParams();
   const { push } = useToast();
@@ -41,6 +50,7 @@ export default function CodingTaskPage() {
   const [running, setRunning] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(null); // summary after submit
+  const [tabSwitches, setTabSwitches] = useState(() => readStoredTabSwitches(token));
 
   useEffect(() => {
     let cancelled = false;
@@ -58,6 +68,41 @@ export default function CodingTaskPage() {
         setLoadError(err?.response?.data?.message || 'Could not load this task.');
       });
     return () => { cancelled = true; };
+  }, [token]);
+
+  // Anti-cheat monitoring: count tab switches (PATCH to server on each bump)
+  // and block paste/copy/right-click while the candidate has this page open.
+  useEffect(() => {
+    if (!token) return undefined;
+
+    const onVis = () => {
+      if (!document.hidden) return;
+      const cur = Number(localStorage.getItem(tabSwKey(token))) || 0;
+      const next = cur + 1;
+      try { localStorage.setItem(tabSwKey(token), String(next)); } catch { /* ignore */ }
+      setTabSwitches(next);
+      liveCodingTaskApi.reportMonitoring(token, { tabSwitches: next }).catch(() => {});
+    };
+
+    const block = (e) => { e.preventDefault(); };
+    const blockKey = (e) => {
+      const k = (e.key || '').toLowerCase();
+      if ((e.ctrlKey || e.metaKey) && (k === 'v' || k === 'c')) e.preventDefault();
+    };
+
+    document.addEventListener('visibilitychange', onVis);
+    document.addEventListener('paste', block);
+    document.addEventListener('copy', block);
+    document.addEventListener('contextmenu', block);
+    document.addEventListener('keydown', blockKey);
+
+    return () => {
+      document.removeEventListener('visibilitychange', onVis);
+      document.removeEventListener('paste', block);
+      document.removeEventListener('copy', block);
+      document.removeEventListener('contextmenu', block);
+      document.removeEventListener('keydown', blockKey);
+    };
   }, [token]);
 
   const onRun = async () => {
@@ -122,9 +167,18 @@ export default function CodingTaskPage() {
           <div className="coding-task__title">Interview coding task</div>
           <div className="coding-task__subtitle">Write your solution and click Submit when ready.</div>
         </div>
-        <span className={`coding-task__difficulty coding-task__difficulty--${task.problem.difficulty}`}>
-          {task.problem.difficulty}
-        </span>
+        <div className="coding-task__head-right">
+          <span className={`coding-task__tabsw ${
+            tabSwitches >= 5 ? 'coding-task__tabsw--danger'
+            : tabSwitches >= 3 ? 'coding-task__tabsw--warn'
+            : ''
+          }`}>
+            👁 Tab switches: {tabSwitches}
+          </span>
+          <span className={`coding-task__difficulty coding-task__difficulty--${task.problem.difficulty}`}>
+            {task.problem.difficulty}
+          </span>
+        </div>
       </div>
 
       <div className="coding-task__body">
@@ -216,7 +270,7 @@ export default function CodingTaskPage() {
               <span>Language:</span>
               <span className="coding-task__lang-fixed">{LANG_LABEL[task.problem.language] || task.problem.language}</span>
             </div>
-            <span className="coding-task__editor-hint">Live interview · your interviewer will review your submission</span>
+            <span className="coding-task__editor-hint">Pasting disabled · Tab switches tracked · Your interviewer will review your submission</span>
           </div>
 
           <div className="coding-task__editor-area">
@@ -228,6 +282,7 @@ export default function CodingTaskPage() {
               onChange={(v) => setCode(v ?? '')}
               options={{
                 minimap: { enabled: false },
+                contextmenu: false,
                 fontSize: 14,
                 automaticLayout: true,
                 scrollBeyondLastLine: false,
