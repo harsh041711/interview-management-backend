@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch, useSelector, useStore } from 'react-redux';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import Button from '@/components/common/Button';
 import Loader from '@/components/common/Loader';
@@ -38,6 +38,7 @@ export default function LiveInterviewPage() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { push } = useToast();
+  const store = useStore();
   const { session, status, error } = useSelector((s) => s.liveInterview);
   const { detail } = useSelector((s) => s.myInterviews);
 
@@ -115,11 +116,11 @@ export default function LiveInterviewPage() {
     // When 'Mark asked' toggles, start/stop the mic for that card.
     if (field === 'askedAt') {
       if (value) {
-        // Marking as asked → start listening, append transcript chunks to that
-        // card's note (read latest from the store inside the callback so we don't
-        // capture a stale value).
+        // Read the latest note from the store on every chunk so pauses in
+        // speech don't replay a stale empty snapshot and overwrite prior text.
         transcript.start(index, (chunk) => {
-          const q = (session?.questions || [])[index] || {};
+          const liveSession = store.getState().liveInterview.session;
+          const q = (liveSession?.questions || [])[index] || {};
           const existing = q.note || '';
           const sep = existing && !existing.endsWith(' ') ? ' ' : '';
           onFieldChange(index, 'note', existing + sep + chunk.trim());
