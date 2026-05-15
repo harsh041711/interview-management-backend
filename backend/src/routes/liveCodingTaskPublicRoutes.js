@@ -10,5 +10,6 @@ const router = express.Router();
 router.get('/:token',         validate(v.tokenParamSchema), ctrl.getPublic);
 router.post('/:token/run',    codingRunLimiter, validate(v.runSchema), ctrl.run);
 router.post('/:token/submit', validate(v.submitSchema), ctrl.submit);
+router.patch('/:token/monitoring', validate(v.reportMonitoringSchema), ctrl.reportMonitoring);
 
 module.exports = router;

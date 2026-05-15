@@ -33,6 +33,13 @@ const runSchema = {
 
 const submitSchema = runSchema;
 
+const reportMonitoringSchema = {
+  params: Joi.object({ token: Joi.string().min(8).max(128).required() }),
+  body:   Joi.object({
+    tabSwitches: Joi.number().integer().min(0).max(999).required(),
+  }),
+};
+
 module.exports = {
   interviewIdParam,
   createSchema,
@@ -40,4 +47,5 @@ module.exports = {
   tokenParamSchema,
   runSchema,
   submitSchema,
+  reportMonitoringSchema,
 };

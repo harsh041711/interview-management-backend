@@ -38,4 +38,12 @@ const submit = asyncHandler(async (req, res) => {
   return ok(res, out, 'Submitted');
 });
 
-module.exports = { create, list, cancel, getPublic, run, submit };
+const reportMonitoring = asyncHandler(async (req, res) => {
+  const out = await svc.reportMonitoring({
+    token: req.params.token,
+    tabSwitches: req.body.tabSwitches,
+  });
+  return ok(res, out, 'OK');
+});
+
+module.exports = { create, list, cancel, getPublic, run, submit, reportMonitoring };
