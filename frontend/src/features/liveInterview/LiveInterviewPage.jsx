@@ -15,6 +15,7 @@ import QuestionCard from './QuestionCard';
 import CoverageBar from './CoverageBar';
 import SendCodingTaskModal from './SendCodingTaskModal';
 import CodingTasksPanel from './CodingTasksPanel';
+import useLiveTranscript from './useLiveTranscript';
 import './LiveInterviewPage.scss';
 
 const DEBOUNCE_MS = 1200;
@@ -40,6 +41,9 @@ export default function LiveInterviewPage() {
   const { session, status, error } = useSelector((s) => s.liveInterview);
   const { detail } = useSelector((s) => s.myInterviews);
 
+  const transcript = useLiveTranscript();
+  const permissionWarnedRef = useRef(false);
+
   // Buffer of pending updates to debounce-flush. Keyed by `${index}:${field}` so
   // a rapid sequence on the same field collapses to the latest value.
   const pendingRef = useRef(new Map());
@@ -64,6 +68,28 @@ export default function LiveInterviewPage() {
     };
   }, [id, dispatch]);
 
+  // Surface mic-permission error once.
+  useEffect(() => {
+    if (transcript.error === 'permission-denied' && !permissionWarnedRef.current) {
+      permissionWarnedRef.current = true;
+      push({
+        type: 'warn',
+        message: 'Mic blocked. Allow it in browser settings, or type your note instead.',
+      });
+    }
+  }, [transcript.error, push]);
+
+  // Tell the user once if their browser can't do voice.
+  useEffect(() => {
+    if (!transcript.supported) {
+      push({
+        type: 'info',
+        message: 'Voice unavailable in this browser — type your notes manually. Suggestions still work.',
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // run once on first mount
+
   const flushPending = async () => {
     if (!session || !pendingRef.current.size) return;
     // Aggregate by index → single update per question, latest field values win.
@@ -85,11 +111,30 @@ export default function LiveInterviewPage() {
     pendingRef.current.set(`${index}:${field}`, value);
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(flushPending, DEBOUNCE_MS);
+
+    // When 'Mark asked' toggles, start/stop the mic for that card.
+    if (field === 'askedAt') {
+      if (value) {
+        // Marking as asked → start listening, append transcript chunks to that
+        // card's note (read latest from the store inside the callback so we don't
+        // capture a stale value).
+        transcript.start(index, (chunk) => {
+          const q = (session?.questions || [])[index] || {};
+          const existing = q.note || '';
+          const sep = existing && !existing.endsWith(' ') ? ' ' : '';
+          onFieldChange(index, 'note', existing + sep + chunk.trim());
+        });
+      } else {
+        // Toggled off → stop only if this card was the active listener.
+        if (transcript.currentIndex === index) transcript.stop();
+      }
+    }
   };
 
   const onEnd = async () => {
     if (!session || endingRef.current) return;
     endingRef.current = true;
+    transcript.stop();
     if (timerRef.current) clearTimeout(timerRef.current);
     await flushPending();
     const a = await dispatch(endLiveSession(session.id || session._id));
@@ -147,7 +192,14 @@ export default function LiveInterviewPage() {
             </>
           )}
           {(session.questions || []).map((q, i) => (
-            <QuestionCard key={i} question={q} index={i} onChange={onFieldChange} />
+            <QuestionCard
+              key={i}
+              question={q}
+              index={i}
+              onChange={onFieldChange}
+              isListening={transcript.isListening && transcript.currentIndex === i}
+              onStopListening={transcript.stop}
+            />
           ))}
           <CodingTasksPanel interviewId={id} />
         </section>
