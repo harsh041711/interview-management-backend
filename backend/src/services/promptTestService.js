@@ -15,6 +15,9 @@ const PREVIEW_LIMIT = 5;
 const assign = async ({ candidateId, problemId, adminId }) => {
   const candidate = await candidateRepository.findById(candidateId);
   if (!candidate) throw ApiError.notFound('Candidate not found');
+  if (candidate.codingTest?.outcome !== 'shortlisted') {
+    throw ApiError.conflict('Candidate must clear the coding test first', { code: 'E_CODING_NOT_CLEARED' });
+  }
   const problem = await promptProblemRepository.findById(problemId);
   if (!problem) throw ApiError.notFound('Prompt problem not found');
 
@@ -66,6 +69,9 @@ const generateAndAssign = async ({ candidateId, topicOverride, difficultyOverrid
 const saveGeneratedAndAssign = async ({ candidateId, draft, adminId }) => {
   const candidate = await candidateRepository.findById(candidateId);
   if (!candidate) throw ApiError.notFound('Candidate not found');
+  if (candidate.codingTest?.outcome !== 'shortlisted') {
+    throw ApiError.conflict('Candidate must clear the coding test first', { code: 'E_CODING_NOT_CLEARED' });
+  }
 
   const problem = await promptProblemRepository.create({
     title: draft.title, description: draft.description, sampleInput: draft.sampleInput,

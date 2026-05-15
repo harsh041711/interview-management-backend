@@ -19,7 +19,7 @@ describe('promptTestService.assign', () => {
   beforeEach(() => jest.clearAllMocks());
 
   test('creates a submission and updates candidate.promptTest', async () => {
-    candidateRepo.findById.mockResolvedValue({ id: 'c1', save: jest.fn(), promptTest: {} });
+    candidateRepo.findById.mockResolvedValue({ id: 'c1', codingTest: { outcome: 'shortlisted' }, save: jest.fn(), promptTest: {} });
     problemRepo.findById.mockResolvedValue({ id: 'p1', durationMinutes: 20 });
     subRepo.create.mockResolvedValue({ id: 's1', accessToken: 'tok-abc' });
 
@@ -85,5 +85,51 @@ describe('promptTestService.submit', () => {
   test('rejects double submit', async () => {
     subRepo.findByToken.mockResolvedValue({ id: 's1', submittedAt: new Date() });
     await expect(svc.submit({ token: 'x', candidatePrompt: 'p' })).rejects.toThrow(/already/i);
+  });
+});
+
+describe('promptTestService.assign — coding-test-cleared gate', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  const baseCandidate = (codingOutcome) => ({
+    id: 'c1',
+    _id: 'c1',
+    status: 'shortlisted',
+    codingTest: codingOutcome ? { outcome: codingOutcome } : undefined,
+    save: jest.fn().mockResolvedValue(undefined),
+    promptTest: {},
+  });
+
+  test('rejects with E_CODING_NOT_CLEARED when candidate.codingTest is undefined', async () => {
+    candidateRepo.findById.mockResolvedValue(baseCandidate(undefined));
+    await expect(svc.assign({ candidateId: 'c1', problemId: 'p1' }))
+      .rejects.toMatchObject({ statusCode: 409, code: 'E_CODING_NOT_CLEARED' });
+  });
+
+  test('rejects with E_CODING_NOT_CLEARED when codingTest.outcome is null', async () => {
+    candidateRepo.findById.mockResolvedValue(baseCandidate(null));
+    await expect(svc.assign({ candidateId: 'c1', problemId: 'p1' }))
+      .rejects.toMatchObject({ statusCode: 409, code: 'E_CODING_NOT_CLEARED' });
+  });
+
+  test('rejects with E_CODING_NOT_CLEARED when codingTest.outcome is pending_review', async () => {
+    candidateRepo.findById.mockResolvedValue(baseCandidate('pending_review'));
+    await expect(svc.assign({ candidateId: 'c1', problemId: 'p1' }))
+      .rejects.toMatchObject({ statusCode: 409, code: 'E_CODING_NOT_CLEARED' });
+  });
+
+  test('rejects with E_CODING_NOT_CLEARED when codingTest.outcome is rejected', async () => {
+    candidateRepo.findById.mockResolvedValue(baseCandidate('rejected'));
+    await expect(svc.assign({ candidateId: 'c1', problemId: 'p1' }))
+      .rejects.toMatchObject({ statusCode: 409, code: 'E_CODING_NOT_CLEARED' });
+  });
+
+  test('allows when codingTest.outcome is shortlisted', async () => {
+    candidateRepo.findById.mockResolvedValue(baseCandidate('shortlisted'));
+    problemRepo.findById.mockResolvedValue({ id: 'p1', durationMinutes: 20 });
+    subRepo.create.mockResolvedValue({ id: 's1', accessToken: 'tok-abc' });
+
+    const res = await svc.assign({ candidateId: 'c1', problemId: 'p1' });
+    expect(res.accessToken).toBe('tok-abc');
   });
 });
