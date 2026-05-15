@@ -41,14 +41,27 @@ Out of scope for this spec: action-row UX redesign (separate spec); prompt-test 
 4. Candidate takes coding test → submits → HR reviews → Shortlist OR Reject
    Shortlist                → codingTest.outcome = 'shortlisted'
                             → HR sees "Send prompt test" button (optional)
-                            → HR sees "Select for culture" / "Reject"
+                            → HR can schedule R1 Technical live interview via
+                              the Candidate Timeline's "+ Schedule next round"
    Reject                   → codingTest.outcome = 'rejected' → candidate rejected
         ↓
 5. (Optional) HR clicks "Send prompt test"
    Backend validates codingTest.outcome === 'shortlisted' → 409 E_CODING_NOT_CLEARED if not
         ↓
    Standard prompt-test flow continues
+        ↓
+6. Assessment phase complete (MCQ + Coding + optional Prompt all cleared)
+        ↓
+   Live interview phase begins (separate from this spec — handled by the
+   Candidate Timeline shipped earlier today):
+     · R1 Technical  → schedule via timeline → conduct on co-pilot → review
+     · R2 Practical  → "+ Schedule next round" defaults to Practical
+     · R3 HR-Culture → "+ Schedule next round" defaults to HR-Culture
+        ↓
+7. After R3 review: HR makes the final hire/reject decision.
 ```
+
+**Note on legacy "Select for culture" button:** the existing button on `CandidateDetailPage` that flips status to `selected_for_culture` is a single-round-era leftover. It still works (some workflows may rely on it) but the canonical post-assessment path is now **schedule live interviews via the timeline**, not the legacy single-step button. Cleaning up that legacy button is out of scope here — tracked as a separate action-row UX task.
 
 ---
 
