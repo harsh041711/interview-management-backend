@@ -11,4 +11,8 @@ export const liveInterviewApi = {
     apiClient.post(`/me/live-sessions/${sessionId}/end`).then((r) => r.data.data.session),
   getCopilotNotes: (interviewId) =>
     apiClient.get(`/me/interviews/${interviewId}/copilot-notes`).then((r) => r.data.data.session),
+  suggestFollowUps: ({ questionText, note, topic, difficulty }) =>
+    apiClient
+      .post('/me/ai/suggest-follow-ups', { questionText, note, topic, difficulty })
+      .then((r) => r.data.data),
 };
