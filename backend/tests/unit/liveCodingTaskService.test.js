@@ -279,3 +279,61 @@ describe('liveCodingTaskService.cancel', () => {
     await expect(svc.cancel({ taskId: 't1', interviewerId: INTERVIEWER })).rejects.toMatchObject({ statusCode: 404 });
   });
 });
+
+describe('liveCodingTaskService.reportMonitoring', () => {
+  const TOKEN = 'tok-abc';
+
+  beforeEach(() => {
+    taskRepo.findByToken = jest.fn();
+    taskRepo.updateById = jest.fn();
+  });
+
+  test('happy path: persists tabSwitches and returns the value', async () => {
+    taskRepo.findByToken.mockResolvedValue({ _id: 't1', id: 't1', status: 'opened' });
+    taskRepo.updateById.mockResolvedValue({ _id: 't1', monitoring: { tabSwitches: 5 } });
+
+    const out = await svc.reportMonitoring({ token: TOKEN, tabSwitches: 5 });
+
+    expect(taskRepo.updateById).toHaveBeenCalledWith('t1', { 'monitoring.tabSwitches': 5 });
+    expect(out).toEqual({ tabSwitches: 5 });
+  });
+
+  test('idempotent: calling with the same value twice yields the same value', async () => {
+    taskRepo.findByToken.mockResolvedValue({ _id: 't1', id: 't1', status: 'opened' });
+    taskRepo.updateById.mockResolvedValue({ _id: 't1', monitoring: { tabSwitches: 7 } });
+
+    await svc.reportMonitoring({ token: TOKEN, tabSwitches: 7 });
+    const out2 = await svc.reportMonitoring({ token: TOKEN, tabSwitches: 7 });
+
+    expect(out2).toEqual({ tabSwitches: 7 });
+    expect(taskRepo.updateById).toHaveBeenLastCalledWith('t1', { 'monitoring.tabSwitches': 7 });
+  });
+
+  test('clamps values above 999 down to 999', async () => {
+    taskRepo.findByToken.mockResolvedValue({ _id: 't1', id: 't1', status: 'opened' });
+    taskRepo.updateById.mockResolvedValue({ _id: 't1', monitoring: { tabSwitches: 999 } });
+
+    const out = await svc.reportMonitoring({ token: TOKEN, tabSwitches: 5000 });
+
+    expect(taskRepo.updateById).toHaveBeenCalledWith('t1', { 'monitoring.tabSwitches': 999 });
+    expect(out).toEqual({ tabSwitches: 999 });
+  });
+
+  test('clamps negative values to 0', async () => {
+    taskRepo.findByToken.mockResolvedValue({ _id: 't1', id: 't1', status: 'opened' });
+    taskRepo.updateById.mockResolvedValue({ _id: 't1', monitoring: { tabSwitches: 0 } });
+
+    const out = await svc.reportMonitoring({ token: TOKEN, tabSwitches: -3 });
+
+    expect(taskRepo.updateById).toHaveBeenCalledWith('t1', { 'monitoring.tabSwitches': 0 });
+    expect(out).toEqual({ tabSwitches: 0 });
+  });
+
+  test('throws notFound when token does not match a task', async () => {
+    taskRepo.findByToken.mockResolvedValue(null);
+
+    await expect(svc.reportMonitoring({ token: 'bad', tabSwitches: 1 }))
+      .rejects.toMatchObject({ statusCode: 404, code: 'E_TASK_NOT_FOUND' });
+    expect(taskRepo.updateById).not.toHaveBeenCalled();
+  });
+});

@@ -164,4 +164,12 @@ const cancel = async ({ taskId, interviewerId }) => {
   return toObj(updated);
 };
 
-module.exports = { create, getPublic, runPublic, submitPublic, listForInterview, cancel };
+const reportMonitoring = async ({ token, tabSwitches }) => {
+  const t = await taskRepo.findByToken(token);
+  if (!t) throw ApiError.notFound('Coding task not found', { code: 'E_TASK_NOT_FOUND' });
+  const clamped = Math.max(0, Math.min(999, Math.floor(Number(tabSwitches) || 0)));
+  await taskRepo.updateById(t._id || t.id, { 'monitoring.tabSwitches': clamped });
+  return { tabSwitches: clamped };
+};
+
+module.exports = { create, getPublic, runPublic, submitPublic, listForInterview, cancel, reportMonitoring };
