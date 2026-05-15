@@ -20,4 +20,13 @@ const updateBody = {
   }),
 };
 
-module.exports = { interviewIdParam, sessionIdParam, updateBody };
+const suggestFollowUpsBody = {
+  body: Joi.object({
+    questionText: Joi.string().min(1).max(2000).required(),
+    note:         Joi.string().min(1).max(2000).required(),
+    topic:        Joi.string().allow('').max(200).optional(),
+    difficulty:   Joi.string().valid('easy', 'medium', 'hard').optional(),
+  }),
+};
+
+module.exports = { interviewIdParam, sessionIdParam, updateBody, suggestFollowUpsBody };
