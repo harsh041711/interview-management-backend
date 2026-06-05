@@ -90,8 +90,8 @@ Key values currently configured:
 - `MONGODB_URI=mongodb://127.0.0.1:27017/interview_management`
 - `JWT_SECRET`, `TEST_TOKEN_SECRET` (dev secrets)
 - AI: `GEMINI_API_KEY`, `GROQ_API_KEY`
-- Cloudinary: cloud `dhbmwxk1s` + API key + secret (resume/photo upload)
-- SMTP (email): `harsh@topsinfosolutions.com` with a Gmail app password
+- Cloudinary: `CLOUDINARY_CLOUD_NAME` / `CLOUDINARY_API_KEY` / `CLOUDINARY_API_SECRET` (resume/photo upload)
+- SMTP (email): `SMTP_USER` / `SMTP_PASSWORD` (a Gmail app password)
 - Google Calendar OAuth: `GOOGLE_OAUTH_CLIENT_ID` / `GOOGLE_OAUTH_CLIENT_SECRET`
 - Piston: `PISTON_URL=http://localhost:2000/api/v2/execute`
 - Admin bootstrap: `SEED_ADMIN_EMAIL=admin@example.com` / `SEED_ADMIN_PASSWORD=ChangeMe@123`
