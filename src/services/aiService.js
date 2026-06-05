@@ -188,17 +188,25 @@ const extractJson = (text) => {
   }
 };
 
+const QUESTION_TYPE_RULES = {
+  [QUESTION_TYPES.MCQ]: '- For type "mcq": provide 4 plausible options with exactly one correctAnswer (the option text).',
+  [QUESTION_TYPES.MULTI_SELECT]: '- For type "multi_select": provide 4 options, correctAnswer is an array of correct option texts (>=2).',
+  [QUESTION_TYPES.ONE_LINE]: '- For type "one_line": correctAnswer is the canonical short answer; also provide "keywords" — 3-6 lowercase synonyms acceptable for matching.',
+  [QUESTION_TYPES.DESCRIPTIVE]: '- For type "descriptive": no options/correctAnswer, but provide a short "rubric" (max 3 sentences) describing what an excellent answer covers.',
+};
+
 const buildQuestionGenerationPrompt = ({ techStack, count, types, difficulty }) => {
-  const typeList = (types && types.length ? types : Object.values(QUESTION_TYPES)).join(', ');
+  // Only the requested types (fall back to all when none are specified).
+  const allowed = types && types.length ? types : Object.values(QUESTION_TYPES);
+  const typeList = allowed.join(', ');
+  const typeRuleLines = allowed.map((t) => QUESTION_TYPE_RULES[t]).filter(Boolean).join('\n');
+  const typeEnum = allowed.map((t) => `"${t}"`).join(' | ');
   const diff = difficulty || 'mixed (easy/medium/hard)';
   return `You are an expert interview coach. Generate ${count} interview questions for the tech stack "${techStack}".
 
 Rules:
-- Mix question types from this set: [${typeList}]
-- For type "mcq": provide 4 plausible options with exactly one correctAnswer (the option text).
-- For type "multi_select": provide 4 options, correctAnswer is an array of correct option texts (>=2).
-- For type "one_line": correctAnswer is the canonical short answer; also provide "keywords" — 3-6 lowercase synonyms acceptable for matching.
-- For type "descriptive": no options/correctAnswer, but provide a short "rubric" (max 3 sentences) describing what an excellent answer covers.
+- Use ONLY these question types: [${typeList}]. Every question's "type" MUST be exactly one of these. Do NOT generate any other type under any circumstances.
+${typeRuleLines}
 - difficulty must be one of: easy, medium, hard. Aim for: ${diff}
 - Each question must have integer "marks" 1-5 reflecting difficulty.
 - Output ONLY a JSON object with shape: { "questions": [...] }. No prose, no markdown fences, no comments.
@@ -206,7 +214,7 @@ Rules:
 Schema for each item in "questions":
 {
   "techStack": "${techStack}",
-  "type": "mcq" | "multi_select" | "one_line" | "descriptive",
+  "type": ${typeEnum},
   "question": string,
   "options": string[]?,
   "correctAnswer": string | string[]?,
@@ -274,6 +282,7 @@ module.exports = {
   evaluateDescriptive,
   askWithFallback,
   extractJson,
+  buildQuestionGenerationPrompt,
   GEMINI_MODEL_CHAIN,
   GROQ_MODEL_CHAIN,
 };

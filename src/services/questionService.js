@@ -78,9 +78,12 @@ const generateAndSave = async ({ techStack, count = 10, types, difficulty, persi
     logger.warn('AI question generation failed, will try manual fallback', { err: aiError });
   }
 
+  // The AI doesn't reliably obey the requested types, so enforce them here.
+  const requestedTypes = Array.isArray(types) && types.length ? new Set(types) : null;
   const cleaned = [];
   for (const q of aiQuestions) {
     if (!q || !QUESTION_TYPE_LIST.includes(q.type) || !q.question) continue;
+    if (requestedTypes && !requestedTypes.has(q.type)) continue;
     try {
       cleaned.push({
         ...sanitizeQuestionInput({ ...q, source: QUESTION_SOURCE.AI }),
