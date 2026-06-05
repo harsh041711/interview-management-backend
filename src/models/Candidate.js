@@ -1,0 +1,132 @@
+'use strict';
+
+const mongoose = require('mongoose');
+const { CANDIDATE_STATUS, CANDIDATE_STATUS_LIST } = require('../utils/constants');
+
+const candidateSchema = new mongoose.Schema(
+  {
+    name: { type: String, required: true, trim: true, maxlength: 120 },
+    email: {
+      type: String,
+      required: true,
+      trim: true,
+      lowercase: true,
+      index: true,
+    },
+    techStack: {
+      type: [String],
+      required: true,
+      validate: {
+        validator: (arr) => Array.isArray(arr) && arr.length > 0,
+        message: 'At least one tech stack required',
+      },
+    },
+    experience: {
+      type: String,
+      enum: ['entry', 'mid', 'senior'],
+      default: 'mid',
+      required: true,
+    },
+    jobDescriptionId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'JobDescription',
+      default: null,
+      index: true,
+    },
+    testToken: { type: String, required: true, unique: true, index: true },
+    tokenExpiresAt: { type: Date, required: true, index: true },
+    questionCount: { type: Number, default: 10, min: 1, max: 50 },
+    // Default 12 = 10 questions x ~1.2 min/question; overridable at the Send-test step.
+    durationMinutes: { type: Number, default: 12, min: 1, max: 240 },
+    status: {
+      type: String,
+      enum: CANDIDATE_STATUS_LIST,
+      default: CANDIDATE_STATUS.RESUME_PENDING,
+      index: true,
+    },
+    photoUrl: { type: String, default: null },
+    photoPublicId: { type: String, default: null },
+    photoCapturedAt: { type: Date, default: null },
+    resumeUrl: { type: String, default: null },
+    resumePublicId: { type: String, default: null },
+    resumeOriginalName: { type: String, default: null },
+    resumeMimeType: { type: String, default: null },
+    resumeBytes: { type: Number, default: null },
+    resumeUploadedAt: { type: Date, default: null },
+    screening: {
+      status: {
+        type: String,
+        enum: ['scored', 'skipped', 'failed'],
+        default: undefined,
+      },
+      matchPercent: { type: Number, min: 0, max: 100 },
+      greenFlags: { type: [String], default: undefined },
+      redFlags: { type: [String], default: undefined },
+      summary: { type: String, maxlength: 500 },
+      jdId: { type: mongoose.Schema.Types.ObjectId, ref: 'JobDescription' },
+      jdSnapshot: {
+        title: String,
+        jobRole: String,
+        responsibilities: String,
+        qualifications: String,
+        niceToHave: String,
+        minYears: Number,
+        maxYears: Number,
+      },
+      resumeText: { type: String, maxlength: 20000 },
+      scoredAt: Date,
+      scoredBy: String,
+    },
+    codingTest: {
+      token: { type: String, default: null },
+      expiresAt: { type: Date, default: null },
+      problems: { type: [mongoose.Schema.Types.ObjectId], ref: 'CodingProblem', default: undefined },
+      problemCount: { type: Number, default: null, min: 1, max: 5 },
+      durationMinutes: { type: Number, default: null, min: 1, max: 240 },
+      difficulty: { type: String, enum: ['easy', 'medium', 'hard', null], default: null },
+      sentAt: { type: Date, default: null },
+      firstOpenedAt: { type: Date, default: null },
+      submittedAt: { type: Date, default: null },
+      reviewedAt: { type: Date, default: null },
+      outcome: {
+        type: String,
+        enum: ['pending_review', 'shortlisted', 'rejected', null],
+        default: null,
+      },
+    },
+    promptTest: {
+      token:           { type: String, default: null },
+      expiresAt:       { type: Date, default: null },
+      problemId:       { type: mongoose.Schema.Types.ObjectId, ref: 'PromptProblem', default: null },
+      durationMinutes: { type: Number, default: null, min: 1, max: 240 },
+      sentAt:          { type: Date, default: null },
+      firstOpenedAt:   { type: Date, default: null },
+      submittedAt:     { type: Date, default: null },
+      reviewedAt:      { type: Date, default: null },
+      outcome: {
+        type: String,
+        enum: ['pending_review', 'shortlisted', 'rejected', null],
+        default: null,
+      },
+    },
+    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Admin', required: true },
+  },
+  {
+    timestamps: true,
+    toJSON: {
+      transform(_doc, ret) {
+        delete ret.__v;
+        return ret;
+      },
+    },
+  },
+);
+
+candidateSchema.index({ email: 1, createdAt: -1 });
+candidateSchema.index({ status: 1, createdAt: -1 });
+
+candidateSchema.virtual('isExpired').get(function () {
+  return this.tokenExpiresAt && this.tokenExpiresAt.getTime() < Date.now();
+});
+
+module.exports = mongoose.model('Candidate', candidateSchema);
